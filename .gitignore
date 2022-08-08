@@ -1,2 +1,3 @@
 /src/db.sqlite3
 /src/vpn.log
+.idea/*
