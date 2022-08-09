@@ -26,6 +26,8 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'VPNServiceRecord',
+                'verbose_name': 'Telegram User VPN Key',
+                'verbose_name_plural': 'Telegram User VPN Keys',
             },
         ),
     ]
