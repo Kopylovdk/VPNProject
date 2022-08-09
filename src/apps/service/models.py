@@ -4,6 +4,8 @@ from django.db import models
 class VPNServiceRecord(models.Model):
     class Meta:
         db_table = 'VPNServiceRecord'
+        verbose_name = 'Telegram User VPN Key'
+        verbose_name_plural = 'Telegram User VPN Keys'
 
     telegram_id = models.IntegerField(verbose_name='ID телеграм', null=True)
     telegram_login = models.CharField(verbose_name='Логин телеграм', max_length=254, null=True, blank=True)
@@ -14,3 +16,6 @@ class VPNServiceRecord(models.Model):
     outline_key_created_at = models.DateField(verbose_name='Дата добавления ключа VPN', auto_now_add=True)
     outline_key_valid_until = models.DateField(verbose_name='Дата окончания подписки', null=True, blank=True)
     outline_key_active = models.BooleanField(verbose_name='Активность VPN ключа', default=True, null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.telegram_login}_{self.telegram_first_name}_{self.telegram_last_name}'
