@@ -1,36 +1,46 @@
-service:
+django:
   debug: True
   secret_key: +1cu3vz4k7ph!=p-fkdff561l(p)z#0tj9_5_4*^t@l_j#@q!f
 
-  logging:
-    disable_existing_loggers: true
-    formatters:
-      default:
-        format: '[%(asctime)s] %(levelname)-8s [%(name)s] [line=%(lineno)s] [msg=%(message)s]'
-    handlers:
-      file:
-        backupCount: 30
-        class: logging.handlers.TimedRotatingFileHandler
-        encoding: utf-8
-        filename: vpn.log
-        formatter: default
-        interval: 1
-        level: DEBUG
-        when: D
-      stdout:
-        class: logging.StreamHandler
-        formatter: default
-        level: DEBUG
-    root:
-      handlers:
-        - file
-        - stdout
+logging:
+  disable_existing_loggers: true
+  formatters:
+    default:
+      format: '[%(asctime)s] %(levelname)-8s [%(name)s] [line=%(lineno)s] [msg=%(message)s]'
+  handlers:
+    file:
+      backupCount: 30
+      class: logging.handlers.TimedRotatingFileHandler
+      encoding: utf-8
+      filename: vpn.log
+      formatter: default
+      interval: 1
       level: DEBUG
-      propagate: true
-    version: 1
+      when: D
+    stdout:
+      class: logging.StreamHandler
+      formatter: default
+      level: DEBUG
+  root:
+    handlers:
+      - file
+      - stdout
+    level: DEBUG
+    propagate: true
+  version: 1
+
 db:
   host: db
   port: 5432
   name: postgres
   user: postgres
   password: postgres
+
+tg_bot:
+  token: 1722461468:AAHi-8QjcE3nvKGrUVkFIFQzdSj1bfN_2Zc
+  to_send_admin_ids: 480629416
+
+outline_vpn:
+  ip: 194.110.55.249
+  port: 19600
+  server_key: 19hWeOaVXgUOnm22CDe2CQ

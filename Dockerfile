@@ -10,7 +10,7 @@ ENV OUT_PATH_CONF=.
 COPY requirements.txt .
 COPY migrate.sh .
 COPY start.sh .
-
+COPY start_bot.sh .
 
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt

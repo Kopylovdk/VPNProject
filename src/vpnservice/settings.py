@@ -23,15 +23,15 @@ EXTERNAL_CFG = get_external_configs()
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = EXTERNAL_CFG['service']['secret_key']
+SECRET_KEY = EXTERNAL_CFG['django']['secret_key']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = EXTERNAL_CFG['service']['debug']
+DEBUG = EXTERNAL_CFG['django']['debug']
 
 ALLOWED_HOSTS = ['*']
 
 LOGGING = logging_config_update(
-    config=EXTERNAL_CFG['service']['logging'],
+    config=EXTERNAL_CFG['logging'],
     log_path=BASE_DIR)
 
 # Application definition
@@ -76,7 +76,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'vpnservice.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
@@ -94,7 +93,6 @@ DATABASES = {
         'PORT': EXTERNAL_CFG['db']['port'],
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
@@ -127,7 +125,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = False
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
