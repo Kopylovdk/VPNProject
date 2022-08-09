@@ -1,4 +1,6 @@
-version: '3'
+version: '3.3'
+volumes:
+  static: {}
 
 services:
   db:
@@ -13,8 +15,8 @@ services:
   vpn_service:
     platform: linux/x86_64
     build: .
-    ports:
-      - "8000:5000"
+    expose:
+      - "8000"
     command:
       sh -c "./migrate.sh && ./start.sh"
     depends_on:
@@ -22,10 +24,11 @@ services:
     restart: always
 
   nginx:
-    platform: linux/x86_64
-    build: ./nginx
+    build: ./nginx_conf
     ports:
-      - "8000:5000"
+      - "8080:80"
+    volumes:
+      - static:/usr/src/static
+    restart: always
     depends_on:
       - vpn_service
-    restart: always

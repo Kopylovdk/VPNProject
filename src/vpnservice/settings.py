@@ -132,4 +132,9 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
+
 STATIC_URL = '/static/'
+
+STATIC_ROOT = BASE_DIR + STATIC_URL
+
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8080']
