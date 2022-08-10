@@ -12,7 +12,7 @@ with open(f'{os.getcwd()}/config.yaml', 'r', encoding='utf8') as f:
     tg_bot_conf = config['tg_bot']
 
 
-# outline_client = OutlineVPN("https://{}:{}/{}".format(**outline_conf))
+outline_client = OutlineVPN("https://{}:{}/{}".format(**outline_conf))
 
 bot = TeleBot(tg_bot_conf['token'])
 
@@ -20,7 +20,8 @@ bot = TeleBot(tg_bot_conf['token'])
 @bot.message_handler(commands=['start'])
 def start(message: Message):
     """Хендлер команды Start"""
-    bot.send_message(message.chat.id, 'Добро пожаловать в Админку')
+    bot.send_message(message.chat.id, 'Добро пожаловать в VPN Project!')
+    # TODO: регистрация пользователя ТГ в постгрес, Вернуть клавиатуру управления по ТГ ID
 
 
 @bot.message_handler(content_types=["text"])

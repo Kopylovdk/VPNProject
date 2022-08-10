@@ -38,7 +38,7 @@ db:
 
 tg_bot:
   token: 1722461468:AAHi-8QjcE3nvKGrUVkFIFQzdSj1bfN_2Zc
-  to_send_admin_ids: 480629416
+  admin_ids: [480629416]
 
 outline_vpn:
   ip: 194.110.55.249
