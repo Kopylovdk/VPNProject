@@ -1,6 +1,6 @@
 django:
   debug: True
-  secret_key: +1cu3vz4k7ph!=p-fkdff561l(p)z#0tj9_5_4*^t@l_j#@q!f
+  secret_key:
 
 logging:
   disable_existing_loggers: true
@@ -37,10 +37,10 @@ db:
   password: postgres
 
 tg_bot:
-  token: 1722461468:AAHi-8QjcE3nvKGrUVkFIFQzdSj1bfN_2Zc
+  token:
   admin_ids: [480629416]
 
 outline_vpn:
   ip: 194.110.55.249
   port: 19600
-  server_key: 19hWeOaVXgUOnm22CDe2CQ
+  server_key:
