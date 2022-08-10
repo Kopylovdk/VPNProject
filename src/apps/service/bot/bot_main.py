@@ -1,32 +1,35 @@
 from telebot import TeleBot
-import threading
-from outline_vpn.outline_vpn import OutlineVPN
 from telebot.types import Message
-import yaml
-import os
+from apps.service.bot.processes import add_new_tg_user
+from apps.service.bot.keyboards import main_keyboard
+from vpnservice.settings import EXTERNAL_CFG
 
 
-with open(f'{os.getcwd()}/config.yaml', 'r', encoding='utf8') as f:
-    config = yaml.safe_load(f)
-    outline_conf = config['outline_vpn']
-    tg_bot_conf = config['tg_bot']
-
-
-outline_client = OutlineVPN("https://{}:{}/{}".format(**outline_conf))
-
+tg_bot_conf = EXTERNAL_CFG['tg_bot']
 bot = TeleBot(tg_bot_conf['token'])
 
 
 @bot.message_handler(commands=['start'])
 def start(message: Message):
     """Хендлер команды Start"""
-    bot.send_message(message.chat.id, 'Добро пожаловать в VPN Project!')
-    # TODO: регистрация пользователя ТГ в постгрес, Вернуть клавиатуру управления по ТГ ID
+    tg_user = message.from_user
+    bot.send_message(
+        message.chat.id,
+        text='Добро пожаловать в VPN Project!',
+        reply_markup=main_keyboard(tg_bot_conf['admin_ids'], tg_user.id)
+    )
+    add_new_tg_user(tg_user)
 
 
 @bot.message_handler(content_types=["text"])
 def handle_text(message: Message):
-    """Хендлер обработки текстовых сообщений от пользователя"""
+    """Хендлер обработки текстовых команд клавиатуры от пользователя"""
+    tg_user = message.from_user
+    if 'Оформить подписку' in message.text:
+        bot.send_message(tg_user.id, text='в разработке')
 
+    elif 'Инструкция' in message.text:
+        bot.send_message(tg_user.id, text='в разработке')
 
-threading.Thread(bot.polling(none_stop=True, interval=0), name='telegram_thread_v1')
+    elif 'Поддержка' in message.text:
+        bot.send_message(tg_user.id, text='в разработке')
