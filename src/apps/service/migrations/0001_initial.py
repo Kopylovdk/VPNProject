@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                 ('telegram_first_name', models.CharField(blank=True, max_length=254, null=True, verbose_name='Имя телеграм')),
                 ('telegram_last_name', models.CharField(blank=True, max_length=254, null=True, verbose_name='Фамилия телеграм')),
                 ('outline_key_id', models.IntegerField(blank=True, null=True, verbose_name='ID OutLine VPN Key')),
-                ('outline_key_created_at', models.DateField(auto_now_add=True, verbose_name='Дата добавления ключа VPN')),
+                ('record_created_at', models.DateField(auto_now_add=True, verbose_name='Дата создания записи')),
                 ('outline_key_valid_until', models.DateField(blank=True, null=True, verbose_name='Дата окончания подписки')),
                 ('outline_key_active', models.BooleanField(blank=True, default=True, null=True, verbose_name='Активность VPN ключа')),
             ],
