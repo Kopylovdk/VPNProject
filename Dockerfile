@@ -9,12 +9,11 @@ ENV OUT_PATH_CONF=.
 
 COPY requirements.txt .
 COPY migrate.sh .
-COPY start.sh .
+COPY start_gunicorn.sh .
 COPY start_bot.sh .
+COPY start.sh .
 
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
 COPY src .
-
-CMD ["./start.sh"]
