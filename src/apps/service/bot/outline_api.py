@@ -1,18 +1,21 @@
 from outline_vpn.outline_vpn import OutlineVPN, OutlineKey
 from telebot import TeleBot
 from telebot.types import Message
-from keyboards import one_time_keyboard_yes_no, one_time_keyboard_cancel, admin_keyboard
+from keyboards import one_time_keyboard_yes_no, one_time_keyboard_cancel, main_keyboard
+from vpnservice.settings import EXTERNAL_CFG
 
 
-def create_new_vpn_key(client: OutlineVPN) -> OutlineKey:
+outline_conf = EXTERNAL_CFG['outline_vpn']
+outline_client = OutlineVPN("https://{}:{}/{}".format(*outline_conf.values()))
+
+
+def create_new_vpn_key() -> OutlineKey:
     """Метод создания нового ключа
-    Params:
-        client: OutlineVPN
-    Returns:
-        str
+    Params: None
+    Returns: OutlineKey
     Exceptions: None
     """
-    return client.create_key()
+    return outline_client.create_key()
 
 #
 # def keys_list(client: OutlineVPN):
