@@ -74,6 +74,7 @@ def add_new_vpn_key_to_tg_user(vpn_key_id: int, user_id: int) -> None:
         outline_key_valid_until=datetime.datetime.today()
     )
     new_record.save()
+    # TODO: ограничение трафика у нового ключа
 
 
 def get_all_vpn_keys_of_user(user: User) -> list:
