@@ -1,6 +1,5 @@
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 from apps.service.processes import get_all_admins
-from apps.service.models import TelegramUsers
 
 
 def main_keyboard(tg_user_id: int) -> ReplyKeyboardMarkup:
@@ -49,16 +48,16 @@ def subscribe_keyboard(subscribes: list) -> ReplyKeyboardMarkup:
     return kb
 
 
-def one_time_keyboard_yes_no() -> ReplyKeyboardMarkup:
-    """
-    Вспомогательная клавиатура (клавиатура да/нет)
-    Params: None
-    Returns: ReplyKeyboardMarkup
-    Exceptions: None
-    """
-    kb = ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-    kb.add(KeyboardButton(text='да'), KeyboardButton(text='нет'))
-    return kb
+# def one_time_keyboard_yes_no() -> ReplyKeyboardMarkup:
+#     """
+#     Вспомогательная клавиатура (клавиатура да/нет)
+#     Params: None
+#     Returns: ReplyKeyboardMarkup
+#     Exceptions: None
+#     """
+#     kb = ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+#     kb.add(KeyboardButton(text='да'), KeyboardButton(text='нет'))
+#     return kb
 
 
 def one_time_keyboard_cancel() -> ReplyKeyboardMarkup:
@@ -71,15 +70,3 @@ def one_time_keyboard_cancel() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     kb.add(KeyboardButton(text='В основное меню'))
     return kb
-
-#
-# def register_keyboard() -> ReplyKeyboardMarkup:
-#     """
-#     Вспомогательная клавиатура (клавиатура Зарегистрироваться)
-#     Params: None
-#     Returns: ReplyKeyboardMarkup
-#     Exceptions: None
-#     """
-#     kb = ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-#     kb.add(KeyboardButton(text='Зарегистрироваться'))
-#     return kb
