@@ -1,7 +1,9 @@
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
+from apps.service.processes import get_all_admins
+from apps.service.models import TelegramUsers
 
 
-def main_keyboard(admin_ids: list, tg_user_id: int) -> ReplyKeyboardMarkup:
+def main_keyboard(tg_user_id: int) -> ReplyKeyboardMarkup:
     """
     Основная клавиатура
     Params:
@@ -12,24 +14,38 @@ def main_keyboard(admin_ids: list, tg_user_id: int) -> ReplyKeyboardMarkup:
     Exceptions: None
     """
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    if tg_user_id in admin_ids:
-        kb.row_width = 3
-        to_add_btn = [
-            KeyboardButton(text='Получить TG id пользователя'),
+    kb.row_width = 3
+    to_add_btn = [
+        KeyboardButton(text='Оформить подписку'),
+        KeyboardButton(text='Инструкция'),
+        KeyboardButton(text='Поддержка'),
+        KeyboardButton(text='Мои VPN ключи'),
+    ]
+
+    if tg_user_id in get_all_admins():
+        to_add_btn += [
             KeyboardButton(text='Новый ключ'),
+            KeyboardButton(text='Привязать ключ к пользователю'),
             KeyboardButton(text='Удалить ключ'),
-            KeyboardButton(text='Список ключей'),
-            KeyboardButton(text='Добавить имя'),
             KeyboardButton(text='Добавить срок действия'),
         ]
-    else:
-        kb.row_width = 2
-        to_add_btn = [
-            KeyboardButton(text='Оформить подписку'),
-            KeyboardButton(text='Инструкция'),
-            KeyboardButton(text='Поддержка'),
-        ]
+
     kb.add(*to_add_btn)
+    return kb
+
+
+def subscribe_keyboard(subscribes: list) -> ReplyKeyboardMarkup:
+    """
+    Клавиатура вариантов подписки
+    Params: None
+    Returns: ReplyKeyboardMarkup
+    Exceptions: None
+    """
+    kb = ReplyKeyboardMarkup(row_width=3, resize_keyboard=True)
+    subscribes_buttons = []
+    for subscribe in subscribes:
+        subscribes_buttons.append(KeyboardButton(text=subscribe))
+    kb.add(*subscribes_buttons, KeyboardButton(text='В основное меню'))
     return kb
 
 
@@ -53,7 +69,7 @@ def one_time_keyboard_cancel() -> ReplyKeyboardMarkup:
     Exceptions: None
     """
     kb = ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-    kb.add(KeyboardButton(text='отмена'))
+    kb.add(KeyboardButton(text='В основное меню'))
     return kb
 
 #
