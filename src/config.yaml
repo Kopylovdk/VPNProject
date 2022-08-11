@@ -38,7 +38,7 @@ db:
 
 tg_bot:
   token:
-  admin_ids: [480629416]
+  subscribes: ['1 месяц', '3 месяца', '6 месяцев']
 
 outline_vpn:
   ip: 194.110.55.249
