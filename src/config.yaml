@@ -12,7 +12,7 @@ logging:
       backupCount: 30
       class: logging.handlers.TimedRotatingFileHandler
       encoding: utf-8
-      filename: vpn.log
+      filename: logs/vpn.log
       formatter: default
       interval: 1
       level: DEBUG
