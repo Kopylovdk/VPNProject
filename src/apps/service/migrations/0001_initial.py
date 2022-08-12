@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
                 ('outline_key_value', models.CharField(verbose_name='VPN ключ', max_length=254, null=True, blank=True)),
                 ('outline_key_name', models.CharField(blank=True, max_length=254, null=True, verbose_name='Имя VPN ключа', default='Отсутствует')),
                 ('outline_key_valid_until', models.DateField(blank=True, null=True, verbose_name='Дата окончания подписки')),
-                ('outline_key_active', models.BooleanField(default=True, verbose_name='Активность VPN ключа')),
+                ('outline_key_active', models.BooleanField(default=False, verbose_name='Активность VPN ключа')),
                 ('created_at', models.DateField(auto_now_add=True, verbose_name='Дата создания записи')),
             ],
             options={

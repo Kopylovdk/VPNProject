@@ -39,7 +39,7 @@ class OutlineVPNKeys(models.Model):
     )
     outline_key_value = models.CharField(verbose_name='VPN ключ', max_length=254, null=True, blank=True)
     outline_key_valid_until = models.DateField(verbose_name='Дата окончания подписки', null=True, blank=True)
-    outline_key_active = models.BooleanField(verbose_name='Активность VPN ключа', default=True)
+    outline_key_active = models.BooleanField(verbose_name='Активность VPN ключа', default=False)
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
 
     def __str__(self):
