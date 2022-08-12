@@ -18,7 +18,7 @@ services:
     expose:
       - "8000"
     command:
-      sh -c "./migrate.sh && ./start.sh"
+      sh -c -m "./migrate.sh && ./start.sh"
     depends_on:
       - db
     restart: always
