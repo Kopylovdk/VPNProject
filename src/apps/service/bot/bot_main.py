@@ -1,9 +1,15 @@
 from telebot import TeleBot
 from telebot.types import Message, User
-from apps.service.bot.bot_processes import add_new_vpn_key_to_tg_user_step_1, delete_step_1
+from apps.service.bot.bot_processes import (
+    add_new_vpn_key_to_tg_user_step_1,
+    delete_step_1,
+    active_prolong_api_key_step_1,
+    personal_message_send_step_1,
+    all_users_message_send_step_1,
+)
 from apps.service.processes import get_all_admins, add_new_tg_user, get_all_vpn_keys_of_user
 from apps.service.bot.keyboards import main_keyboard, subscribe_keyboard
-from apps.service.outline.outline_api import create_new_vpn_key
+from apps.service.outline.outline_api import create_new_vpn_key, add_traffic_limit
 from vpnservice.settings import EXTERNAL_CFG
 
 
@@ -91,10 +97,21 @@ def handle_text(message: Message):
 
     elif 'Новый ключ' in message.text:
         vpn_key = create_new_vpn_key()
+        add_traffic_limit(vpn_key.key_id)
+        bot.send_message(tg_user.id, f'Все ключи создаются с лимитом трафика в 1 кб.')
         bot.send_message(tg_user.id, f'id={vpn_key.key_id!r}, key="{vpn_key.access_url!r}"')
 
     elif 'Привязать ключ к пользователю' in message.text:
         add_new_vpn_key_to_tg_user_step_1(message, bot)
+
+    elif 'Активация/продление ключа' in message.text:
+        active_prolong_api_key_step_1(message, bot)
+
+    elif 'Лично' in message.text:
+        personal_message_send_step_1(message, bot)
+
+    elif 'Всем' in message.text:
+        all_users_message_send_step_1(message, bot)
 
     elif 'Удалить ключ' in message.text:
         delete_step_1(message, bot)
