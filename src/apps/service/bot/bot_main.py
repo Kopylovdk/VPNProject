@@ -71,7 +71,7 @@ def handle_text(message: Message):
         send_msg_to_admins(user=tg_user, text=f'Хочет оплатить подписку на {message.text!r}')
 
     elif 'Мои VPN ключи' in message.text:
-        vpn_keys = get_all_vpn_keys_of_user(tg_user)
+        vpn_keys = get_all_vpn_keys_of_user(tg_user.id)
         bot.send_message(
             tg_user.id,
             '\n'.join(vpn_keys) if vpn_keys else 'Ключи отсутствуют, если это не так - обратитесь к администратору.',

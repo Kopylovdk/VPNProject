@@ -19,6 +19,13 @@ from apps.service.processes import (
 
 
 def validate_int(data: str) -> bool:
+    """
+    Валидация. Является ли полученная строка числом
+    Params:
+        data: str
+    Returns: bool
+    Exceptions: None
+    """
     try:
         int(data)
         return True
@@ -27,6 +34,14 @@ def validate_int(data: str) -> bool:
 
 
 def add_new_vpn_key_to_tg_user_step_1(message: Message, bot: TeleBot):
+    """
+    Добавление VPN ключа к пользователю. Шаг 1 из 2
+    Params:
+        message: Message
+        bot: TeleBot
+    Returns: None
+    Exceptions: None
+    """
     bot.send_message(
         message.chat.id,
         'Для привязки VPN к пользователю, введите через пробел:\n'
@@ -39,6 +54,14 @@ def add_new_vpn_key_to_tg_user_step_1(message: Message, bot: TeleBot):
 
 
 def add_new_vpn_key_to_tg_user_step_2(message: Message, bot: TeleBot):
+    """
+    Добавление VPN ключа к пользователю. Шаг 2 из 2
+    Params:
+        message: Message
+        bot: TeleBot
+    Returns: None
+    Exceptions: None
+    """
     if 'В основное меню' in message.text:
         bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_keyboard(message.from_user.id))
     else:
@@ -52,10 +75,10 @@ def add_new_vpn_key_to_tg_user_step_2(message: Message, bot: TeleBot):
                     else:
                         tg_user = get_tg_user_by_(telegram_login=data[1])
                     if tg_user:
-                        add_new_vpn_key_to_tg_user(int(data[0]), tg_user.id)
+                        add_new_vpn_key_to_tg_user(int(data[0]), tg_user)
                         bot.send_message(
                             message.chat.id,
-                            f'VPN ключ {data[0]} привязан к пользователю {tg_user.telegram_id}.',
+                            f'VPN ключ {data[0]} привязан к пользователю {tg_user!r}.',
                             reply_markup=main_keyboard(message.from_user.id))
                     else:
                         bot.send_message(message.chat.id, f'Пользователь {data[1]} не найден. Повторите ввод данных.')
@@ -76,6 +99,14 @@ def add_new_vpn_key_to_tg_user_step_2(message: Message, bot: TeleBot):
 
 
 def delete_step_1(message: Message, bot: TeleBot):
+    """
+    Удаление VPN ключа. Шаг 1 из 2
+    Params:
+        message: Message
+        bot: TeleBot
+    Returns: None
+    Exceptions: None
+    """
     bot.send_message(
         message.chat.id,
         'Для удаления VPN ключа введите его ID:\n',
@@ -85,6 +116,14 @@ def delete_step_1(message: Message, bot: TeleBot):
 
 
 def delete_step_2(message: Message, bot: TeleBot):
+    """
+    Удаление VPN ключа. Шаг 2 из 2
+    Params:
+        message: Message
+        bot: TeleBot
+    Returns: None
+    Exceptions: None
+    """
     if 'В основное меню' in message.text:
         bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_keyboard(message.from_user.id))
     else:
@@ -104,6 +143,14 @@ def delete_step_2(message: Message, bot: TeleBot):
 
 
 def active_prolong_api_key_step_1(message: Message, bot: TeleBot):
+    """
+    Активация и продление VPN ключа. Шаг 1 из 4
+    Params:
+        message: Message
+        bot: TeleBot
+    Returns: None
+    Exceptions: None
+    """
     bot.send_message(
         message.chat.id,
         'Для активации/деактивации ключа, введите ID VPN ключа\n',
@@ -113,6 +160,14 @@ def active_prolong_api_key_step_1(message: Message, bot: TeleBot):
 
 
 def active_prolong_api_key_step_2(message: Message, bot: TeleBot):
+    """
+    Активация и продление VPN ключа. Шаг 2 из 4
+    Params:
+        message: Message
+        bot: TeleBot
+    Returns: None
+    Exceptions: None
+    """
     if 'В основное меню' in message.text:
         bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_keyboard(message.from_user.id))
     else:
@@ -145,6 +200,15 @@ def active_prolong_api_key_step_2(message: Message, bot: TeleBot):
 
 
 def active_prolong_api_key_step_3(message: Message, bot: TeleBot, outline_vpn_record: OutlineVPNKeys):
+    """
+    Активация и продление VPN ключа. Шаг 3 из 4
+    Params:
+        message: Message
+        bot: TeleBot
+        outline_vpn_record: OutlineVPNKeys
+    Returns: None
+    Exceptions: None
+    """
     if 'В основное меню' in message.text or 'Нет ' in message.text:
         bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_keyboard(message.from_user.id))
     elif 'Да' in message.text:
@@ -157,6 +221,15 @@ def active_prolong_api_key_step_3(message: Message, bot: TeleBot, outline_vpn_re
 
 
 def active_prolong_api_key_step_4(message: Message, bot: TeleBot, outline_vpn_record: OutlineVPNKeys):
+    """
+    Активация и продление VPN ключа. Шаг 4 из 4
+    Params:
+        message: Message
+        bot: TeleBot
+        outline_vpn_record: OutlineVPNKeys
+    Returns: None
+    Exceptions: None
+    """
     if 'В основное меню' in message.text:
         bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_keyboard(message.from_user.id))
     else:
@@ -181,6 +254,14 @@ def active_prolong_api_key_step_4(message: Message, bot: TeleBot, outline_vpn_re
 
 
 def personal_message_send_step_1(message: Message, bot: TeleBot):
+    """
+    Отправка личного сообщение от лица Бота. Шаг 1 из 3
+    Params:
+        message: Message
+        bot: TeleBot
+    Returns: None
+    Exceptions: None
+    """
     bot.send_message(
         message.chat.id,
         'Укажите TG id пользователя или его логин:\n',
@@ -190,6 +271,14 @@ def personal_message_send_step_1(message: Message, bot: TeleBot):
 
 
 def personal_message_send_step_2(message: Message, bot: TeleBot):
+    """
+    Отправка личного сообщение от лица Бота. Шаг 2 из 3
+    Params:
+        message: Message
+        bot: TeleBot
+    Returns: None
+    Exceptions: None
+    """
     if 'В основное меню' in message.text:
         bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_keyboard(message.from_user.id))
     else:
@@ -210,6 +299,15 @@ def personal_message_send_step_2(message: Message, bot: TeleBot):
 
 
 def personal_message_send_step_3(message: Message, bot: TeleBot, tg_user: TelegramUsers):
+    """
+    Отправка личного сообщение от лица Бота. Шаг 3 из 3
+    Params:
+        message: Message
+        bot: TeleBot
+        tg_user: TelegramUsers
+    Returns: None
+    Exceptions: None
+    """
     if 'В основное меню' in message.text:
         bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_keyboard(message.from_user.id))
     else:
@@ -223,6 +321,14 @@ def personal_message_send_step_3(message: Message, bot: TeleBot, tg_user: Telegr
 
 
 def all_users_message_send_step_1(message: Message, bot: TeleBot):
+    """
+    Отправка сообщений от лица Бота ВСЕМ пользователям, кроме администраторов. Шаг 1 из 3
+    Params:
+        message: Message
+        bot: TeleBot
+    Returns: None
+    Exceptions: None
+    """
     bot.send_message(
         message.chat.id,
         'Введите сообщение для всех пользователей\n',
@@ -232,6 +338,14 @@ def all_users_message_send_step_1(message: Message, bot: TeleBot):
 
 
 def all_users_message_send_step_2(message: Message, bot: TeleBot):
+    """
+    Отправка сообщений от лица Бота ВСЕМ пользователям, кроме администраторов. Шаг 2 из 3
+    Params:
+        message: Message
+        bot: TeleBot
+    Returns: None
+    Exceptions: None
+    """
     if 'В основное меню' in message.text:
         bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_keyboard(message.from_user.id))
     else:
@@ -244,6 +358,14 @@ def all_users_message_send_step_2(message: Message, bot: TeleBot):
 
 
 def all_users_message_send_step_3(message: Message, bot: TeleBot):
+    """
+    Отправка сообщений от лица Бота ВСЕМ пользователям, кроме администраторов. Шаг 3 из 3
+    Params:
+        message: Message
+        bot: TeleBot
+    Returns: None
+    Exceptions: None
+    """
     if 'В основное меню' in message.text:
         bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_keyboard(message.from_user.id))
     elif 'Редактировать' in message.text:
@@ -263,6 +385,8 @@ def all_users_message_send_step_3(message: Message, bot: TeleBot):
             f'Такой команды не существует. Возврат в основное меню.',
             reply_markup=main_keyboard(message.from_user.id)
         )
+
+
 # def name_add_step_1(message: Message, bot: TeleBot, client: OutlineVPN):
 #     message = bot.reply_to(
 #         message,
