@@ -8,7 +8,7 @@ from apps.service.bot.bot_processes import (
     all_users_message_send_step_1,
 )
 from apps.service.processes import get_all_admins, add_new_tg_user, get_all_vpn_keys_of_user
-from apps.service.bot.keyboards import main_keyboard, subscribe_keyboard
+from apps.service.bot.keyboards import main_keyboard, subscribe_keyboard, bot_message_keyboard
 from apps.service.outline.outline_api import create_new_vpn_key, add_traffic_limit
 from vpnservice.settings import EXTERNAL_CFG
 
@@ -34,7 +34,7 @@ def send_msg_to_admins(user: User, text: str) -> None:
                  f'Логин - {user.username!r}\n'
                  f'ФИО - {user.full_name!r}\n'
                  f'{text!r}',
-            reply_markup=main_keyboard(user.id)
+            reply_markup=main_keyboard(admin_id)
         )
 
 
@@ -106,6 +106,9 @@ def handle_text(message: Message):
 
     elif 'Активация/продление ключа' in message.text:
         active_prolong_api_key_step_1(message, bot)
+
+    elif 'Отправка сообщений' in message.text:
+        bot.send_message(tg_user.id, 'Как отправлять сообщения?', reply_markup=bot_message_keyboard())
 
     elif 'Лично' in message.text:
         personal_message_send_step_1(message, bot)

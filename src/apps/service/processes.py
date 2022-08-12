@@ -132,7 +132,7 @@ def get_all_vpn_keys_of_user(user_id: int) -> list:
     if vpn_keys:
         return [
             f'Ключ: "{vpn_key.outline_key_value!r}"' \
-            f' действует до: {vpn_key.outline_key_valid_until!r}' for vpn_key in vpn_keys
+            f' действует до: {vpn_key.outline_key_valid_until.strftime("%d-%m-%Y")}' for vpn_key in vpn_keys
         ]
     else:
         return []

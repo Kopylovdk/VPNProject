@@ -27,6 +27,7 @@ def main_keyboard(tg_user_id: int) -> ReplyKeyboardMarkup:
             KeyboardButton(text='Привязать ключ к пользователю'),
             KeyboardButton(text='Активация/продление ключа'),
             KeyboardButton(text='Удалить ключ'),
+            KeyboardButton(text='Отправка сообщений'),
         ]
 
     kb.add(*to_add_btn)
