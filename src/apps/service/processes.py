@@ -2,7 +2,7 @@ import datetime
 from apps.service.models import TelegramUsers, OutlineVPNKeys
 from telebot.types import User
 import apps.service.exceptions as exceptions
-from apps.service.outline.outline_api import keys_list
+from apps.service.outline.outline_api import keys_list, del_traffic_limit, add_traffic_limit
 import logging
 
 
@@ -34,6 +34,16 @@ def get_all_admins() -> list[int]:
     Exceptions: list[int]
     """
     return list(TelegramUsers.objects.filter(is_admin=True).values_list('telegram_id', flat=True))
+
+
+def get_all_no_admin_users() -> list[int]:
+    """
+    Функция получения Telegram_id ВСЕХ обычных пользователей
+    Params: None
+    Returns: None
+    Exceptions: list[int]
+    """
+    return list(TelegramUsers.objects.filter(is_admin=False).values_list('telegram_id', flat=True))
 
 
 def add_new_tg_user(telegram_user: User) -> None:
@@ -74,7 +84,6 @@ def add_new_vpn_key_to_tg_user(vpn_key_id: int, user_id: int) -> None:
         outline_key_valid_until=datetime.datetime.today()
     )
     new_record.save()
-    # TODO: ограничение трафика у нового ключа
 
 
 def get_all_vpn_keys_of_user(user: User) -> list:
@@ -85,3 +94,23 @@ def get_all_vpn_keys_of_user(user: User) -> list:
         ]
     else:
         return []
+
+
+def change_vpn_key_is_active(vpn_key: OutlineVPNKeys) -> bool:
+    if vpn_key.outline_key_active:
+        vpn_key.outline_key_active = False
+        add_traffic_limit(vpn_key.outline_key_id)
+    else:
+        vpn_key.outline_key_active = True
+        del_traffic_limit(vpn_key.outline_key_id)
+    vpn_key.save()
+    return vpn_key.outline_key_active
+
+
+def change_vpn_key_valid_until(vpn_key: OutlineVPNKeys, days: int) -> datetime.datetime:
+    if not days:
+        vpn_key.outline_key_valid_until = None
+    else:
+        vpn_key.outline_key_valid_until = datetime.datetime.today() + datetime.timedelta(days=days)
+    vpn_key.save()
+    return vpn_key.outline_key_valid_until
