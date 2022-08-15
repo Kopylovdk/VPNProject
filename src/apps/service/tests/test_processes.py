@@ -103,6 +103,9 @@ class GetAllVPNKeysOfUserTestCase(TestCase):
                 telegram_user_record=tg_users[0],
                 outline_key_id=cnt,
             ).save()
+        key = OutlineVPNKeys.objects.get(outline_key_id=0)
+        key.outline_key_valid_until = datetime.datetime.today() + datetime.timedelta(days=40)
+        key.save()
         user_keys = processes.get_all_vpn_keys_of_user(tg_users[0].telegram_id)
         self.assertEqual(2, len(user_keys))
 

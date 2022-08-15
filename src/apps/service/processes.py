@@ -130,10 +130,18 @@ def get_all_vpn_keys_of_user(user_id: int) -> list:
     vpn_keys = \
         OutlineVPNKeys.objects.select_related('telegram_user_record').filter(telegram_user_record__telegram_id=user_id)
     if vpn_keys:
-        return [
-            f'Ключ: "{vpn_key.outline_key_value!r}"' \
-            f' действует до: {vpn_key.outline_key_valid_until.strftime("%d-%m-%Y")}' for vpn_key in vpn_keys
-        ]
+        to_return = []
+        for vpn_key in vpn_keys:
+            vpn_key_date = vpn_key.outline_key_valid_until
+            if vpn_key_date:
+                vpn_key_date = f'до: {vpn_key_date.strftime("%d-%m-%Y")!r}'
+            else:
+                vpn_key_date = 'без ограничений'
+
+            to_return.append(f'ID: {vpn_key.outline_key_id!r} '
+                             f'Ключ: {vpn_key.outline_key_value!r} '
+                             f'Срок действия {vpn_key_date}')
+        return to_return
     else:
         return []
 
