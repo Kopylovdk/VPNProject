@@ -25,5 +25,9 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build the stack
         run: docker-compose up -d
-      - name: Test
-        run: docker run --network vpnproject_default:vpn_service python mange.py test
+
+      - name: Build tests
+        run: dotnet build GOT.Tests
+
+      - name: Run tests
+        run: dotnet test LOT.Tests --verbosity normal
