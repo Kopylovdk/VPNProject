@@ -6,10 +6,16 @@ from apps.service.bot.bot_processes import (
     active_prolong_api_key_step_1,
     personal_message_send_step_1,
     all_users_message_send_step_1,
+    user_vpn_keys_list_step_1,
+    messages_send_choice_step_1,
 )
-from apps.service.processes import get_all_admins, add_new_tg_user, get_all_vpn_keys_of_user
-from apps.service.bot.keyboards import main_keyboard, subscribe_keyboard, bot_message_keyboard
-from apps.service.outline.outline_api import create_new_vpn_key, add_traffic_limit
+from apps.service.processes import (
+    get_all_admins,
+    add_new_tg_user,
+    get_all_vpn_keys_of_user,
+    add_new_key, get_tg_user_by_,
+)
+from apps.service.bot.keyboards import main_keyboard, subscribe_keyboard, bot_message_keyboard, main_admin_keyboard
 from vpnservice.settings import EXTERNAL_CFG
 
 
@@ -34,7 +40,6 @@ def send_msg_to_admins(user: User, text: str) -> None:
                  f'Логин - {user.username!r}\n'
                  f'ФИО - {user.full_name!r}\n'
                  f'{text!r}',
-            reply_markup=main_keyboard(admin_id)
         )
 
 
@@ -59,10 +64,24 @@ def handle_text(message: Message):
         bot.send_message(
             tg_user.id,
             text='Выберите вариант подписки',
-            reply_markup=subscribe_keyboard(tg_bot_conf['subscribes'])
+            reply_markup=subscribe_keyboard()
         )
 
-    elif message.text in tg_bot_conf['subscribes']:
+    elif 'Демо' in message.text:
+        vpn_key = add_new_key()
+        vpn_key.add_traffic_limit(1024 * 1024 * 1024)
+        vpn_key.add_tg_user(get_tg_user_by_(telegram_data=tg_user.id))
+        vpn_key.change_active_status()
+        vpn_key.change_valid_until(7)
+
+        bot.send_message(
+            message.chat.id,
+            f'Ваш демо ключ: {vpn_key.outline_key_value!r}\n'
+            f'Воспользуйтесь Инструкцией для дальнейшей работы с сервисом',
+            reply_markup=main_keyboard(tg_user.id)
+        )
+
+    elif message.text in ['3 месяца', '6 месяцев']:
         bot.send_message(
             tg_user.id,
             text='Для оплаты подписки с Вами свяжется Администратор.',
@@ -81,6 +100,10 @@ def handle_text(message: Message):
     elif 'Инструкция' in message.text:
         with open('apps/service/bot/instructions.txt', 'r') as f:
             instruction = f.read()
+        # if tg_user.id in get_all_admins():
+        #     with open('apps/service/bot/instructions_admin.txt', 'r') as fa:
+        #         instruction += fa.read()
+
         bot.send_message(
             tg_user.id,
             text=instruction,
@@ -95,11 +118,26 @@ def handle_text(message: Message):
             reply_markup=main_keyboard(tg_user.id),
         )
 
+    elif 'Режим администратора' in message.text:
+        bot.send_message(
+            tg_user.id,
+            text='Режим Администратора включен',
+            reply_markup=main_admin_keyboard(),
+        )
+    elif 'Режим пользователя' in message.text:
+        bot.send_message(
+            tg_user.id,
+            text='Режим Администратора выключен',
+            reply_markup=main_keyboard(tg_user.id),
+        )
+    elif 'Список ключей пользователя' in message.text:
+        user_vpn_keys_list_step_1(message, bot)
+
     elif 'Новый ключ' in message.text:
-        vpn_key = create_new_vpn_key()
-        add_traffic_limit(vpn_key.key_id)
-        bot.send_message(tg_user.id, f'Все ключи создаются с лимитом трафика в 1 кб.')
-        bot.send_message(tg_user.id, f'id={vpn_key.key_id!r}, key="{vpn_key.access_url!r}"')
+        vpn_key = add_new_key()
+        vpn_key.add_traffic_limit()
+        bot.send_message(tg_user.id, f'Ключ создан с лимитом трафика в 1 кб.')
+        bot.send_message(tg_user.id, f'vpn_key_id={vpn_key.outline_key_id!r}')
 
     elif 'Привязать ключ к пользователю' in message.text:
         add_new_vpn_key_to_tg_user_step_1(message, bot)
@@ -108,19 +146,13 @@ def handle_text(message: Message):
         active_prolong_api_key_step_1(message, bot)
 
     elif 'Отправка сообщений' in message.text:
-        bot.send_message(tg_user.id, 'Как отправлять сообщения?', reply_markup=bot_message_keyboard())
-
-    elif 'Лично' in message.text:
-        personal_message_send_step_1(message, bot)
-
-    elif 'Всем' in message.text:
-        all_users_message_send_step_1(message, bot)
+        messages_send_choice_step_1(message, bot)
 
     elif 'Удалить ключ' in message.text:
         delete_step_1(message, bot)
 
     elif 'В основное меню' in message.text:
-        bot.send_message(tg_user.id, 'Возврат в основное меню.', reply_markup=main_keyboard(tg_user.id))
+        bot.send_message(tg_user.id, 'Возврат в основное меню', reply_markup=main_keyboard(tg_user.id))
     else:
         bot.send_message(
             tg_user.id,

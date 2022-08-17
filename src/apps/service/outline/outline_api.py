@@ -15,11 +15,11 @@ def create_new_vpn_key() -> OutlineKey:
     return outline_client.create_key()
 
 
-def add_traffic_limit(key_id: int, limit_bytes: int = 1024) -> None:
-    """Метод установки ограничения траффика на ключ. Поумолчания 1024кб
+def add_traffic_limit(key_id: int, limit_bytes: int) -> None:
+    """Метод установки ограничения траффика на ключ.
     Params:
         key_id: int
-        limit_bytes: int = 1024
+        limit_bytes: int
     Returns: None
     Exceptions: None
     """

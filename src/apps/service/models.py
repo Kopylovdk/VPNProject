@@ -1,4 +1,8 @@
+from datetime import datetime, timedelta
+
 from django.db import models
+
+from apps.service.outline.outline_api import add_traffic_limit, del_traffic_limit
 
 
 class TelegramUsers(models.Model):
@@ -32,7 +36,9 @@ class OutlineVPNKeys(models.Model):
             )
         ]
 
-    telegram_user_record = models.ForeignKey(TelegramUsers, on_delete=models.CASCADE, verbose_name='Владелец ключа')
+    telegram_user_record = models.ForeignKey(
+        TelegramUsers, on_delete=models.CASCADE, verbose_name='Владелец ключа', null=True, blank=True
+    )
     outline_key_id = models.IntegerField(verbose_name='ID OutLine VPN Key', null=True, blank=True)
     outline_key_name = models.CharField(
         verbose_name='Имя VPN ключа', max_length=254, null=True, blank=True, default='Отсутствует'
@@ -40,7 +46,46 @@ class OutlineVPNKeys(models.Model):
     outline_key_value = models.CharField(verbose_name='VPN ключ', max_length=254, null=True, blank=True)
     outline_key_valid_until = models.DateField(verbose_name='Дата окончания подписки', null=True, blank=True)
     outline_key_active = models.BooleanField(verbose_name='Активность VPN ключа', default=False)
+    outline_key_traffic_limit = models.IntegerField(verbose_name='Лимит трафика', null=True, blank=True)
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
 
     def __str__(self):
         return f'{self.telegram_user_record!r}_{self.outline_key_name!r}'
+
+    def add_traffic_limit(self, limit_in_bytes: int = 1024) -> None:
+        add_traffic_limit(self.outline_key_id, limit_in_bytes)
+        self.outline_key_traffic_limit = limit_in_bytes
+        self.save()
+
+    def del_traffic_limit(self) -> None:
+        del_traffic_limit(self.outline_key_id)
+        self.outline_key_traffic_limit = None
+        self.save()
+
+    def add_tg_user(self, telegram_user: TelegramUsers) -> None:
+        self.telegram_user_record = telegram_user
+        self.save()
+
+    def change_active_status(self) -> bool:
+        if self.outline_key_active:
+            self.outline_key_active = False
+        else:
+            self.outline_key_active = True
+        self.save()
+        return self.outline_key_active
+
+    def change_valid_until(self, days: int) -> datetime or None:
+        """
+        Функция изменения срока действия записи OutlineVPNKeys
+        Params:
+             days: int
+        Returns:
+            datetime.datetime
+        Exceptions: None
+        """
+        if not days:
+            self.outline_key_valid_until = None
+        else:
+            self.outline_key_valid_until = datetime.today() + timedelta(days=days)
+        self.save()
+        return self.outline_key_valid_until

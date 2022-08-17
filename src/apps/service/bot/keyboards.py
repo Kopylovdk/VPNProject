@@ -20,21 +20,29 @@ def main_keyboard(tg_user_id: int) -> ReplyKeyboardMarkup:
         KeyboardButton(text='Поддержка'),
         KeyboardButton(text='Мои VPN ключи'),
     ]
-
     if tg_user_id in get_all_admins():
-        to_add_btn += [
-            KeyboardButton(text='Новый ключ'),
-            KeyboardButton(text='Привязать ключ к пользователю'),
-            KeyboardButton(text='Активация/продление ключа'),
-            KeyboardButton(text='Удалить ключ'),
-            KeyboardButton(text='Отправка сообщений'),
-        ]
+        to_add_btn.append(KeyboardButton(text='Режим администратора'))
 
     kb.add(*to_add_btn)
     return kb
 
 
-def subscribe_keyboard(subscribes: list) -> ReplyKeyboardMarkup:
+def main_admin_keyboard() -> ReplyKeyboardMarkup:
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.row_width = 3
+    kb.add(
+        KeyboardButton(text='Список ключей пользователя'),
+        KeyboardButton(text='Новый ключ'),
+        KeyboardButton(text='Привязать ключ к пользователю'),
+        KeyboardButton(text='Активация/продление ключа'),
+        KeyboardButton(text='Удалить ключ'),
+        KeyboardButton(text='Отправка сообщений'),
+        KeyboardButton(text='Режим пользователя'),
+    )
+    return kb
+
+
+def subscribe_keyboard() -> ReplyKeyboardMarkup:
     """
     Клавиатура вариантов подписки
     Params:
@@ -43,6 +51,7 @@ def subscribe_keyboard(subscribes: list) -> ReplyKeyboardMarkup:
         ReplyKeyboardMarkup
     Exceptions: None
     """
+    subscribes = ['Демо', '3 месяца', '6 месяцев']
     kb = ReplyKeyboardMarkup(row_width=3, resize_keyboard=True)
     subscribes_buttons = []
     for subscribe in subscribes:
@@ -98,7 +107,24 @@ def one_time_keyboard_send_edit() -> ReplyKeyboardMarkup:
     return kb
 
 
-def one_time_keyboard_yes_no() -> ReplyKeyboardMarkup:
+# def one_time_keyboard_yes_no() -> ReplyKeyboardMarkup:
+#     """
+#     Вспомогательная клавиатура (клавиатура Отмена)
+#     Params: None
+#     Returns:
+#         ReplyKeyboardMarkup
+#     Exceptions: None
+#     """
+#     kb = ReplyKeyboardMarkup(row_width=2, one_time_keyboard=True, resize_keyboard=True)
+#     kb.add(
+#         KeyboardButton(text='Да'),
+#         KeyboardButton(text='Нет'),
+#         KeyboardButton(text='В основное меню')
+#     )
+#     return kb
+
+
+def one_time_keyboard_valid_active(is_active: bool, traffic_limit: int) -> ReplyKeyboardMarkup:
     """
     Вспомогательная клавиатура (клавиатура Отмена)
     Params: None
@@ -108,8 +134,9 @@ def one_time_keyboard_yes_no() -> ReplyKeyboardMarkup:
     """
     kb = ReplyKeyboardMarkup(row_width=2, one_time_keyboard=True, resize_keyboard=True)
     kb.add(
-        KeyboardButton(text='Да'),
-        KeyboardButton(text='Нет'),
+        KeyboardButton(text='Изменить срок действия'),
+        KeyboardButton(text='Активировать' if not is_active else 'Деактивировать'),
+        KeyboardButton(text='Установить лимит трафика' if not traffic_limit else 'Снять лимит трафика'),
         KeyboardButton(text='В основное меню')
     )
     return kb

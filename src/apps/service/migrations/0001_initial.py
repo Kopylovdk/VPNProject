@@ -31,12 +31,13 @@ class Migration(migrations.Migration):
             name='OutlineVPNKeys',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('telegram_user_record', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='service.TelegramUsers', verbose_name='Владелец ключа')),
+                ('telegram_user_record', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='service.TelegramUsers', verbose_name='Владелец ключа', null=True, blank=True)),
                 ('outline_key_id', models.IntegerField(blank=True, null=True, verbose_name='ID OutLine VPN Key')),
                 ('outline_key_value', models.CharField(verbose_name='VPN ключ', max_length=254, null=True, blank=True)),
                 ('outline_key_name', models.CharField(blank=True, max_length=254, null=True, verbose_name='Имя VPN ключа', default='Отсутствует')),
                 ('outline_key_valid_until', models.DateField(blank=True, null=True, verbose_name='Дата окончания подписки')),
                 ('outline_key_active', models.BooleanField(default=False, verbose_name='Активность VPN ключа')),
+                ('outline_key_traffic_limit', models.IntegerField(verbose_name='Лимит трафика', null=True, blank=True)),
                 ('created_at', models.DateField(auto_now_add=True, verbose_name='Дата создания записи')),
             ],
             options={
