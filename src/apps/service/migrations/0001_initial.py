@@ -52,6 +52,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='OutlineVPNKeys',
-            constraint=models.UniqueConstraint(fields=('telegram_user_record', 'outline_key_id',), name='unique_telegram_user_record_outline_key_id'),
+            constraint=models.UniqueConstraint(fields=('outline_key_id',), name='unique_outline_key_id'),
         ),
     ]

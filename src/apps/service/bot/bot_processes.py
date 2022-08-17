@@ -1,7 +1,6 @@
 from telebot import TeleBot
 from telebot.types import Message
 from apps.service.bot.keyboards import (
-    main_keyboard,
     one_time_keyboard_cancel,
     one_time_keyboard_send_edit,
     one_time_keyboard_valid_active,

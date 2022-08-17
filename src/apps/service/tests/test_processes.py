@@ -3,8 +3,15 @@ from django.test import TestCase
 from apps.service import exceptions
 from apps.service.models import TelegramUsers, OutlineVPNKeys
 from telebot.types import User
+from apps.service.bot import bot_exceptions
 import apps.service.processes as processes
 import apps.service.tests.helpers as helpers
+
+
+class ValidateTestCase(TestCase):
+    def test_validate_int(self):
+        self.assertTrue(processes._validate_int('1'))
+        self.assertFalse(processes._validate_int('qwerty'))
 
 
 class AddNewTGUserTestCase(TestCase):
@@ -43,8 +50,7 @@ class GetAllAdminsTestCase(TestCase):
         tg_users[3].save()
         check_data = processes.get_all_admins()
         self.assertEqual(2, len(check_data))
-        self.assertEqual(0, check_data[0])
-        self.assertEqual(3, check_data[1])
+        self.assertEqual([1, 4], check_data)
 
 
 class GetOutlineKeyByIdTestCase(TestCase):
@@ -54,8 +60,11 @@ class GetOutlineKeyByIdTestCase(TestCase):
         self.assertIsInstance(from_db, OutlineVPNKeys)
         self.assertEqual(vpn_keys[1], from_db)
 
-    def test_get_outline_key_by_id_none(self):
-        self.assertIsNone(processes.get_outline_key_by_id(1))
+    def test_get_outline_key_by_id_not_found(self):
+        self.assertEqual(bot_exceptions.OUTLINE_VPN_KEY_NOT_FOUND, processes.get_outline_key_by_id('1'))
+
+    def test_get_outline_key_by_id_not_integer(self):
+        self.assertEqual(bot_exceptions.NOT_INTEGER, processes.get_outline_key_by_id('qwerty'))
 
 
 class GetTgUserByTestCase(TestCase):
@@ -63,14 +72,17 @@ class GetTgUserByTestCase(TestCase):
         self.tg_users = helpers.create_telegram_users(5)
 
     def test_get_tg_user_by_telegram_login(self):
-        from_db = processes.get_tg_user_by_(telegram_login=self.tg_users[2].telegram_login)
+        from_db = processes.get_tg_user_by_(telegram_data=self.tg_users[2].telegram_login)
         self.assertIsInstance(from_db, TelegramUsers)
         self.assertEqual(self.tg_users[2], from_db)
 
     def test_get_tg_user_by_telegram_id(self):
-        from_db = processes.get_tg_user_by_(telegram_id=self.tg_users[1].telegram_id)
+        from_db = processes.get_tg_user_by_(telegram_data=self.tg_users[1].telegram_id)
         self.assertIsInstance(from_db, TelegramUsers)
         self.assertEqual(self.tg_users[1], from_db)
+
+    def test_get_tg_user_by_not_found(self):
+        self.assertEqual(bot_exceptions.TELEGRAM_USER_NOT_FOUND, processes.get_tg_user_by_(15))
 
 
 class GetAllNoAdminUsersTestCase(TestCase):
@@ -85,48 +97,35 @@ class GetAllNoAdminUsersTestCase(TestCase):
         no_admins = processes.get_all_no_admin_users()
         self.assertEqual(len(no_admins), 48)
 
-# TODO: разобраться
-
-# class AddNewVPNKeyToTGUserTestCase(TestCase):
-#     def test_add_new_vpn_key_to_tg_user(self):
-#         tg_users = helpers.create_telegram_users(3)
-#         processes.add_new_vpn_key_to_tg_user(1, tg_users[0])
-#         vpn_records = OutlineVPNKeys.objects.all()
-#         self.assertEqual(1, len(vpn_records))
-#         self.assertEqual(tg_users[0], vpn_records[0].telegram_user_record)
-
 
 class GetAllVPNKeysOfUserTestCase(TestCase):
     def test_get_all_vpn_keys_of_user(self):
-        tg_users = helpers.create_telegram_users(4)
-        for cnt in range(len(tg_users) - 2):
-            OutlineVPNKeys(
-                telegram_user_record=tg_users[0],
-                outline_key_id=cnt,
-            ).save()
-        key = OutlineVPNKeys.objects.get(outline_key_id=0)
-        key.outline_key_valid_until = datetime.datetime.today() + datetime.timedelta(days=40)
-        key.save()
-        user_keys = processes.get_all_vpn_keys_of_user(tg_users[0].telegram_id)
-        self.assertEqual(2, len(user_keys))
+        tg_user = helpers.create_telegram_users()[0]
+        vpn_keys = helpers.create_vpn_keys(6)
+        vpn_keys[0].telegram_user_record = tg_user
+        vpn_keys[0].save()
+        vpn_keys[1].telegram_user_record = tg_user
+        vpn_keys[1].save()
+        user_keys_by_login = processes.get_all_vpn_keys_of_user(user_data=tg_user.telegram_login)
+        self.assertEqual(2, len(user_keys_by_login))
+        user_keys_by_telegram_id = processes.get_all_vpn_keys_of_user(user_data=tg_user.telegram_id)
+        self.assertEqual(2, len(user_keys_by_telegram_id))
 
-#  TODO: Перенести в тесты модели
-# class ChangeVPNKeyIsActiveTestCase(TestCase):
-#     def test_change_vpn_key_is_active(self):
-#         vpn_key = helpers.create_vpn_keys()[0]
-#         self.assertFalse(vpn_key.outline_key_active)
-#         processes.change_vpn_key_is_active(vpn_key, test=True)
-#         self.assertTrue(vpn_key.outline_key_active)
-#         processes.change_vpn_key_is_active(vpn_key, test=True)
-#         self.assertFalse(vpn_key.outline_key_active)
+    def test_get_all_vpn_keys_of_user_user_not_found(self):
+        user_keys_by_login = processes.get_all_vpn_keys_of_user(user_data='some value')
+        self.assertEqual(user_keys_by_login, bot_exceptions.TELEGRAM_USER_NOT_FOUND)
+
+    def test_get_all_vpn_keys_of_user_no_vpns(self):
+        tg_user = helpers.create_telegram_users()[0]
+        user_keys_by_login = processes.get_all_vpn_keys_of_user(user_data=tg_user.telegram_login)
+        self.assertIsInstance(user_keys_by_login, list)
+        self.assertEqual(0, len(user_keys_by_login))
 
 
-class ChaneVPNValidUntilTestCase(TestCase):
-    def test_change_vpn_key_valid_until(self):
-        vpn_key = helpers.create_vpn_keys()[0]
-        self.assertIsNotNone(vpn_key.outline_key_valid_until)
-        processes.change_vpn_key_valid_until(vpn_key, 0)
-        self.assertIsNone(vpn_key.outline_key_valid_until)
-        processes.change_vpn_key_valid_until(vpn_key, 1)
-        self.assertIsNotNone(vpn_key.outline_key_valid_until)
-        self.assertIsInstance(vpn_key.outline_key_valid_until, datetime.date)
+class AddNewVPNKeyTestCase(TestCase):
+    def test_add_new_key(self):
+        vpn_key = processes.add_new_key(test=True)
+        from_db = OutlineVPNKeys.objects.all()
+        self.assertIsInstance(vpn_key, OutlineVPNKeys)
+        self.assertEqual(1, len(from_db))
+        self.assertEqual(vpn_key.outline_key_name, from_db[0].outline_key_name)

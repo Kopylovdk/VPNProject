@@ -1,4 +1,7 @@
 import datetime
+
+from outline_vpn.outline_vpn import OutlineKey
+
 import apps.service.exceptions as exceptions
 import logging
 from apps.service.models import TelegramUsers, OutlineVPNKeys
@@ -109,8 +112,19 @@ def add_new_tg_user(user: User) -> None:
         raise exceptions.ProcessException(f'Ошибка записи строки в БД: {error!r}')
 
 
-def add_new_key() -> OutlineVPNKeys:
-    response = create_new_vpn_key()
+def add_new_key(test: bool = False) -> OutlineVPNKeys:
+    if not test:
+        response = create_new_vpn_key()
+    else:
+        response = OutlineKey(
+            key_id=123,
+            name='test',
+            password='3123123',
+            access_url='test',
+            method='test',
+            port=5050,
+            used_bytes=0,
+        )
     vpn_key = OutlineVPNKeys(
         outline_key_id=response.key_id,
         outline_key_name=response.name,
@@ -126,7 +140,8 @@ def get_all_vpn_keys_of_user(user_data: str or int) -> list or str:
     Params:
         userid: int
     Returns: list
-    Exceptions: None
+    Exceptions:
+        TELEGRAM_USER_NOT_FOUND
     """
     tg_user = get_tg_user_by_(telegram_data=user_data)
     if isinstance(tg_user, TelegramUsers):

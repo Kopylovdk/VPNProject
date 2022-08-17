@@ -31,8 +31,8 @@ class OutlineVPNKeys(models.Model):
         verbose_name_plural = 'Outline VPN Keys'
         constraints = [
             models.UniqueConstraint(
-                fields=['telegram_user_record', 'outline_key_id'],
-                name='unique_telegram_user_record_outline_key_id'
+                fields=['outline_key_id'],
+                name='unique_outline_key_id'
             )
         ]
 
@@ -52,21 +52,51 @@ class OutlineVPNKeys(models.Model):
     def __str__(self):
         return f'{self.telegram_user_record!r}_{self.outline_key_name!r}'
 
-    def add_traffic_limit(self, limit_in_bytes: int = 1024) -> None:
-        add_traffic_limit(self.outline_key_id, limit_in_bytes)
+    def add_traffic_limit(self, limit_in_bytes: int = 1024, test: bool = False) -> None:
+        """
+        Метод установки лимита трафика на запись OutlineVPNKeys
+        Params:
+            limit_in_bytes: int = 1024
+            test: bool = False - используется для мока запроса на сервер outline
+        Returns: none
+        Exceptions: None
+        """
+        if not test:
+            add_traffic_limit(self.outline_key_id, limit_in_bytes)
         self.outline_key_traffic_limit = limit_in_bytes
         self.save()
 
-    def del_traffic_limit(self) -> None:
-        del_traffic_limit(self.outline_key_id)
+    def del_traffic_limit(self, test: bool = False) -> None:
+        """
+        Метод удаления лимита трафика с записи OutlineVPNKeys
+        Params:
+            test: bool = False - используется для мока запроса на сервер outline
+        Returns: none
+        Exceptions: None
+        """
+        if not test:
+            del_traffic_limit(self.outline_key_id)
         self.outline_key_traffic_limit = None
         self.save()
 
     def add_tg_user(self, telegram_user: TelegramUsers) -> None:
+        """
+        Метод добавления TelegramUsers в запись OutlineVPNKeys
+        Params:
+            telegram_user: TelegramUsers
+        Returns: none
+        Exceptions: None
+        """
         self.telegram_user_record = telegram_user
         self.save()
 
     def change_active_status(self) -> bool:
+        """
+        Метод изменения статуса записи OutlineVPNKeys
+        Params: none
+        Returns: bool
+        Exceptions: None
+        """
         if self.outline_key_active:
             self.outline_key_active = False
         else:
@@ -76,7 +106,7 @@ class OutlineVPNKeys(models.Model):
 
     def change_valid_until(self, days: int) -> datetime or None:
         """
-        Функция изменения срока действия записи OutlineVPNKeys
+        Метод изменения срока действия записи OutlineVPNKeys
         Params:
              days: int
         Returns:
