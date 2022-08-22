@@ -12,8 +12,7 @@ def main_keyboard(tg_user_id: int) -> ReplyKeyboardMarkup:
         ReplyKeyboardMarkup
     Exceptions: None
     """
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    kb.row_width = 3
+    kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
     to_add_btn = [
         KeyboardButton(text='Оформить подписку'),
         KeyboardButton(text='Инструкция'),
@@ -28,8 +27,7 @@ def main_keyboard(tg_user_id: int) -> ReplyKeyboardMarkup:
 
 
 def main_admin_keyboard() -> ReplyKeyboardMarkup:
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    kb.row_width = 3
+    kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
     kb.add(
         KeyboardButton(text='Список ключей пользователя'),
         KeyboardButton(text='Новый ключ'),
@@ -37,6 +35,7 @@ def main_admin_keyboard() -> ReplyKeyboardMarkup:
         KeyboardButton(text='Активация/продление ключа'),
         KeyboardButton(text='Удалить ключ'),
         KeyboardButton(text='Отправка сообщений'),
+        KeyboardButton(text='Памятка администратора'),
         KeyboardButton(text='Режим пользователя'),
     )
     return kb
@@ -77,7 +76,7 @@ def bot_message_keyboard() -> ReplyKeyboardMarkup:
     return kb
 
 
-def one_time_keyboard_cancel() -> ReplyKeyboardMarkup:
+def one_time_keyboard_back_to_main() -> ReplyKeyboardMarkup:
     """
     Вспомогательная клавиатура (клавиатура Отмена)
     Params: None
@@ -87,6 +86,19 @@ def one_time_keyboard_cancel() -> ReplyKeyboardMarkup:
     """
     kb = ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     kb.add(KeyboardButton(text='В основное меню'))
+    return kb
+
+
+def one_time_keyboard_back() -> ReplyKeyboardMarkup:
+    """
+    Вспомогательная клавиатура (клавиатура Отмена)
+    Params: None
+    Returns:
+        ReplyKeyboardMarkup
+    Exceptions: None
+    """
+    kb = ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    kb.add(KeyboardButton(text='Назад'))
     return kb
 
 
@@ -102,26 +114,9 @@ def one_time_keyboard_send_edit() -> ReplyKeyboardMarkup:
     kb.add(
         KeyboardButton(text='Отправить'),
         KeyboardButton(text='Редактировать'),
-        KeyboardButton(text='В основное меню')
+        KeyboardButton(text='Назад')
     )
     return kb
-
-
-# def one_time_keyboard_yes_no() -> ReplyKeyboardMarkup:
-#     """
-#     Вспомогательная клавиатура (клавиатура Отмена)
-#     Params: None
-#     Returns:
-#         ReplyKeyboardMarkup
-#     Exceptions: None
-#     """
-#     kb = ReplyKeyboardMarkup(row_width=2, one_time_keyboard=True, resize_keyboard=True)
-#     kb.add(
-#         KeyboardButton(text='Да'),
-#         KeyboardButton(text='Нет'),
-#         KeyboardButton(text='В основное меню')
-#     )
-#     return kb
 
 
 def one_time_keyboard_valid_active(is_active: bool, traffic_limit: int) -> ReplyKeyboardMarkup:

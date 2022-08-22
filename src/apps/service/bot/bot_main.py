@@ -4,8 +4,6 @@ from apps.service.bot.bot_processes import (
     add_new_vpn_key_to_tg_user_step_1,
     delete_step_1,
     active_prolong_api_key_step_1,
-    personal_message_send_step_1,
-    all_users_message_send_step_1,
     user_vpn_keys_list_step_1,
     messages_send_choice_step_1,
 )
@@ -15,7 +13,11 @@ from apps.service.processes import (
     get_all_vpn_keys_of_user,
     add_new_key, get_tg_user_by_,
 )
-from apps.service.bot.keyboards import main_keyboard, subscribe_keyboard, bot_message_keyboard, main_admin_keyboard
+from apps.service.bot.keyboards import (
+    main_keyboard,
+    subscribe_keyboard,
+    main_admin_keyboard,
+)
 from vpnservice.settings import EXTERNAL_CFG
 
 
@@ -39,32 +41,32 @@ def send_msg_to_admins(user: User, text: str) -> None:
                  f'ID - {user.id!r}\n'
                  f'Логин - {user.username!r}\n'
                  f'ФИО - {user.full_name!r}\n'
-                 f'{text!r}',
+                 f'{text}',
         )
 
 
 @bot.message_handler(commands=['start'])
 def start(message: Message):
-    """Хендлер команды Start"""
+    """Обработчик команды Start"""
     tg_user = message.from_user
     bot.send_message(
         message.chat.id,
         text='Добро пожаловать в VPN Project!',
-        reply_markup=main_keyboard(tg_user.id)
+        reply_markup=main_keyboard(tg_user.id),
     )
     add_new_tg_user(tg_user)
 
 
 @bot.message_handler(content_types=["text"])
 def handle_text(message: Message):
-    """Хендлер обработки текстовых команд клавиатуры от пользователя"""
+    """Обработчик обработки текстовых команд клавиатуры от пользователя"""
     tg_user = message.from_user
     add_new_tg_user(tg_user)
     if 'Оформить подписку' in message.text:
         bot.send_message(
             tg_user.id,
             text='Выберите вариант подписки',
-            reply_markup=subscribe_keyboard()
+            reply_markup=subscribe_keyboard(),
         )
 
     elif 'Демо' in message.text:
@@ -78,14 +80,15 @@ def handle_text(message: Message):
             message.chat.id,
             f'Ваш демо ключ: {vpn_key.outline_key_value!r}\n'
             f'Воспользуйтесь Инструкцией для дальнейшей работы с сервисом',
-            reply_markup=main_keyboard(tg_user.id)
+            reply_markup=main_keyboard(tg_user.id),
         )
+        send_msg_to_admins(tg_user, f'получил демо ключ. ID ключа - {vpn_key.outline_key_id!r}')
 
     elif message.text in ['3 месяца', '6 месяцев']:
         bot.send_message(
             tg_user.id,
             text='Для оплаты подписки с Вами свяжется Администратор.',
-            reply_markup=main_keyboard(tg_user.id)
+            reply_markup=main_keyboard(tg_user.id),
         )
         send_msg_to_admins(user=tg_user, text=f'Хочет оплатить подписку на {message.text!r}')
 
@@ -94,20 +97,25 @@ def handle_text(message: Message):
         bot.send_message(
             tg_user.id,
             '\n'.join(vpn_keys) if vpn_keys else 'Ключи отсутствуют, если это не так - обратитесь к администратору.',
-            reply_markup=main_keyboard(tg_user.id)
+            reply_markup=main_keyboard(tg_user.id),
         )
 
     elif 'Инструкция' in message.text:
         with open('apps/service/bot/instructions.txt', 'r') as f:
             instruction = f.read()
-        # if tg_user.id in get_all_admins():
-        #     with open('apps/service/bot/instructions_admin.txt', 'r') as fa:
-        #         instruction += fa.read()
-
         bot.send_message(
             tg_user.id,
             text=instruction,
-            reply_markup=main_keyboard(tg_user.id)
+            reply_markup=main_keyboard(tg_user.id),
+        )
+
+    elif 'Памятка администратора' in message.text:
+        with open('apps/service/bot/instructions_admin.txt', 'r') as fa:
+            instruction = fa.read()
+        bot.send_message(
+            tg_user.id,
+            text=instruction,
+            reply_markup=main_admin_keyboard(),
         )
 
     elif 'Поддержка' in message.text:
@@ -157,5 +165,5 @@ def handle_text(message: Message):
         bot.send_message(
             tg_user.id,
             text='Такой команды не существует.',
-            reply_markup=main_keyboard(tg_user.id)
+            reply_markup=main_keyboard(tg_user.id),
         )

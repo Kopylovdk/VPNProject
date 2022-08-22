@@ -1,10 +1,12 @@
 from telebot import TeleBot
 from telebot.types import Message
 from apps.service.bot.keyboards import (
-    one_time_keyboard_cancel,
+    one_time_keyboard_back_to_main,
     one_time_keyboard_send_edit,
     one_time_keyboard_valid_active,
-    main_admin_keyboard, bot_message_keyboard,
+    main_admin_keyboard,
+    bot_message_keyboard,
+    one_time_keyboard_back,
 )
 from apps.service.models import TelegramUsers, OutlineVPNKeys
 from apps.service.outline.outline_api import delete_key
@@ -32,7 +34,7 @@ def add_new_vpn_key_to_tg_user_step_1(message: Message, bot: TeleBot):
         '- id VPN ключа\n'
         '- логин пользователя TG или его ID\n'
         'Пример: 1 login или 1 123456',
-        reply_markup=one_time_keyboard_cancel()
+        reply_markup=one_time_keyboard_back_to_main()
     )
     bot.register_next_step_handler(message, add_new_vpn_key_to_tg_user_step_2, bot)
 
@@ -94,7 +96,7 @@ def delete_step_1(message: Message, bot: TeleBot):
     bot.send_message(
         message.chat.id,
         'Для удаления VPN ключа введите его ID:\n',
-        reply_markup=one_time_keyboard_cancel()
+        reply_markup=one_time_keyboard_back_to_main()
     )
     bot.register_next_step_handler(message, delete_step_2, bot)
 
@@ -137,7 +139,7 @@ def active_prolong_api_key_step_1(message: Message, bot: TeleBot):
     bot.send_message(
         message.chat.id,
         'Введите ID VPN ключа, с которым необходимо работать',
-        reply_markup=one_time_keyboard_cancel()
+        reply_markup=one_time_keyboard_back_to_main()
     )
     bot.register_next_step_handler(message, active_prolong_api_key_step_2, bot)
 
@@ -187,7 +189,7 @@ def active_prolong_api_key_step_3(message: Message, bot: TeleBot, outline_vpn_re
         bot.send_message(
             message.chat.id,
             'Ведите срок действия ключа в днях. Если указать 0 - ключ будет без ограничения по времени.',
-            reply_markup=one_time_keyboard_cancel()
+            reply_markup=one_time_keyboard_back()
         )
         bot.register_next_step_handler(message, active_prolong_api_key_step_4, bot, outline_vpn_record)
 
@@ -209,7 +211,7 @@ def active_prolong_api_key_step_3(message: Message, bot: TeleBot, outline_vpn_re
         bot.send_message(
             message.chat.id,
             'Ведите лимит траффика в мегабайтах.',
-            reply_markup=one_time_keyboard_cancel()
+            reply_markup=one_time_keyboard_back()
         )
         bot.register_next_step_handler(message, active_prolong_api_key_step_5, bot, outline_vpn_record)
 
@@ -236,8 +238,16 @@ def active_prolong_api_key_step_4(message: Message, bot: TeleBot, outline_vpn_re
     Returns: None
     Exceptions: None
     """
-    if 'В основное меню' in message.text:
-        bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_admin_keyboard())
+    if 'Назад' in message.text:
+        bot.send_message(
+            message.chat.id,
+            'Отмена ввода',
+            reply_markup=one_time_keyboard_valid_active(
+                    outline_vpn_record.outline_key_active,
+                    outline_vpn_record.outline_key_traffic_limit
+                ),
+        )
+        bot.register_next_step_handler(message, active_prolong_api_key_step_3, bot, outline_vpn_record)
     else:
         valid_data = _validate_int(message.text)
         if valid_data:
@@ -275,8 +285,16 @@ def active_prolong_api_key_step_5(message: Message, bot: TeleBot, outline_vpn_re
     Returns: None
     Exceptions: None
     """
-    if 'В основное меню' in message.text:
-        bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_admin_keyboard())
+    if 'Назад' in message.text:
+        bot.send_message(
+            message.chat.id,
+            'Отмена ввода',
+            reply_markup=one_time_keyboard_valid_active(
+                    outline_vpn_record.outline_key_active,
+                    outline_vpn_record.outline_key_traffic_limit
+                ),
+        )
+        bot.register_next_step_handler(message, active_prolong_api_key_step_3, bot, outline_vpn_record)
     else:
         valid_data = _validate_int(message.text)
         if valid_data:
@@ -332,7 +350,7 @@ def personal_message_send_step_1(message: Message, bot: TeleBot):
     bot.send_message(
         message.chat.id,
         'Укажите TG id пользователя или его логин:\n',
-        reply_markup=one_time_keyboard_cancel()
+        reply_markup=one_time_keyboard_back()
     )
     bot.register_next_step_handler(message, personal_message_send_step_2, bot)
 
@@ -346,15 +364,20 @@ def personal_message_send_step_2(message: Message, bot: TeleBot):
     Returns: None
     Exceptions: None
     """
-    if 'В основное меню' in message.text:
-        bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_admin_keyboard())
+    if 'Назад' in message.text:
+        bot.send_message(
+            message.chat.id,
+            'Отмена ввода',
+            reply_markup=bot_message_keyboard(),
+        )
+        bot.register_next_step_handler(message, messages_send_choice_step_2, bot)
     else:
         tg_user = get_tg_user_by_(telegram_data=message.text)
         if isinstance(tg_user, TelegramUsers):
             bot.send_message(
                 message.chat.id,
                 f'Введите сообщение для пользователя:',
-                reply_markup=one_time_keyboard_cancel()
+                reply_markup=one_time_keyboard_back()
             )
             bot.register_next_step_handler(message, personal_message_send_step_3, bot, tg_user)
         else:
@@ -371,8 +394,13 @@ def personal_message_send_step_3(message: Message, bot: TeleBot, tg_user: Telegr
     Returns: None
     Exceptions: None
     """
-    if 'В основное меню' in message.text:
-        bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_admin_keyboard())
+    if 'Назад' in message.text:
+        bot.send_message(
+            message.chat.id,
+            'Отмена ввода',
+            reply_markup=bot_message_keyboard(),
+        )
+        bot.register_next_step_handler(message, messages_send_choice_step_2, bot)
     else:
         msg = message.text
         bot.send_message(
@@ -393,19 +421,25 @@ def personal_message_send_step_4(message: Message, bot: TeleBot, tg_user: Telegr
     Returns: None
     Exceptions: None
     """
-    if 'В основное меню' in message.text:
-        bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_admin_keyboard())
+    if 'Назад' in message.text:
+        bot.send_message(
+            message.chat.id,
+            'Отмена ввода',
+            reply_markup=bot_message_keyboard(),
+        )
+        bot.register_next_step_handler(message, messages_send_choice_step_2, bot)
     elif 'Редактировать' in message.text:
-        bot.send_message(message.chat.id, 'Введите сообщение.', reply_markup=one_time_keyboard_cancel())
+        bot.send_message(message.chat.id, 'Введите сообщение.', reply_markup=one_time_keyboard_back())
         bot.register_next_step_handler(message, personal_message_send_step_3, bot, tg_user)
     elif 'Отправить' in message.text:
         bot.send_message(tg_user.telegram_id, f'Сообщение от администратора:\n{msg!r}')
         bot.send_message(
             message.chat.id,
-            f'Сообщение для пользователя {tg_user.telegram_login!r} - {tg_user.telegram_id!r} отправлено.\n'
+            f'Сообщение для пользователя {tg_user.telegram_login!r}, Telegram ID {tg_user.telegram_id!r} отправлено.\n'
             f'Копия сообщения:\n {msg!r}',
-            reply_markup=main_admin_keyboard()
+            reply_markup=bot_message_keyboard(),
         )
+        bot.register_next_step_handler(message, messages_send_choice_step_2, bot)
     else:
         bot.send_message(
             message.chat.id,
@@ -426,7 +460,7 @@ def all_users_message_send_step_1(message: Message, bot: TeleBot):
     bot.send_message(
         message.chat.id,
         'Введите сообщение для всех пользователей\n',
-        reply_markup=one_time_keyboard_cancel()
+        reply_markup=one_time_keyboard_back()
     )
     bot.register_next_step_handler(message, all_users_message_send_step_2, bot)
 
@@ -440,8 +474,13 @@ def all_users_message_send_step_2(message: Message, bot: TeleBot):
     Returns: None
     Exceptions: None
     """
-    if 'В основное меню' in message.text:
-        bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_admin_keyboard())
+    if 'Назад' in message.text:
+        bot.send_message(
+            message.chat.id,
+            'Отмена ввода',
+            reply_markup=bot_message_keyboard(),
+        )
+        bot.register_next_step_handler(message, messages_send_choice_step_2, bot)
     else:
         msg = message.text
         bot.send_message(
@@ -462,10 +501,15 @@ def all_users_message_send_step_3(message: Message, bot: TeleBot, msg: str):
     Returns: None
     Exceptions: None
     """
-    if 'В основное меню' in message.text:
-        bot.send_message(message.chat.id, 'Возврат в основное меню', reply_markup=main_admin_keyboard())
+    if 'Назад' in message.text:
+        bot.send_message(
+            message.chat.id,
+            'Отмена ввода',
+            reply_markup=bot_message_keyboard(),
+        )
+        bot.register_next_step_handler(message, messages_send_choice_step_2, bot)
     elif 'Редактировать' in message.text:
-        bot.send_message(message.chat.id, 'Введите сообщение.', reply_markup=one_time_keyboard_cancel())
+        bot.send_message(message.chat.id, 'Введите сообщение.', reply_markup=one_time_keyboard_back())
         bot.register_next_step_handler(message, all_users_message_send_step_2, bot)
     elif 'Отправить' in message.text:
         tg_users_ids = get_all_no_admin_users()
@@ -474,8 +518,9 @@ def all_users_message_send_step_3(message: Message, bot: TeleBot, msg: str):
         bot.send_message(
             message.chat.id,
             f'Отправлено {len(tg_users_ids)} сообщений. Копия сообщения:\n {msg!r}',
-            reply_markup=main_admin_keyboard(),
+            reply_markup=bot_message_keyboard(),
         )
+        bot.register_next_step_handler(message, messages_send_choice_step_2, bot)
     else:
         bot.send_message(
             message.chat.id,
@@ -496,7 +541,7 @@ def user_vpn_keys_list_step_1(message: Message, bot: TeleBot):
     bot.send_message(
         message.chat.id,
         'Для получения списка VPN ключей пользователя введите его Telegram ID или Telegram Login:\n',
-        reply_markup=one_time_keyboard_cancel()
+        reply_markup=one_time_keyboard_back_to_main()
     )
     bot.register_next_step_handler(message, user_vpn_keys_list_step_2, bot)
 
@@ -517,15 +562,14 @@ def user_vpn_keys_list_step_2(message: Message, bot: TeleBot):
         if isinstance(vpn_keys, str):
             bot.send_message(
                 message.chat.id,
-                f'{vpn_keys}, повторите ввод'
+                f'{vpn_keys}, повторите ввод',
             )
             bot.register_next_step_handler(message, user_vpn_keys_list_step_2, bot)
         else:
             bot.send_message(
                 message.chat.id,
-                '\n'.join(
-                    vpn_keys) if vpn_keys else 'Ключи отсутствуют',
-                reply_markup=main_admin_keyboard()
+                '\n'.join(vpn_keys) if vpn_keys else 'Ключи отсутствуют',
+                reply_markup=main_admin_keyboard(),
             )
 
 

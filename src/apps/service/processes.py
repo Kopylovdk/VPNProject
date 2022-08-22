@@ -1,9 +1,6 @@
-import datetime
-
-from outline_vpn.outline_vpn import OutlineKey
-
 import apps.service.exceptions as exceptions
 import logging
+from outline_vpn.outline_vpn import OutlineKey
 from apps.service.models import TelegramUsers, OutlineVPNKeys
 from telebot.types import User
 from apps.service.outline.outline_api import create_new_vpn_key
@@ -148,7 +145,7 @@ def get_all_vpn_keys_of_user(user_data: str or int) -> list or str:
         vpn_keys = \
             OutlineVPNKeys.objects.select_related('telegram_user_record').filter(telegram_user_record=tg_user.id)
         if vpn_keys:
-            to_return = []
+            to_return = [f'Логин: {tg_user.telegram_login!r}, Telegram ID: {tg_user.telegram_id!r}']
             for vpn_key in vpn_keys:
                 vpn_key_date = vpn_key.outline_key_valid_until
                 if vpn_key_date:

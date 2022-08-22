@@ -1,6 +1,6 @@
 django==4.1
 outline_vpn_api==2.0.0
-pytelegrambotapi==4.6.0
+pytelegrambotapi==4.7.0
 psycopg2-binary==2.9.3
 PyYAML~=6.0
 gunicorn==20.1.0

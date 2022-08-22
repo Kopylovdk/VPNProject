@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta
-
 from django.db import models
-
 from apps.service.outline.outline_api import add_traffic_limit, del_traffic_limit
 
 
