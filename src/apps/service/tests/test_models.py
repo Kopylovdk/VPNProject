@@ -1,5 +1,4 @@
 import datetime
-
 from django.test import TestCase
 from apps.service.tests import helpers
 from apps.service.models import TelegramUsers, OutlineVPNKeys

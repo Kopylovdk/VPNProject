@@ -1,4 +1,3 @@
-import datetime
 from django.test import TestCase
 from apps.service import exceptions
 from apps.service.models import TelegramUsers, OutlineVPNKeys
@@ -107,9 +106,9 @@ class GetAllVPNKeysOfUserTestCase(TestCase):
         vpn_keys[1].telegram_user_record = tg_user
         vpn_keys[1].save()
         user_keys_by_login = processes.get_all_vpn_keys_of_user(user_data=tg_user.telegram_login)
-        self.assertEqual(2, len(user_keys_by_login))
+        self.assertEqual(3, len(user_keys_by_login))
         user_keys_by_telegram_id = processes.get_all_vpn_keys_of_user(user_data=tg_user.telegram_id)
-        self.assertEqual(2, len(user_keys_by_telegram_id))
+        self.assertEqual(3, len(user_keys_by_telegram_id))
 
     def test_get_all_vpn_keys_of_user_user_not_found(self):
         user_keys_by_login = processes.get_all_vpn_keys_of_user(user_data='some value')

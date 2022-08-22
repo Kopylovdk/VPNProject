@@ -12,13 +12,17 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 
 import os
 
+import yaml
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-from external_configs import get_external_configs
+
 from log import logging_config_update
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-EXTERNAL_CFG = get_external_configs()
+with open(f'{BASE_DIR}/config.yaml', 'r', encoding='utf8') as stream:
+    EXTERNAL_CFG = yaml.safe_load(stream)
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 

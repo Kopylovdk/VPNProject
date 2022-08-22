@@ -154,9 +154,12 @@ def get_all_vpn_keys_of_user(user_data: str or int) -> list or str:
                     vpn_key_date = 'Срок действия без ограничений'\
                         if not vpn_key.outline_key_traffic_limit else 'Демо ключ на 1 гб траффика'
 
-                to_return.append(f'ID: {vpn_key.outline_key_id!r} '
-                                 f'Ключ: {vpn_key.outline_key_value!r} '
-                                 f'{vpn_key_date}')
+                to_return.append(
+                    f'ID: {vpn_key.outline_key_id!r}, '
+                    f'Ключ: {vpn_key.outline_key_value!r}, '
+                    f'{vpn_key_date},'
+                    f' {"Ключ АКТИВЕН" if vpn_key.outline_key_active else "Ключ НЕАКТИВЕН"}'
+                )
             return to_return
         else:
             return []
