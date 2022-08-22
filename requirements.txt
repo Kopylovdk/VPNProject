@@ -1,4 +1,5 @@
 django==4.1
+django-apscheduler==0.6.2
 outline_vpn_api==2.0.0
 pytelegrambotapi==4.7.0
 psycopg2-binary==2.9.3

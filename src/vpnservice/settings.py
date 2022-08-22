@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'apps.service',
+    'django_apscheduler'
 ]
 
 MIDDLEWARE = [
@@ -139,3 +140,6 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR + STATIC_URL
 
 CSRF_TRUSTED_ORIGINS = ['http://localhost:8080']
+
+APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
+APSCHEDULER_RUN_NOW_TIMEOUT = 25
