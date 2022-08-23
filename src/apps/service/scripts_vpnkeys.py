@@ -16,12 +16,29 @@ def collect_expired_vpn_keys() -> QuerySet[OutlineVPNKeys]:
     """
     Функция получения всех просроченных VPN ключей
     Params: None
-    Returns: QuerySet[OutlineVPNKeys]
+    Returns:
+        QuerySet[OutlineVPNKeys]
     Exceptions: None
     """
     return OutlineVPNKeys.objects.select_related('telegram_user_record').filter(
         outline_key_active=True,
         outline_key_valid_until__lt=datetime.datetime.today(),
+    )
+
+
+def collect_expired_soon_vpn_keys(days_before_expire: int) -> QuerySet[OutlineVPNKeys]:
+    """
+    Функция получения всех VPN ключей, срок действия которых закончится через определенное количество дней
+    Params:
+        days_before_expire: int
+    Returns:
+        QuerySet[OutlineVPNKeys]
+    Exceptions: None
+    """
+    target_date = datetime.datetime.today() + datetime.timedelta(days=days_before_expire)
+    return OutlineVPNKeys.objects.select_related('telegram_user_record').filter(
+        outline_key_active=True,
+        outline_key_valid_until=target_date,
     )
 
 
@@ -60,3 +77,22 @@ def expire_vpn_key(test: bool = False) -> None:
             sleep(5)
         log.info(f'Ключей деактивировано - {deactivated}')
 
+
+def expired_soon_vpn_keys() -> None:
+    """
+    Функция уведомляет пользователя о скором окончании действия  VPN ключа
+    Params: None
+    Returns: None
+    Exceptions: None
+    """
+    days_before_expire = 7
+    vpn_keys = collect_expired_soon_vpn_keys(days_before_expire)
+    log.info(f'Пользователей к информированию - {len(vpn_keys)}')
+    if vpn_keys:
+        for vpn_key in vpn_keys:
+            send_info_to_user(
+                vpn_key.telegram_user_record.telegram_id,
+                f'Срок действия вашей подписки с VPN ключом {vpn_key.outline_key_id!r}'
+                f' истекает через {days_before_expire} дней.\n'
+            )
+        log.info(f'Пользователей проинформировано - {len(vpn_keys)}')

@@ -3,7 +3,7 @@ from django.conf import settings
 from apscheduler.schedulers.blocking import BlockingScheduler
 from django_apscheduler.jobstores import DjangoJobStore
 from apscheduler.triggers.cron import CronTrigger
-from apps.service.script_vpnkeys_expired import expire_vpn_key
+from apps.service.scripts_vpnkeys import expire_vpn_key, expired_soon_vpn_keys
 
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,15 @@ def add_tasks_and_start():
         replace_existing=True,
     )
     logger.info("Added job 'expire_vpn_keys'.")
+
+    scheduler.add_job(
+        expired_soon_vpn_keys,
+        trigger=CronTrigger(hour=1, minute=30),
+        id='expired_soon_vpn_keys',
+        max_instances=1,
+        replace_existing=True,
+    )
+    logger.info("Added job 'expired_soon_vpn_keys'.")
 
     try:
         logger.info("Starting scheduler...")
