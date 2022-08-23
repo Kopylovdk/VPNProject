@@ -1,4 +1,4 @@
-FROM python
+FROM python:latest
 EXPOSE 5000/tcp
 WORKDIR /usr/src
 

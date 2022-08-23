@@ -97,16 +97,19 @@ def add_new_tg_user(user: User) -> None:
         exceptions.ProcessException
     """
     try:
-        if not TelegramUsers.objects.filter(telegram_id=user.id):
-            new_record = TelegramUsers(
-                telegram_id=user.id,
-                telegram_login=user.username,
-                telegram_first_name=user.first_name,
-                telegram_last_name=user.last_name,
-            )
-            new_record.save()
-    except Exception as error:
-        raise exceptions.ProcessException(f'Ошибка записи строки в БД: {error!r}')
+        from_db_user = TelegramUsers.objects.get(telegram_id=user.id)
+    except TelegramUsers.DoesNotExist:
+        TelegramUsers(
+            telegram_id=user.id,
+            telegram_login=user.username,
+            telegram_first_name=user.first_name,
+            telegram_last_name=user.last_name,
+        ).save()
+    else:
+        from_db_user.telegram_login = user.username
+        from_db_user.telegram_first_name = user.first_name
+        from_db_user.telegram_last_name = user.last_name
+        from_db_user.save()
 
 
 def add_new_key(test: bool = False) -> OutlineVPNKeys:

@@ -16,11 +16,11 @@ class ValidateTestCase(TestCase):
 class AddNewTGUserTestCase(TestCase):
     def setUp(self) -> None:
         self.tg_user = User(
-            id=0,
+            id=1,
             is_bot=False,
-            first_name='tg first_name test_0',
-            username='tg login test_0',
-            last_name='tg last_name test_0'
+            first_name='tg first_name test_1',
+            username='tg login test_1',
+            last_name='tg last_name update'
         )
 
     def test_add_new_tg_user(self):
@@ -33,11 +33,11 @@ class AddNewTGUserTestCase(TestCase):
         self.assertEqual(new_user.telegram_first_name, self.tg_user.first_name)
         self.assertEqual(new_user.telegram_last_name, self.tg_user.last_name)
 
-    def test_add_new_tg_user_error(self):
-        self.tg_user.id = 'asd'
-        with self.assertRaises(exceptions.ProcessException) as err:
-            processes.add_new_tg_user(self.tg_user)
-        self.assertIn('Ошибка записи строки в БД', str(err.exception))
+    def test_update_tg_user(self):
+        helpers.create_telegram_users()
+        processes.add_new_tg_user(self.tg_user)
+        updated_user = TelegramUsers.objects.first()
+        self.assertEqual(updated_user.telegram_last_name, self.tg_user.last_name)
 
 
 class GetAllAdminsTestCase(TestCase):

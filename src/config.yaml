@@ -38,7 +38,6 @@ db:
 
 tg_bot:
   token:
-  subscribes: ['1 месяц', '3 месяца', '6 месяцев']
 
 outline_vpn:
   ip: 194.110.55.249

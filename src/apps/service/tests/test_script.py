@@ -12,6 +12,7 @@ from apps.service.scripts_vpnkeys import (
 class BaseSetUp(TestCase):
     def setUp(self) -> None:
         self.date_today = datetime.datetime.now()
+        self.user = helpers.create_telegram_users()[0]
         self.vpn_keys = helpers.create_vpn_keys(cnt=6)
         for vpn_key in self.vpn_keys:
             if vpn_key.outline_key_id == 1:
@@ -27,6 +28,7 @@ class BaseSetUp(TestCase):
             elif vpn_key.outline_key_id == 5:
                 vpn_key.outline_key_valid_until = self.date_today
                 vpn_key.outline_key_active = True
+            vpn_key.telegram_user_record = self.user
             vpn_key.save()
         self.expired_keys_id = [2, 3]
 

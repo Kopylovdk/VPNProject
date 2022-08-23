@@ -69,11 +69,12 @@ def expire_vpn_key(test: bool = False) -> None:
             vpn_key.outline_key_active = False
             vpn_key.add_traffic_limit(test=test)
             deactivated += 1
-            send_info_to_user(
-                vpn_key.telegram_user_record.telegram_id,
-                f'Срок действия вашей подписки с VPN ключом {vpn_key.outline_key_id!r} истек.\n'
-                f'Для возобновления подписки свяжитесь с администратором.'
-            )
+            if not test:
+                send_info_to_user(
+                    vpn_key.telegram_user_record.telegram_id,
+                    f'Срок действия вашей подписки с VPN ключом {vpn_key.outline_key_id!r} истек.\n'
+                    f'Для возобновления подписки свяжитесь с администратором.'
+                )
             sleep(5)
         log.info(f'Ключей деактивировано - {deactivated}')
 

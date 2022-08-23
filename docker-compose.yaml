@@ -19,6 +19,8 @@ services:
       - "8000"
     command:
       sh -c -m "./sh_scripts/migrate.sh && ./sh_scripts/start.sh"
+    volumes:
+      - static:/usr/src/static
     depends_on:
       - db
     restart: always
