@@ -1,8 +1,16 @@
+import logging
+
 from django.contrib import admin
+from django.http import HttpResponseRedirect
+from django.urls import path
 from django.utils.translation import ngettext
 from django.contrib import messages
 from apps.service.models import TelegramUsers, OutlineVPNKeys
 import apps.service.outline.outline_api as outline_api
+from apps.service.processes import add_new_key
+
+
+log = logging.getLogger(__name__)
 
 
 @admin.register(TelegramUsers)
@@ -53,6 +61,8 @@ class VPNServiceTelegramUsersAdmin(admin.ModelAdmin):
 
 @admin.register(OutlineVPNKeys)
 class VPNServiceOutlineVPNKeysAdmin(admin.ModelAdmin):
+    change_list_template = 'change_list.html'
+
     list_display = (
         'telegram_user_record',
         'outline_key_id',
@@ -80,8 +90,24 @@ class VPNServiceOutlineVPNKeysAdmin(admin.ModelAdmin):
         'delete_vpn_record',
     ]
 
+    def has_add_permission(self, request, obj=None):
+        return False
+
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [
+            path('add_new_vpn_key/', self.add_new_vpn_key)
+        ]
+        return my_urls + urls
+
+    def add_new_vpn_key(self, request):
+        vpn_key = add_new_key()
+        vpn_key.add_traffic_limit()
+        self.message_user(request, "New VPN Key Added with limit 1 kb")
+        return HttpResponseRedirect("../")
 
     @admin.action(description='Delete VPN record')
     def delete_vpn_record(self, request, queryset):
