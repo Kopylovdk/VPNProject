@@ -34,6 +34,9 @@ class OutlineVPNKeys(models.Model):
             )
         ]
 
+    # class ServerCountries(models.TextChoices):
+    #     KZ = 'KZ', 'KZ'
+
     telegram_user_record = models.ForeignKey(
         TelegramUsers, on_delete=models.CASCADE, verbose_name='Владелец ключа', null=True, blank=True
     )
@@ -46,6 +49,14 @@ class OutlineVPNKeys(models.Model):
     outline_key_active = models.BooleanField(verbose_name='Активность VPN ключа', default=False)
     outline_key_traffic_limit = models.IntegerField(verbose_name='Лимит трафика', null=True, blank=True)
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
+    # TODO: Если нужна будет информация о стране, где будет находится VPN сервер
+    # outline_vpn_key_server_country = models.CharField(
+    #     verbose_name='Страна нахождения VPN Сервера',
+    #     max_length=64,
+    #     choices=ServerCountries.choices,
+    #     null=True,
+    #     blank=True,
+    # )
 
     def __str__(self):
         return f'{self.telegram_user_record!r}_{self.outline_key_name!r}'
