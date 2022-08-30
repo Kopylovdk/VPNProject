@@ -3,7 +3,7 @@ from telebot.types import Message, User
 from apps.service.bot.bot_processes import (
     add_new_vpn_key_to_tg_user_step_1,
     delete_step_1,
-    active_prolong_api_key_step_1,
+    api_key_edit_step_1,
     user_vpn_keys_list_step_1,
     messages_send_choice_step_1,
 )
@@ -150,8 +150,8 @@ def handle_text(message: Message):
     elif 'Привязать ключ к пользователю' in message.text:
         add_new_vpn_key_to_tg_user_step_1(message, bot)
 
-    elif 'Активация/продление ключа' in message.text:
-        active_prolong_api_key_step_1(message, bot)
+    elif 'Редактирование VPN ключа' in message.text:
+        api_key_edit_step_1(message, bot)
 
     elif 'Отправка сообщений' in message.text:
         messages_send_choice_step_1(message, bot)

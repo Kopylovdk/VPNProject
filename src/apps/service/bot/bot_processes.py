@@ -3,7 +3,7 @@ from telebot.types import Message
 from apps.service.bot.keyboards import (
     one_time_keyboard_back_to_main,
     one_time_keyboard_send_edit,
-    one_time_keyboard_valid_active,
+    one_time_keyboard_vpn_key_actions,
     main_admin_keyboard,
     bot_message_keyboard,
     one_time_keyboard_back,
@@ -127,7 +127,7 @@ def delete_step_2(message: Message, bot: TeleBot):
             )
 
 
-def active_prolong_api_key_step_1(message: Message, bot: TeleBot):
+def api_key_edit_step_1(message: Message, bot: TeleBot):
     """
     Активация и продление VPN ключа. Шаг 1 из 5
     Params:
@@ -141,10 +141,10 @@ def active_prolong_api_key_step_1(message: Message, bot: TeleBot):
         'Введите ID VPN ключа, с которым необходимо работать',
         reply_markup=one_time_keyboard_back_to_main()
     )
-    bot.register_next_step_handler(message, active_prolong_api_key_step_2, bot)
+    bot.register_next_step_handler(message, api_key_edit_step_2, bot)
 
 
-def active_prolong_api_key_step_2(message: Message, bot: TeleBot):
+def api_key_edit_step_2(message: Message, bot: TeleBot):
     """
     Активация и продление VPN ключа. Шаг 2 из 5
     Params:
@@ -160,20 +160,18 @@ def active_prolong_api_key_step_2(message: Message, bot: TeleBot):
         outline_vpn_record = get_outline_key_by_id(message.text)
         if isinstance(outline_vpn_record, str):
             bot.send_message(message.chat.id, f'Ошибка.{outline_vpn_record!r}. Повторите ввод данных.')
-            bot.register_next_step_handler(message, active_prolong_api_key_step_2, bot)
+            bot.register_next_step_handler(message, api_key_edit_step_2, bot)
         elif isinstance(outline_vpn_record, OutlineVPNKeys):
             bot.send_message(
                 message.chat.id,
                 'Выберите действие:',
-                reply_markup=one_time_keyboard_valid_active(
-                    outline_vpn_record.outline_key_active,
-                    outline_vpn_record.outline_key_traffic_limit
-                )
+                reply_markup=one_time_keyboard_vpn_key_actions(outline_vpn_record.outline_key_active,
+                                                               outline_vpn_record.outline_key_traffic_limit)
             )
-            bot.register_next_step_handler(message, active_prolong_api_key_step_3, bot, outline_vpn_record)
+            bot.register_next_step_handler(message, api_key_edit_step_3, bot, outline_vpn_record)
 
 
-def active_prolong_api_key_step_3(message: Message, bot: TeleBot, outline_vpn_record: OutlineVPNKeys):
+def api_key_edit_step_3(message: Message, bot: TeleBot, outline_vpn_record: OutlineVPNKeys):
     """
     Активация и продление VPN ключа. Шаг 3 из 5
     Params:
@@ -191,7 +189,7 @@ def active_prolong_api_key_step_3(message: Message, bot: TeleBot, outline_vpn_re
             'Ведите срок действия ключа в днях. Если указать 0 - ключ будет без ограничения по времени.',
             reply_markup=one_time_keyboard_back()
         )
-        bot.register_next_step_handler(message, active_prolong_api_key_step_4, bot, outline_vpn_record)
+        bot.register_next_step_handler(message, api_key_edit_step_valid_until, bot, outline_vpn_record)
 
     elif 'Активировать' in message.text or 'Деактивировать' in message.text:
         key_status = outline_vpn_record.change_active_status()
@@ -200,12 +198,10 @@ def active_prolong_api_key_step_3(message: Message, bot: TeleBot, outline_vpn_re
             message.chat.id,
             f'VPN ключ {outline_vpn_record.outline_key_id!r}'
             f' {"АКТИВИРОВАН" if key_status else "ДЕАКТИВИРОВАН"},\n',
-            reply_markup=one_time_keyboard_valid_active(
-                outline_vpn_record.outline_key_active,
-                outline_vpn_record.outline_key_traffic_limit
-            )
+            reply_markup=one_time_keyboard_vpn_key_actions(outline_vpn_record.outline_key_active,
+                                                           outline_vpn_record.outline_key_traffic_limit)
         )
-        bot.register_next_step_handler(message, active_prolong_api_key_step_3, bot, outline_vpn_record)
+        bot.register_next_step_handler(message, api_key_edit_step_3, bot, outline_vpn_record)
 
     elif 'Установить лимит трафика' in message.text:
         bot.send_message(
@@ -213,22 +209,29 @@ def active_prolong_api_key_step_3(message: Message, bot: TeleBot, outline_vpn_re
             'Ведите лимит траффика в мегабайтах.',
             reply_markup=one_time_keyboard_back()
         )
-        bot.register_next_step_handler(message, active_prolong_api_key_step_5, bot, outline_vpn_record)
+        bot.register_next_step_handler(message, api_key_edit_step_traffic_limit, bot, outline_vpn_record)
 
     elif 'Снять лимит трафика' in message.text:
         outline_vpn_record.del_traffic_limit()
         bot.send_message(
             message.chat.id,
             'Лимит траффика удален',
-            reply_markup=one_time_keyboard_valid_active(
-                outline_vpn_record.outline_key_active,
-                outline_vpn_record.outline_key_traffic_limit
-            )
+            reply_markup=one_time_keyboard_vpn_key_actions(outline_vpn_record.outline_key_active,
+                                                           outline_vpn_record.outline_key_traffic_limit)
         )
-        bot.register_next_step_handler(message, active_prolong_api_key_step_3, bot, outline_vpn_record)
+        bot.register_next_step_handler(message, api_key_edit_step_3, bot, outline_vpn_record)
+
+    elif 'Изменить имя' in message.text:
+        bot.send_message(
+            message.chat.id,
+            'В разработке',
+            reply_markup=one_time_keyboard_vpn_key_actions(outline_vpn_record.outline_key_active,
+                                                           outline_vpn_record.outline_key_traffic_limit)
+        )
+        bot.register_next_step_handler(message, api_key_edit_step_3, bot, outline_vpn_record)
 
 
-def active_prolong_api_key_step_4(message: Message, bot: TeleBot, outline_vpn_record: OutlineVPNKeys):
+def api_key_edit_step_valid_until(message: Message, bot: TeleBot, outline_vpn_record: OutlineVPNKeys):
     """
     Активация и продление VPN ключа. Шаг 4 из 5
     Params:
@@ -242,12 +245,10 @@ def active_prolong_api_key_step_4(message: Message, bot: TeleBot, outline_vpn_re
         bot.send_message(
             message.chat.id,
             'Отмена ввода',
-            reply_markup=one_time_keyboard_valid_active(
-                    outline_vpn_record.outline_key_active,
-                    outline_vpn_record.outline_key_traffic_limit
-                ),
+            reply_markup=one_time_keyboard_vpn_key_actions(outline_vpn_record.outline_key_active,
+                                                           outline_vpn_record.outline_key_traffic_limit),
         )
-        bot.register_next_step_handler(message, active_prolong_api_key_step_3, bot, outline_vpn_record)
+        bot.register_next_step_handler(message, api_key_edit_step_3, bot, outline_vpn_record)
     else:
         valid_data = _validate_int(message.text)
         if valid_data:
@@ -261,21 +262,19 @@ def active_prolong_api_key_step_4(message: Message, bot: TeleBot, outline_vpn_re
             bot.send_message(
                 message.chat.id,
                 f'На VPN ключ {outline_vpn_record.outline_key_id!r} установлен срок действия {msg}',
-                reply_markup=one_time_keyboard_valid_active(
-                    outline_vpn_record.outline_key_active,
-                    outline_vpn_record.outline_key_traffic_limit
-                )
+                reply_markup=one_time_keyboard_vpn_key_actions(outline_vpn_record.outline_key_active,
+                                                               outline_vpn_record.outline_key_traffic_limit)
             )
-            bot.register_next_step_handler(message, active_prolong_api_key_step_3, bot, outline_vpn_record)
+            bot.register_next_step_handler(message, api_key_edit_step_3, bot, outline_vpn_record)
         else:
             bot.send_message(
                 message.chat.id,
                 f'Ошибка: {valid_data!r}. Повторите ввод данных.'
             )
-            bot.register_next_step_handler(message, active_prolong_api_key_step_4, bot, outline_vpn_record)
+            bot.register_next_step_handler(message, api_key_edit_step_valid_until, bot, outline_vpn_record)
 
 
-def active_prolong_api_key_step_5(message: Message, bot: TeleBot, outline_vpn_record: OutlineVPNKeys):
+def api_key_edit_step_traffic_limit(message: Message, bot: TeleBot, outline_vpn_record: OutlineVPNKeys):
     """
     Активация и продление VPN ключа. Шаг 5 из 5
     Params:
@@ -289,12 +288,10 @@ def active_prolong_api_key_step_5(message: Message, bot: TeleBot, outline_vpn_re
         bot.send_message(
             message.chat.id,
             'Отмена ввода',
-            reply_markup=one_time_keyboard_valid_active(
-                    outline_vpn_record.outline_key_active,
-                    outline_vpn_record.outline_key_traffic_limit
-                ),
+            reply_markup=one_time_keyboard_vpn_key_actions(outline_vpn_record.outline_key_active,
+                                                           outline_vpn_record.outline_key_traffic_limit),
         )
-        bot.register_next_step_handler(message, active_prolong_api_key_step_3, bot, outline_vpn_record)
+        bot.register_next_step_handler(message, api_key_edit_step_3, bot, outline_vpn_record)
     else:
         valid_data = _validate_int(message.text)
         if valid_data:
@@ -304,18 +301,16 @@ def active_prolong_api_key_step_5(message: Message, bot: TeleBot, outline_vpn_re
                 message.chat.id,
                 f'На VPN ключ {outline_vpn_record.outline_key_id!r}'
                 f' установлен лимит трафика в размере {message.text} мегабайт',
-                reply_markup=one_time_keyboard_valid_active(
-                    outline_vpn_record.outline_key_active,
-                    outline_vpn_record.outline_key_traffic_limit
-                )
+                reply_markup=one_time_keyboard_vpn_key_actions(outline_vpn_record.outline_key_active,
+                                                               outline_vpn_record.outline_key_traffic_limit)
             )
-            bot.register_next_step_handler(message, active_prolong_api_key_step_3, bot, outline_vpn_record)
+            bot.register_next_step_handler(message, api_key_edit_step_3, bot, outline_vpn_record)
         else:
             bot.send_message(
                 message.chat.id,
                 f'Ошибка: {valid_data!r}. Повторите ввод данных.'
             )
-            bot.register_next_step_handler(message, active_prolong_api_key_step_5, bot, outline_vpn_record)
+            bot.register_next_step_handler(message, api_key_edit_step_traffic_limit, bot, outline_vpn_record)
 
 
 def messages_send_choice_step_1(message: Message, bot: TeleBot):

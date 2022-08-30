@@ -32,7 +32,7 @@ def main_admin_keyboard() -> ReplyKeyboardMarkup:
         KeyboardButton(text='Список ключей пользователя'),
         KeyboardButton(text='Новый ключ'),
         KeyboardButton(text='Привязать ключ к пользователю'),
-        KeyboardButton(text='Активация/продление ключа'),
+        KeyboardButton(text='Редактирование VPN ключа'),
         KeyboardButton(text='Удалить ключ'),
         KeyboardButton(text='Отправка сообщений'),
         KeyboardButton(text='Памятка администратора'),
@@ -119,7 +119,7 @@ def one_time_keyboard_send_edit() -> ReplyKeyboardMarkup:
     return kb
 
 
-def one_time_keyboard_valid_active(is_active: bool, traffic_limit: int) -> ReplyKeyboardMarkup:
+def one_time_keyboard_vpn_key_actions(is_active: bool, traffic_limit: int) -> ReplyKeyboardMarkup:
     """
     Вспомогательная клавиатура (клавиатура Отмена)
     Params: None
@@ -132,6 +132,7 @@ def one_time_keyboard_valid_active(is_active: bool, traffic_limit: int) -> Reply
         KeyboardButton(text='Изменить срок действия'),
         KeyboardButton(text='Активировать' if not is_active else 'Деактивировать'),
         KeyboardButton(text='Установить лимит трафика' if not traffic_limit else 'Снять лимит трафика'),
+        KeyboardButton(text='Изменить имя'),
         KeyboardButton(text='В основное меню')
     )
     return kb
