@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from django.db import models
-from apps.service.outline.outline_api import add_traffic_limit, del_traffic_limit
 
 
 class TelegramUsers(models.Model):
@@ -20,6 +19,14 @@ class TelegramUsers(models.Model):
 
     def __str__(self):
         return f'{self.telegram_login!r}_{self.telegram_id!r}'
+
+    # TODO: Need test
+    def change_is_admin(self) -> None:
+        if self.is_admin:
+            self.is_admin = False
+        else:
+            self.is_admin = True
+        self.save()
 
 
 class OutlineVPNKeys(models.Model):
@@ -47,7 +54,7 @@ class OutlineVPNKeys(models.Model):
     outline_key_value = models.CharField(verbose_name='VPN ключ', max_length=254, null=True, blank=True)
     outline_key_valid_until = models.DateField(verbose_name='Дата окончания подписки', null=True, blank=True)
     outline_key_active = models.BooleanField(verbose_name='Активность VPN ключа', default=False)
-    outline_key_traffic_limit = models.IntegerField(verbose_name='Лимит трафика', null=True, blank=True)
+    outline_key_traffic_limit = models.BigIntegerField(verbose_name='Лимит трафика', null=True, blank=True)
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
     # TODO: Если нужна будет информация о стране, где будет находится VPN сервер
     # outline_vpn_key_server_country = models.CharField(
@@ -60,33 +67,6 @@ class OutlineVPNKeys(models.Model):
 
     def __str__(self):
         return f'{self.telegram_user_record!r}_{self.outline_key_name!r}'
-
-    def add_traffic_limit(self, limit_in_bytes: int = 1024, test: bool = False) -> None:
-        """
-        Метод установки лимита трафика на запись OutlineVPNKeys
-        Params:
-            limit_in_bytes: int = 1024
-            test: bool = False - используется для мока запроса на сервер outline
-        Returns: none
-        Exceptions: None
-        """
-        if not test:
-            add_traffic_limit(self.outline_key_id, limit_in_bytes)
-        self.outline_key_traffic_limit = limit_in_bytes
-        self.save()
-
-    def del_traffic_limit(self, test: bool = False) -> None:
-        """
-        Метод удаления лимита трафика с записи OutlineVPNKeys
-        Params:
-            test: bool = False - используется для мока запроса на сервер outline
-        Returns: none
-        Exceptions: None
-        """
-        if not test:
-            del_traffic_limit(self.outline_key_id)
-        self.outline_key_traffic_limit = None
-        self.save()
 
     def add_tg_user(self, telegram_user: TelegramUsers) -> None:
         """
@@ -102,7 +82,7 @@ class OutlineVPNKeys(models.Model):
     def change_active_status(self) -> bool:
         """
         Метод изменения статуса записи OutlineVPNKeys
-        Params: none
+        Params: None
         Returns: bool
         Exceptions: None
         """

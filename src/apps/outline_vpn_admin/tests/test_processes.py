@@ -1,16 +1,15 @@
 from django.test import TestCase
-from apps.service import exceptions
-from apps.service.models import TelegramUsers, OutlineVPNKeys
+from apps.outline_vpn_admin.models import TelegramUsers, OutlineVPNKeys
 from telebot.types import User
-from apps.service.bot import bot_exceptions
-import apps.service.processes as processes
-import apps.service.tests.helpers as helpers
+from outline_vpn_admin_bot import bot_exceptions
+import apps.outline_vpn_admin.processes as processes
+import apps.outline_vpn_admin.tests.helpers as helpers
 
 
 class ValidateTestCase(TestCase):
     def test_validate_int(self):
-        self.assertTrue(processes._validate_int('1'))
-        self.assertFalse(processes._validate_int('qwerty'))
+        self.assertTrue(processes.validate_int('1'))
+        self.assertFalse(processes.validate_int('qwerty'))
 
 
 class AddNewTGUserTestCase(TestCase):
@@ -123,7 +122,7 @@ class GetAllVPNKeysOfUserTestCase(TestCase):
 
 class AddNewVPNKeyTestCase(TestCase):
     def test_add_new_key(self):
-        vpn_key = processes.add_new_key(test=True)
+        vpn_key = processes.create_new_key(test=True)
         from_db = OutlineVPNKeys.objects.all()
         self.assertIsInstance(vpn_key, OutlineVPNKeys)
         self.assertEqual(1, len(from_db))

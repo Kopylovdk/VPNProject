@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('service', '0001_initial'),
+        ('outline_vpn_admin', '0001_initial'),
     ]
 
     def generate_superuser(*args, **kwargs):

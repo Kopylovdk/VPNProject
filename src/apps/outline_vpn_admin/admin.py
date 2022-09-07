@@ -1,13 +1,16 @@
 import logging
-
 from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.urls import path
 from django.utils.translation import ngettext
 from django.contrib import messages
-from apps.service.models import TelegramUsers, OutlineVPNKeys
-import apps.service.outline.outline_api as outline_api
-from apps.service.processes import add_new_key
+from apps.outline_vpn_admin.models import TelegramUsers, OutlineVPNKeys
+from apps.outline_vpn_admin.processes import (
+    create_new_key,
+    add_traffic_limit,
+    del_traffic_limit,
+    del_outline_vpn_key,
+)
 
 
 log = logging.getLogger(__name__)
@@ -46,11 +49,7 @@ class VPNServiceTelegramUsersAdmin(admin.ModelAdmin):
     @admin.action(description='Change admin role')
     def change_admin_status(self, request, queryset):
         for obj in queryset:
-            if obj.is_admin:
-                obj.is_admin = False
-            else:
-                obj.is_admin = True
-            obj.save()
+            obj.change_is_admin()
         objects = len(queryset)
         self.message_user(request, ngettext(
             '%d role was successfully changed.',
@@ -104,8 +103,8 @@ class VPNServiceOutlineVPNKeysAdmin(admin.ModelAdmin):
         return my_urls + urls
 
     def add_new_vpn_key(self, request):
-        vpn_key = add_new_key()
-        vpn_key.add_traffic_limit()
+        vpn_key = create_new_key('kz')
+        add_traffic_limit('kz', vpn_key)
         self.message_user(request, "New VPN Key Added with limit 1 kb")
         return HttpResponseRedirect("../")
 
@@ -113,8 +112,7 @@ class VPNServiceOutlineVPNKeysAdmin(admin.ModelAdmin):
     def delete_vpn_record(self, request, queryset):
         objects = len(queryset)
         for obj in queryset:
-            outline_api.delete_key(obj.outline_key_id)
-            obj.delete()
+            del_outline_vpn_key('kz', obj)
 
         self.message_user(request, ngettext(
             '%d VPN record was successfully deleted.',
@@ -137,7 +135,7 @@ class VPNServiceOutlineVPNKeysAdmin(admin.ModelAdmin):
     @admin.action(description='Delete traffic limit')
     def del_traffic_limit(self, request, queryset):
         for obj in queryset:
-            obj.del_traffic_limit()
+            del_traffic_limit('kz', obj)
 
         objects = len(queryset)
         self.message_user(request, ngettext(
@@ -149,7 +147,7 @@ class VPNServiceOutlineVPNKeysAdmin(admin.ModelAdmin):
     @admin.action(description='Add default traffic limit')
     def add_default_traffic_limit(self, request, queryset):
         for obj in queryset:
-            obj.add_traffic_limit()
+            add_traffic_limit('kz', obj)
 
         objects = len(queryset)
         self.message_user(request, ngettext(
@@ -160,8 +158,8 @@ class VPNServiceOutlineVPNKeysAdmin(admin.ModelAdmin):
 
     def response_post_save_change(self, request, obj):
         if not obj.outline_key_traffic_limit:
-            obj.del_traffic_limit()
+            del_traffic_limit('kz', obj)
         else:
-            obj.add_traffic_limit(obj.outline_key_traffic_limit)
+            add_traffic_limit('kz', obj, obj.outline_key_traffic_limit)
 
         return super().response_post_save_change(request, obj)

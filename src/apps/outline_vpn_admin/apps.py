@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class ServiceConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.service'
+    name = 'apps.outline_vpn_admin'

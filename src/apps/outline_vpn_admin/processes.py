@@ -1,15 +1,16 @@
-import apps.service.exceptions as exceptions
 import logging
 from outline_vpn.outline_vpn import OutlineKey
-from apps.service.models import TelegramUsers, OutlineVPNKeys
+from apps.outline_vpn_admin.models import TelegramUsers, OutlineVPNKeys
 from telebot.types import User
-from apps.service.outline.outline_api import create_new_vpn_key
-from apps.service.bot.bot_exceptions import OUTLINE_VPN_KEY_NOT_FOUND, TELEGRAM_USER_NOT_FOUND, NOT_INTEGER
+from apps.outline_vpn_admin.outline_api import get_outline_client
+
+from outline_vpn_admin_bot.bot_exceptions import OUTLINE_VPN_KEY_NOT_FOUND, TELEGRAM_USER_NOT_FOUND, NOT_INTEGER
+
 
 log = logging.getLogger(__name__)
 
 
-def _validate_int(data: str) -> int or bool:
+def validate_int(data: str) -> int or bool:
     """
     Валидация. Является ли полученная строка числом
     Params:
@@ -20,7 +21,7 @@ def _validate_int(data: str) -> int or bool:
     try:
         return int(data)
     except ValueError:
-        return False
+        return NOT_INTEGER
 
 
 def get_outline_key_by_id(telegram_data: int or str) -> OutlineVPNKeys or str:
@@ -34,7 +35,7 @@ def get_outline_key_by_id(telegram_data: int or str) -> OutlineVPNKeys or str:
         OUTLINE_VPN_KEY_NOT_FOUND
         NOT_INTEGER
     """
-    valid_data = _validate_int(telegram_data)
+    valid_data = validate_int(telegram_data)
     try:
         if valid_data:
             return OutlineVPNKeys.objects.get(outline_key_id=valid_data)
@@ -56,10 +57,10 @@ def get_tg_user_by_(telegram_data: str or int) -> TelegramUsers or str:
         TELEGRAM_USER_NOT_FOUND
     """
 
-    valid_data = _validate_int(telegram_data)
+    valid_data = validate_int(telegram_data)
     try:
-        if valid_data:
-            return TelegramUsers.objects.get(telegram_id=telegram_data)
+        if isinstance(valid_data, int):
+            return TelegramUsers.objects.get(telegram_id=valid_data)
         else:
             return TelegramUsers.objects.get(telegram_login=telegram_data)
     except TelegramUsers.DoesNotExist:
@@ -112,9 +113,10 @@ def add_new_tg_user(user: User) -> None:
         from_db_user.save()
 
 
-def add_new_key(test: bool = False) -> OutlineVPNKeys:
+def create_new_key(vpn_server_name: str, test: bool = False) -> OutlineVPNKeys:
     if not test:
-        response = create_new_vpn_key()
+        outline_client = get_outline_client(vpn_server_name)
+        response = outline_client.create_key()
     else:
         response = OutlineKey(
             key_id=123,
@@ -168,3 +170,57 @@ def get_all_vpn_keys_of_user(user_data: str or int) -> list or str:
             return []
     else:
         return tg_user
+
+
+def add_traffic_limit(vpn_server_name: str, obj: OutlineVPNKeys, limit_in_bytes: int = 1024, test: bool = False) -> bool:
+    """
+    Метод установки лимита трафика на запись OutlineVPNKeys
+    Params:
+        limit_in_bytes: int = 1024
+        test: bool = False - используется для мока запроса на сервер outline
+    Returns: none
+    Exceptions: None
+    """
+    response = True
+    if not test:
+        outline_client = get_outline_client(vpn_server_name)
+        response = outline_client.add_data_limit(obj.outline_key_id, limit_in_bytes)
+    obj.outline_key_traffic_limit = limit_in_bytes
+    obj.save()
+    return response
+
+
+def del_traffic_limit(vpn_server_name: str, obj: OutlineVPNKeys, test: bool = False) -> bool:
+    """
+    Метод удаления лимита трафика с записи OutlineVPNKeys
+    Params:
+        test: bool = False - используется для мока запроса на сервер outline
+    Returns: none
+    Exceptions: None
+    """
+    response = True
+    if not test:
+        outline_client = get_outline_client(vpn_server_name)
+        response = outline_client.delete_data_limit(obj.outline_key_id)
+    obj.outline_key_traffic_limit = None
+    obj.save()
+    return response
+
+
+def del_outline_vpn_key(vpn_server_name: str, obj: OutlineVPNKeys, test: bool = False) -> bool:
+    response = True
+    if not test:
+        outline_client = get_outline_client(vpn_server_name)
+        response = outline_client.delete_key(obj.outline_key_id)
+    obj.delete()
+    return response
+
+
+def change_outline_vpn_key_name(vpn_server_name: str, obj: OutlineVPNKeys, name: str, test: bool = False) -> bool:
+    response = True
+    if not test:
+        outline_client = get_outline_client(vpn_server_name)
+        response = outline_client.rename_key(obj.outline_key_id, name)
+    obj.outline_key_name = name
+    obj.save()
+    return response

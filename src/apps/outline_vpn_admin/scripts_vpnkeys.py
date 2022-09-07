@@ -4,9 +4,10 @@ from time import sleep
 
 from django.db.models import QuerySet
 
-from apps.service.bot.keyboards import main_keyboard
-from apps.service.models import OutlineVPNKeys
-from apps.service.bot.bot_main import bot
+from apps.outline_vpn_admin.processes import add_traffic_limit
+from outline_vpn_admin_bot.keyboards import main_keyboard
+from apps.outline_vpn_admin.models import OutlineVPNKeys
+from outline_vpn_admin_bot.bot_main import bot
 
 
 log = logging.getLogger(__name__)
@@ -67,7 +68,7 @@ def expire_vpn_key(test: bool = False) -> None:
         deactivated = 0
         for vpn_key in vpn_keys:
             vpn_key.outline_key_active = False
-            vpn_key.add_traffic_limit(test=test)
+            add_traffic_limit('kz', vpn_key, test=test)
             deactivated += 1
             if not test:
                 send_info_to_user(

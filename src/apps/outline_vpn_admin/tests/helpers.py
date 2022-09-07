@@ -1,6 +1,6 @@
 import datetime
 
-from apps.service.models import TelegramUsers, OutlineVPNKeys
+from apps.outline_vpn_admin.models import TelegramUsers, OutlineVPNKeys
 
 
 def create_telegram_users(cnt: int = 1) -> list[TelegramUsers]:

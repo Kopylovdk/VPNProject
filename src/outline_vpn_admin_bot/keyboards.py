@@ -1,5 +1,5 @@
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
-from apps.service.processes import get_all_admins
+from apps.outline_vpn_admin.processes import get_all_admins
 
 
 def main_keyboard(tg_user_id: int) -> ReplyKeyboardMarkup:
@@ -31,9 +31,7 @@ def main_admin_keyboard() -> ReplyKeyboardMarkup:
     kb.add(
         KeyboardButton(text='Список ключей пользователя'),
         KeyboardButton(text='Новый ключ'),
-        KeyboardButton(text='Привязать ключ к пользователю'),
         KeyboardButton(text='Редактирование VPN ключа'),
-        KeyboardButton(text='Удалить ключ'),
         KeyboardButton(text='Отправка сообщений'),
         KeyboardButton(text='Памятка администратора'),
         KeyboardButton(text='Режим пользователя'),
@@ -84,7 +82,7 @@ def one_time_keyboard_back_to_main() -> ReplyKeyboardMarkup:
         ReplyKeyboardMarkup
     Exceptions: None
     """
-    kb = ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
     kb.add(KeyboardButton(text='В основное меню'))
     return kb
 
@@ -97,29 +95,29 @@ def one_time_keyboard_back() -> ReplyKeyboardMarkup:
         ReplyKeyboardMarkup
     Exceptions: None
     """
-    kb = ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
     kb.add(KeyboardButton(text='Назад'))
     return kb
 
 
 def one_time_keyboard_send_edit() -> ReplyKeyboardMarkup:
     """
-    Вспомогательная клавиатура (клавиатура Отмена)
+    Вспомогательная клавиатура (клавиатура отправки сообщений)
     Params: None
     Returns:
         ReplyKeyboardMarkup
     Exceptions: None
     """
-    kb = ReplyKeyboardMarkup(row_width=2, one_time_keyboard=True, resize_keyboard=True)
+    kb = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     kb.add(
         KeyboardButton(text='Отправить'),
         KeyboardButton(text='Редактировать'),
-        KeyboardButton(text='Назад')
+        KeyboardButton(text='Назад'),
     )
     return kb
 
 
-def one_time_keyboard_vpn_key_actions(is_active: bool, traffic_limit: int) -> ReplyKeyboardMarkup:
+def vpn_key_edit_actions_keyboard(is_active: bool, traffic_limit: int) -> ReplyKeyboardMarkup:
     """
     Вспомогательная клавиатура (клавиатура Отмена)
     Params: None
@@ -127,12 +125,30 @@ def one_time_keyboard_vpn_key_actions(is_active: bool, traffic_limit: int) -> Re
         ReplyKeyboardMarkup
     Exceptions: None
     """
-    kb = ReplyKeyboardMarkup(row_width=2, one_time_keyboard=True, resize_keyboard=True)
+    kb = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     kb.add(
+        KeyboardButton(text='Привязать ключ к пользователю'),
         KeyboardButton(text='Изменить срок действия'),
         KeyboardButton(text='Активировать' if not is_active else 'Деактивировать'),
         KeyboardButton(text='Установить лимит трафика' if not traffic_limit else 'Снять лимит трафика'),
         KeyboardButton(text='Изменить имя'),
-        KeyboardButton(text='В основное меню')
+        KeyboardButton(text='Удалить ключ'),
+        KeyboardButton(text='В основное меню'),
+    )
+    return kb
+
+
+def delete_keyboard() -> ReplyKeyboardMarkup:
+    """
+    Вспомогательная клавиатура (клавиатура удаления)
+    Params: None
+    Returns:
+        ReplyKeyboardMarkup
+    Exceptions: None
+    """
+    kb = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    kb.add(
+        KeyboardButton(text='Удалить'),
+        KeyboardButton(text='Назад'),
     )
     return kb

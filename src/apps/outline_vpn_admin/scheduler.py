@@ -3,7 +3,7 @@ from django.conf import settings
 from apscheduler.schedulers.blocking import BlockingScheduler
 from django_apscheduler.jobstores import DjangoJobStore
 from apscheduler.triggers.cron import CronTrigger
-from apps.service.scripts_vpnkeys import expire_vpn_key, expired_soon_vpn_keys
+from apps.outline_vpn_admin.scripts_vpnkeys import expire_vpn_key, expired_soon_vpn_keys
 
 
 logger = logging.getLogger(__name__)

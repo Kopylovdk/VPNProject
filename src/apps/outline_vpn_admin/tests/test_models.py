@@ -1,7 +1,7 @@
 import datetime
 from django.test import TestCase
-from apps.service.tests import helpers
-from apps.service.models import TelegramUsers, OutlineVPNKeys
+from apps.outline_vpn_admin.tests import helpers
+from apps.outline_vpn_admin.models import TelegramUsers, OutlineVPNKeys
 from django.db.utils import IntegrityError
 
 

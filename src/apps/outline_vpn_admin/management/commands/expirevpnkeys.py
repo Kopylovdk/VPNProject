@@ -1,6 +1,6 @@
 import threading
 from django.core.management.base import BaseCommand
-from apps.service.scripts_vpnkeys import expire_vpn_key
+from apps.outline_vpn_admin.scripts_vpnkeys import expire_vpn_key
 
 
 class Command(BaseCommand):

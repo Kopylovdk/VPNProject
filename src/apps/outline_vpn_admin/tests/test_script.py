@@ -1,8 +1,8 @@
 import datetime
-import apps.service.tests.helpers as helpers
+import apps.outline_vpn_admin.tests.helpers as helpers
 from django.test import TestCase
-from apps.service.models import OutlineVPNKeys
-from apps.service.scripts_vpnkeys import (
+from apps.outline_vpn_admin.models import OutlineVPNKeys
+from apps.outline_vpn_admin.scripts_vpnkeys import (
     collect_expired_vpn_keys,
     expire_vpn_key,
     collect_expired_soon_vpn_keys,

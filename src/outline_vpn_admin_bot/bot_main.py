@@ -1,19 +1,17 @@
 from telebot import TeleBot
 from telebot.types import Message, User
-from apps.service.bot.bot_processes import (
-    add_new_vpn_key_to_tg_user_step_1,
-    delete_step_1,
+from outline_vpn_admin_bot.bot_processes import (
     api_key_edit_step_1,
     user_vpn_keys_list_step_1,
     messages_send_choice_step_1,
+    bot_create_key,
 )
-from apps.service.processes import (
+from apps.outline_vpn_admin.processes import (
     get_all_admins,
     add_new_tg_user,
     get_all_vpn_keys_of_user,
-    add_new_key, get_tg_user_by_,
 )
-from apps.service.bot.keyboards import (
+from outline_vpn_admin_bot.keyboards import (
     main_keyboard,
     subscribe_keyboard,
     main_admin_keyboard,
@@ -23,6 +21,8 @@ from vpnservice.settings import EXTERNAL_CFG
 
 tg_bot_conf = EXTERNAL_CFG['tg_bot']
 bot = TeleBot(tg_bot_conf['token'])
+
+VPN_SERVER_NAME = 'kz'
 
 
 def send_msg_to_admins(user: User, text: str) -> None:
@@ -70,12 +70,7 @@ def handle_text(message: Message):
         )
 
     elif 'Демо' in message.text:
-        vpn_key = add_new_key()
-        vpn_key.add_traffic_limit(1024 * 1024 * 1024)
-        vpn_key.add_tg_user(get_tg_user_by_(telegram_data=tg_user.id))
-        vpn_key.change_active_status()
-        vpn_key.change_valid_until(7)
-
+        vpn_key = bot_create_key(VPN_SERVER_NAME, tg_user.id)
         bot.send_message(
             message.chat.id,
             f'Ваш демо ключ: {vpn_key.outline_key_value!r}\n'
@@ -101,7 +96,7 @@ def handle_text(message: Message):
         )
 
     elif 'Инструкция' in message.text:
-        with open('apps/service/bot/instructions.txt', 'r') as f:
+        with open('outline_vpn_admin_bot/instructions.txt', 'r') as f:
             instruction = f.read()
         bot.send_message(
             tg_user.id,
@@ -110,7 +105,7 @@ def handle_text(message: Message):
         )
 
     elif 'Памятка администратора' in message.text:
-        with open('apps/service/bot/instructions_admin.txt', 'r') as fa:
+        with open('outline_vpn_admin_bot/instructions_admin.txt', 'r') as fa:
             instruction = fa.read()
         bot.send_message(
             tg_user.id,
@@ -142,22 +137,14 @@ def handle_text(message: Message):
         user_vpn_keys_list_step_1(message, bot)
 
     elif 'Новый ключ' in message.text:
-        vpn_key = add_new_key()
-        vpn_key.add_traffic_limit()
-        bot.send_message(tg_user.id, f'Ключ создан с лимитом трафика в 1 кб.')
-        bot.send_message(tg_user.id, f'vpn_key_id={vpn_key.outline_key_id!r}')
-
-    elif 'Привязать ключ к пользователю' in message.text:
-        add_new_vpn_key_to_tg_user_step_1(message, bot)
+        vpn_key = bot_create_key(VPN_SERVER_NAME)
+        bot.send_message(tg_user.id, f'Ключ создан.\nvpn_key_id={vpn_key.outline_key_id!r}\nлимит трафика 1 кб.')
 
     elif 'Редактирование VPN ключа' in message.text:
-        api_key_edit_step_1(message, bot)
+        api_key_edit_step_1(message, bot, VPN_SERVER_NAME)
 
     elif 'Отправка сообщений' in message.text:
         messages_send_choice_step_1(message, bot)
-
-    elif 'Удалить ключ' in message.text:
-        delete_step_1(message, bot)
 
     elif 'В основное меню' in message.text:
         bot.send_message(tg_user.id, 'Возврат в основное меню', reply_markup=main_keyboard(tg_user.id))
