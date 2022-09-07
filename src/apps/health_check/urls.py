@@ -17,5 +17,5 @@ from apps.health_check.views import HealthCheckView
 from django.urls import path
 
 urlpatterns = [
-    path('check/', HealthCheckView.as_view()),
+    path('', HealthCheckView.as_view()),
 ]
