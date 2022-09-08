@@ -11,7 +11,7 @@ def create_telegram_users(cnt: int = 1) -> list[TelegramUsers]:
     Exceptions: None
     """
     users = []
-    for user_cnt in range(1, cnt + 1):
+    for user_cnt in range(1000, cnt + 1000):
         to_create = TelegramUsers(
             telegram_id=user_cnt,
             telegram_login=f'tg login test_{user_cnt}',
@@ -31,7 +31,7 @@ def create_vpn_keys(cnt: int = 1) -> list[OutlineVPNKeys]:
     Exceptions: None
     """
     vpns = []
-    for vpn_cnt in range(1, cnt + 1):
+    for vpn_cnt in range(1000, cnt + 1000):
         to_create = OutlineVPNKeys(
             outline_key_id=vpn_cnt,
             outline_key_name=f'test_{vpn_cnt}',

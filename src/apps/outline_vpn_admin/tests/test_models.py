@@ -17,28 +17,20 @@ class TelegramUsersTestCase(TestCase):
             helpers.create_telegram_users()
         self.assertIn('unique_telegram_id', str(err.exception))
 
+    def test_change_is_admin(self):
+        tg_user = helpers.create_telegram_users()[0]
+        self.assertFalse(tg_user.is_admin)
+        tg_user.change_is_admin()
+        self.assertTrue(tg_user.is_admin)
+        tg_user.change_is_admin()
+        self.assertFalse(tg_user.is_admin)
+
 
 class OutlineVPNKeysTestCase(TestCase):
     def test_create_vpn_keys(self):
         keys_to_create = 100
         self.assertEqual(keys_to_create, len(helpers.create_vpn_keys(keys_to_create)))
         self.assertEqual(keys_to_create, len(OutlineVPNKeys.objects.all()))
-
-    def test_add_traffic_limit(self):
-        vpn_key = helpers.create_vpn_keys()[0]
-        self.assertIsNone(vpn_key.outline_key_traffic_limit)
-        vpn_key.add_traffic_limit(test=True)
-        self.assertIsNotNone(vpn_key.outline_key_traffic_limit)
-        self.assertEqual(1024, vpn_key.outline_key_traffic_limit)
-
-    def test_del_traffic_limit(self):
-        vpn_key = helpers.create_vpn_keys()[0]
-        vpn_key.outline_key_traffic_limit = 1
-        vpn_key.save()
-        self.assertIsNotNone(vpn_key.outline_key_traffic_limit)
-        self.assertEqual(1, vpn_key.outline_key_traffic_limit)
-        vpn_key.del_traffic_limit(test=True)
-        self.assertIsNone(vpn_key.outline_key_traffic_limit)
 
     def test_add_tg_user(self):
         vpn_key = helpers.create_vpn_keys()[0]
@@ -68,7 +60,7 @@ class OutlineVPNKeysTestCase(TestCase):
         from_method = vpn_key.change_valid_until(0)
         self.assertIsNone(from_method)
 
-    def test_uniq_constraint__vpn(self):
+    def test_uniq_constraint_vpn(self):
         helpers.create_vpn_keys()
         with self.assertRaises(IntegrityError) as err:
             helpers.create_vpn_keys()

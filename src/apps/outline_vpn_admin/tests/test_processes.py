@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from django.test import TestCase
 from apps.outline_vpn_admin.models import TelegramUsers, OutlineVPNKeys
 from telebot.types import User
@@ -6,19 +7,45 @@ import apps.outline_vpn_admin.processes as processes
 import apps.outline_vpn_admin.tests.helpers as helpers
 
 
+class MockResponseCreateKey:
+
+    def __init__(self):
+        self.status_code = 201
+
+    def json(self):
+        return {
+            "id": 123,
+            "name": "test",
+            "password": "test",
+            "port": 7000,
+            "method": "test",
+            "accessUrl": "test",
+        }
+
+
+class MockResponseStatusCode204:
+    status_code = 204
+
+
+class MockResponseStatusCode404:
+    status_code = 404
+
+
 class ValidateTestCase(TestCase):
-    def test_validate_int(self):
+    def test_validate_int_ok(self):
         self.assertTrue(processes.validate_int('1'))
-        self.assertFalse(processes.validate_int('qwerty'))
+
+    def test_validate_int_error(self):
+        self.assertIsInstance(processes.validate_int('qwerty'), str)
 
 
 class AddNewTGUserTestCase(TestCase):
     def setUp(self) -> None:
         self.tg_user = User(
-            id=1,
+            id=1000,
             is_bot=False,
-            first_name='tg first_name test_1',
-            username='tg login test_1',
+            first_name='tg first_name test_1000',
+            username='tg login test_1000',
             last_name='tg last_name update'
         )
 
@@ -48,7 +75,7 @@ class GetAllAdminsTestCase(TestCase):
         tg_users[3].save()
         check_data = processes.get_all_admins()
         self.assertEqual(2, len(check_data))
-        self.assertEqual([1, 4], check_data)
+        self.assertEqual([1000, 1003], check_data)
 
 
 class GetOutlineKeyByIdTestCase(TestCase):
@@ -121,9 +148,95 @@ class GetAllVPNKeysOfUserTestCase(TestCase):
 
 
 class AddNewVPNKeyTestCase(TestCase):
-    def test_add_new_key(self):
-        vpn_key = processes.create_new_key(test=True)
+    @patch("requests.post", return_value=MockResponseCreateKey())
+    def test_add_new_key_ok(self, mocked):
+        vpn_key = processes.create_new_key('kz')
         from_db = OutlineVPNKeys.objects.all()
         self.assertIsInstance(vpn_key, OutlineVPNKeys)
         self.assertEqual(1, len(from_db))
         self.assertEqual(vpn_key.outline_key_name, from_db[0].outline_key_name)
+
+    @patch("requests.post", return_value=MockResponseStatusCode404())
+    def test_add_new_key_error(self, mocked):
+        with self.assertRaises(Exception) as err:
+            processes.create_new_key('kz')
+        self.assertIn("Unable to create key", str(err.exception))
+        from_db = OutlineVPNKeys.objects.all()
+        self.assertEqual(0, len(from_db))
+
+
+class AddTrafficLimitTestCase(TestCase):
+    @patch("requests.put", return_value=MockResponseStatusCode204)
+    def test_add_traffic_limit_true(self, mocked):
+        vpn_key = helpers.create_vpn_keys()[0]
+        response = processes.add_traffic_limit('kz', vpn_key)
+        self.assertTrue(response)
+        vpn_key.refresh_from_db()
+        self.assertIsNotNone(vpn_key.outline_key_traffic_limit)
+
+    @patch("requests.put", return_value=MockResponseStatusCode404)
+    def test_add_traffic_limit_false(self, mocked):
+        vpn_key = helpers.create_vpn_keys()[0]
+        response = processes.add_traffic_limit('kz', vpn_key)
+        self.assertFalse(response)
+        vpn_key.refresh_from_db()
+        self.assertIsNone(vpn_key.outline_key_traffic_limit)
+
+
+class DelTrafficLimitTestCase(TestCase):
+    @patch("requests.delete", return_value=MockResponseStatusCode204)
+    def test_del_traffic_limit_true(self, mocked):
+        vpn_key = helpers.create_vpn_keys()[0]
+        vpn_key.outline_key_traffic_limit = 2000
+        vpn_key.save()
+        response = processes.del_traffic_limit('kz', vpn_key)
+        self.assertTrue(response)
+        vpn_key.refresh_from_db()
+        self.assertIsNone(vpn_key.outline_key_traffic_limit)
+
+    @patch("requests.delete", return_value=MockResponseStatusCode404)
+    def test_del_traffic_limit_false(self, mocked):
+        vpn_key = helpers.create_vpn_keys()[0]
+        vpn_key.outline_key_traffic_limit = 2000
+        vpn_key.save()
+        response = processes.del_traffic_limit('kz', vpn_key)
+        self.assertFalse(response)
+        vpn_key.refresh_from_db()
+        self.assertIsNotNone(vpn_key.outline_key_traffic_limit)
+
+
+class DelOutlineVPNKeyTestCase(TestCase):
+    @patch("requests.delete", return_value=MockResponseStatusCode204)
+    def test_del_outline_vpn_key_true(self, mocked):
+        response = processes.del_outline_vpn_key('kz', helpers.create_vpn_keys()[0])
+        self.assertTrue(response)
+        vpn_keys = OutlineVPNKeys.objects.all()
+        self.assertEqual(0, len(vpn_keys))
+
+    @patch("requests.delete", return_value=MockResponseStatusCode404)
+    def test_del_outline_vpn_key_false(self, mocked):
+        response = processes.del_outline_vpn_key('kz', helpers.create_vpn_keys()[0])
+        self.assertFalse(response)
+        vpn_keys = OutlineVPNKeys.objects.all()
+        self.assertEqual(1, len(vpn_keys))
+
+
+class ChangeOutlineVPNKeyNameTestCase(TestCase):
+    @patch("requests.put", return_value=MockResponseStatusCode204)
+    def test_change_outline_vpn_key_name_true(self, mocked):
+        vpn_key = helpers.create_vpn_keys()[0]
+        self.assertEqual(vpn_key.outline_key_name, "test_1000")
+        response = processes.change_outline_vpn_key_name('kz', vpn_key, 'updated_test')
+        self.assertTrue(response)
+        vpn_key.refresh_from_db()
+        self.assertEqual(vpn_key.outline_key_name, 'updated_test')
+
+    @patch("requests.put", return_value=MockResponseStatusCode404)
+    def test_change_outline_vpn_key_name_false(self, mocked):
+        vpn_key = helpers.create_vpn_keys()[0]
+        self.assertEqual(vpn_key.outline_key_name, "test_1000")
+        response = processes.change_outline_vpn_key_name('kz', vpn_key, 'updated_test')
+        self.assertFalse(response)
+        vpn_key.refresh_from_db()
+        self.assertIsNotNone(vpn_key.outline_key_name)
+        self.assertEqual(vpn_key.outline_key_name, "test_1000")
