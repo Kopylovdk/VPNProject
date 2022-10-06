@@ -49,7 +49,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'apps.health_check',
     'apps.outline_vpn_admin',
+    'apps.api',
     'django_apscheduler',
+    'rest_framework',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -144,3 +147,12 @@ CSRF_TRUSTED_ORIGINS = ['http://localhost:8080']
 
 APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
 APSCHEDULER_RUN_NOW_TIMEOUT = 25
+
+
+REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'apps.api.exceptions.core_exception_handler',
+    'NON_FIELD_ERRORS_KEY': 'error',
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ]
+}

@@ -4,6 +4,8 @@ from django.http import HttpResponseRedirect
 from django.urls import path
 from django.utils.translation import ngettext
 from django.contrib import messages
+# from rest_framework.authtoken.models import Token
+
 from apps.outline_vpn_admin.models import TelegramUsers, OutlineVPNKeys
 from apps.outline_vpn_admin.processes import (
     create_new_key,
@@ -14,6 +16,11 @@ from apps.outline_vpn_admin.processes import (
 
 
 log = logging.getLogger(__name__)
+
+
+# @admin.register(Token)
+# class BotsTokens(admin.ModelAdmin):
+#     pass
 
 
 @admin.register(TelegramUsers)

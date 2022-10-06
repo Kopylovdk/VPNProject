@@ -23,6 +23,8 @@ from apps.outline_vpn_admin.processes import (
     change_outline_vpn_key_name,
 )
 
+# TODO: Ограничить количество демо ключей у пользователя
+
 
 def bot_create_key(server_name: str, tg_user_id: int = None):
     vpn_key = create_new_key(server_name)
