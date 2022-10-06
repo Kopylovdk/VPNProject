@@ -54,14 +54,14 @@ def start(message: Message):
         text='Добро пожаловать в VPN Project!',
         reply_markup=main_keyboard(tg_user.id),
     )
-    add_new_tg_user(tg_user)
+    add_new_tg_user(tg_user.to_dict())
 
 
 @bot.message_handler(content_types=["text"])
 def handle_text(message: Message):
     """Обработчик обработки текстовых команд клавиатуры от пользователя"""
     tg_user = message.from_user
-    add_new_tg_user(tg_user)
+    add_new_tg_user(tg_user.to_dict())
     if 'Оформить подписку' in message.text:
         bot.send_message(
             tg_user.id,
@@ -154,3 +154,6 @@ def handle_text(message: Message):
             text='Такой команды не существует.',
             reply_markup=main_keyboard(tg_user.id),
         )
+
+
+#  TODO: сделать бот отдельным, очередь, АПИ

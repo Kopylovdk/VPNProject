@@ -52,10 +52,11 @@ def send_info_to_user(tg_user_id: int, msg: str) -> None:
     Returns: None
     Exceptions: None
     """
-    bot.send_message(tg_user_id, msg, reply_markup=main_keyboard(tg_user_id))
+    # bot.send_message(tg_user_id, msg, reply_markup=main_keyboard(tg_user_id))
+    bot.send_message(480629416, 'test')
 
 
-def expire_vpn_key(test: bool = False) -> None:
+def expire_vpn_key() -> None:
     """
     Функция отключает все просроченные VPN ключи
     Params: test: bool = False - используется для мока доступа к серверу outline при тестировании
@@ -68,14 +69,13 @@ def expire_vpn_key(test: bool = False) -> None:
         deactivated = 0
         for vpn_key in vpn_keys:
             vpn_key.outline_key_active = False
-            add_traffic_limit('kz', vpn_key, test=test)
+            add_traffic_limit('kz', vpn_key)
             deactivated += 1
-            if not test:
-                send_info_to_user(
-                    vpn_key.telegram_user_record.telegram_id,
-                    f'Срок действия вашей подписки с VPN ключом {vpn_key.outline_key_id!r} истек.\n'
-                    f'Для возобновления подписки свяжитесь с администратором.'
-                )
+            send_info_to_user(
+                vpn_key.telegram_user_record.telegram_id,
+                f'Срок действия вашей подписки с VPN ключом {vpn_key.outline_key_id!r} истек.\n'
+                f'Для возобновления подписки свяжитесь с администратором.'
+            )
             sleep(5)
         log.info(f'Ключей деактивировано - {deactivated}')
 

@@ -5,30 +5,11 @@ from telebot.types import User
 from outline_vpn_admin_bot import bot_exceptions
 import apps.outline_vpn_admin.processes as processes
 import apps.outline_vpn_admin.tests.helpers as helpers
-
-
-class MockResponseCreateKey:
-
-    def __init__(self):
-        self.status_code = 201
-
-    def json(self):
-        return {
-            "id": 123,
-            "name": "test",
-            "password": "test",
-            "port": 7000,
-            "method": "test",
-            "accessUrl": "test",
-        }
-
-
-class MockResponseStatusCode204:
-    status_code = 204
-
-
-class MockResponseStatusCode404:
-    status_code = 404
+from apps.outline_vpn_admin.tests.mocks import (
+    MockResponseCreateKey,
+    MockResponseStatusCode204,
+    MockResponseStatusCode404,
+)
 
 
 class ValidateTestCase(TestCase):
@@ -166,7 +147,7 @@ class AddNewVPNKeyTestCase(TestCase):
 
 
 class AddTrafficLimitTestCase(TestCase):
-    @patch("requests.put", return_value=MockResponseStatusCode204)
+    @patch("requests.put", return_value=MockResponseStatusCode204())
     def test_add_traffic_limit_true(self, mocked):
         vpn_key = helpers.create_vpn_keys()[0]
         response = processes.add_traffic_limit('kz', vpn_key)
@@ -174,7 +155,7 @@ class AddTrafficLimitTestCase(TestCase):
         vpn_key.refresh_from_db()
         self.assertIsNotNone(vpn_key.outline_key_traffic_limit)
 
-    @patch("requests.put", return_value=MockResponseStatusCode404)
+    @patch("requests.put", return_value=MockResponseStatusCode404())
     def test_add_traffic_limit_false(self, mocked):
         vpn_key = helpers.create_vpn_keys()[0]
         response = processes.add_traffic_limit('kz', vpn_key)
@@ -184,7 +165,7 @@ class AddTrafficLimitTestCase(TestCase):
 
 
 class DelTrafficLimitTestCase(TestCase):
-    @patch("requests.delete", return_value=MockResponseStatusCode204)
+    @patch("requests.delete", return_value=MockResponseStatusCode204())
     def test_del_traffic_limit_true(self, mocked):
         vpn_key = helpers.create_vpn_keys()[0]
         vpn_key.outline_key_traffic_limit = 2000
@@ -194,7 +175,7 @@ class DelTrafficLimitTestCase(TestCase):
         vpn_key.refresh_from_db()
         self.assertIsNone(vpn_key.outline_key_traffic_limit)
 
-    @patch("requests.delete", return_value=MockResponseStatusCode404)
+    @patch("requests.delete", return_value=MockResponseStatusCode404())
     def test_del_traffic_limit_false(self, mocked):
         vpn_key = helpers.create_vpn_keys()[0]
         vpn_key.outline_key_traffic_limit = 2000
@@ -206,14 +187,14 @@ class DelTrafficLimitTestCase(TestCase):
 
 
 class DelOutlineVPNKeyTestCase(TestCase):
-    @patch("requests.delete", return_value=MockResponseStatusCode204)
+    @patch("requests.delete", return_value=MockResponseStatusCode204())
     def test_del_outline_vpn_key_true(self, mocked):
         response = processes.del_outline_vpn_key('kz', helpers.create_vpn_keys()[0])
         self.assertTrue(response)
         vpn_keys = OutlineVPNKeys.objects.all()
         self.assertEqual(0, len(vpn_keys))
 
-    @patch("requests.delete", return_value=MockResponseStatusCode404)
+    @patch("requests.delete", return_value=MockResponseStatusCode404())
     def test_del_outline_vpn_key_false(self, mocked):
         response = processes.del_outline_vpn_key('kz', helpers.create_vpn_keys()[0])
         self.assertFalse(response)
@@ -222,7 +203,7 @@ class DelOutlineVPNKeyTestCase(TestCase):
 
 
 class ChangeOutlineVPNKeyNameTestCase(TestCase):
-    @patch("requests.put", return_value=MockResponseStatusCode204)
+    @patch("requests.put", return_value=MockResponseStatusCode204())
     def test_change_outline_vpn_key_name_true(self, mocked):
         vpn_key = helpers.create_vpn_keys()[0]
         self.assertEqual(vpn_key.outline_key_name, "test_1000")
@@ -231,7 +212,7 @@ class ChangeOutlineVPNKeyNameTestCase(TestCase):
         vpn_key.refresh_from_db()
         self.assertEqual(vpn_key.outline_key_name, 'updated_test')
 
-    @patch("requests.put", return_value=MockResponseStatusCode404)
+    @patch("requests.put", return_value=MockResponseStatusCode404())
     def test_change_outline_vpn_key_name_false(self, mocked):
         vpn_key = helpers.create_vpn_keys()[0]
         self.assertEqual(vpn_key.outline_key_name, "test_1000")

@@ -88,7 +88,7 @@ def get_all_no_admin_users() -> list[int]:
     return list(TelegramUsers.objects.filter(is_admin=False).values_list('telegram_id', flat=True))
 
 
-def add_new_tg_user(user: User) -> None:
+def add_new_tg_user(tg_user: dict) -> None:
     """
     Функция добавления нового пользователя
     Params:
@@ -98,18 +98,18 @@ def add_new_tg_user(user: User) -> None:
         exceptions.ProcessException
     """
     try:
-        from_db_user = TelegramUsers.objects.get(telegram_id=user.id)
+        from_db_user = TelegramUsers.objects.get(telegram_id=tg_user['id'])
     except TelegramUsers.DoesNotExist:
         TelegramUsers(
-            telegram_id=user.id,
-            telegram_login=user.username,
-            telegram_first_name=user.first_name,
-            telegram_last_name=user.last_name,
+            telegram_id=tg_user['id'],
+            telegram_login=tg_user['username'],
+            telegram_first_name=tg_user['first_name'],
+            telegram_last_name=tg_user['last_name'],
         ).save()
     else:
-        from_db_user.telegram_login = user.username
-        from_db_user.telegram_first_name = user.first_name
-        from_db_user.telegram_last_name = user.last_name
+        from_db_user.telegram_login = tg_user['username']
+        from_db_user.telegram_first_name = tg_user['first_name']
+        from_db_user.telegram_last_name = tg_user['last_name']
         from_db_user.save()
 
 

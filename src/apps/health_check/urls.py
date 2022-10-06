@@ -16,6 +16,8 @@ Including another URLconf
 from apps.health_check.views import HealthCheckView
 from django.urls import path
 
+app_name = 'health_check'
+
 urlpatterns = [
     path('', HealthCheckView.as_view()),
 ]
