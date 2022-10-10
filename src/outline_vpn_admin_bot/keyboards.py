@@ -26,7 +26,6 @@ def main_keyboard(tg_user_id: int) -> ReplyKeyboardMarkup:
     return kb
 
 
-
 def main_admin_keyboard() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
     kb.add(
