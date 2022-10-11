@@ -1,110 +1,112 @@
 from datetime import datetime, timedelta
 from django.db import models
+from django.contrib.postgres.fields import JSONField
 
 
-class TelegramUsers(models.Model):
+class Client(models.Model):
     class Meta:
-        db_table = 'TelegramUsers'
-        verbose_name = 'Telegram User'
-        verbose_name_plural = 'Telegram Users'
-        constraints = [models.UniqueConstraint(fields=['telegram_id'], name='unique_telegram_id')]
+        db_table = 'Client'
+        verbose_name = 'Client'
+        verbose_name_plural = 'Clients'
 
-    telegram_id = models.IntegerField(verbose_name='ID пользователя телеграм', null=True)
-    telegram_login = models.CharField(verbose_name='Логин телеграм', max_length=254, null=True, blank=True)
-    telegram_first_name = models.CharField(verbose_name='Имя телеграм', max_length=254, null=True, blank=True)
-    telegram_last_name = models.CharField(verbose_name='Фамилия телеграм', max_length=254, null=True, blank=True)
-    is_admin = models.BooleanField(verbose_name='Администратор', default=False)
-
+    full_name = models.CharField(verbose_name='ФИО', max_length=254, null=True, blank=True)
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
+    updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __str__(self):
-        return f'{self.telegram_login!r}_{self.telegram_id!r}'
-
-    # TODO: Need test
-    def change_is_admin(self) -> None:
-        if self.is_admin:
-            self.is_admin = False
-        else:
-            self.is_admin = True
-        self.save()
+        return self.full_name or "Empty"
 
 
-class OutlineVPNKeys(models.Model):
+class Transport(models.Model):
     class Meta:
-        db_table = 'OutlineVPNKeys'
-        verbose_name = 'Outline VPN Key'
-        verbose_name_plural = 'Outline VPN Keys'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['outline_key_id'],
-                name='unique_outline_key_id'
-            )
-        ]
+        db_table = 'Transport'
+        verbose_name = 'Transport'
+        verbose_name_plural = 'Transports'
 
-    # class ServerCountries(models.TextChoices):
-    #     KZ = 'KZ', 'KZ'
-
-    telegram_user_record = models.ForeignKey(
-        TelegramUsers, on_delete=models.CASCADE, verbose_name='Владелец ключа', null=True, blank=True
-    )
-    outline_key_id = models.IntegerField(verbose_name='ID OutLine VPN Key', null=True, blank=True)
-    outline_key_name = models.CharField(
-        verbose_name='Имя VPN ключа', max_length=254, null=True, blank=True, default='Отсутствует'
-    )
-    outline_key_value = models.CharField(verbose_name='VPN ключ', max_length=254, null=True, blank=True)
-    outline_key_valid_until = models.DateField(verbose_name='Дата окончания подписки', null=True, blank=True)
-    outline_key_active = models.BooleanField(verbose_name='Активность VPN ключа', default=False)
-    outline_key_traffic_limit = models.BigIntegerField(verbose_name='Лимит трафика', null=True, blank=True)
+    transport_name = models.CharField(verbose_name='Название бота', max_length=254, null=True, blank=True)
+    transport_credentials = JSONField(verbose_name='Реквизиты бота')
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
-    # TODO: Если нужна будет информация о стране, где будет находится VPN сервер
-    # outline_vpn_key_server_country = models.CharField(
-    #     verbose_name='Страна нахождения VPN Сервера',
-    #     max_length=64,
-    #     choices=ServerCountries.choices,
-    #     null=True,
-    #     blank=True,
-    # )
+    updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __str__(self):
-        return f'{self.telegram_user_record!r}_{self.outline_key_name!r}'
+        return self.transport_name
 
-    def add_tg_user(self, telegram_user: TelegramUsers) -> None:
-        """
-        Метод добавления TelegramUsers в запись OutlineVPNKeys
-        Params:
-            telegram_user: TelegramUsers
-        Returns: none
-        Exceptions: None
-        """
-        self.telegram_user_record = telegram_user
-        self.save()
+
+class Contact(models.Model):
+    class Meta:
+        db_table = 'Contact'
+        verbose_name = 'Contact'
+        verbose_name_plural = 'Contacts'
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Владелец ключа', null=True, blank=True)
+    transport = models.ForeignKey(Transport, on_delete=models.CASCADE, verbose_name='Канал связи')
+    contact_name = models.CharField(verbose_name='Название контакта', max_length=254, null=True, blank=True)
+    contact_credentials = JSONField(verbose_name='Реквизиты пользователя', null=True, blank=True)
+    created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
+    updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
+
+    def __str__(self):
+        return f'{self.client}_{self.contact_name}_{self.transport}'
+
+
+class VPNServer(models.Model):
+    class Meta:
+        db_table = 'VPNServer'
+        verbose_name = 'VPNServer'
+        verbose_name_plural = 'VPNServers'
+
+    server_name = models.CharField(verbose_name='Название VPN сервера', max_length=254, null=True, blank=True)
+    server_credentials = JSONField(verbose_name='Реквизиты впн', null=True, blank=True)
+    created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
+    updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
+
+    def __str__(self):
+        return self.server_name
+
+
+class VPNToken(models.Model):
+    class Meta:
+        db_table = 'VPNToken'
+        verbose_name = 'VPNToken'
+        verbose_name_plural = 'VPNTokens'
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Владелец ключа')
+    server = models.ForeignKey(VPNServer, on_delete=models.CASCADE, verbose_name='VPN сервер')
+    token_id = models.BigIntegerField(verbose_name='VPN Token ID on VPN Server', null=True, blank=True)
+    token_name = models.CharField(verbose_name='Имя VPN ключа', max_length=254, null=True, blank=True)
+    token_uri = models.TextField(verbose_name='VPN ключ', null=True, blank=True)
+    token_valid_until = models.DateField(verbose_name='Дата окончания подписки', null=True, blank=True)
+    token_is_active = models.BooleanField(verbose_name='Активность VPN ключа', default=False)
+    token_traffic_limit = models.BigIntegerField(verbose_name='Лимит трафика', null=True, blank=True)
+    created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
+    updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
 
     def change_active_status(self) -> bool:
         """
-        Метод изменения статуса записи OutlineVPNKeys
+        Метод изменения статуса записи VPNToken
         Params: None
         Returns: bool
         Exceptions: None
         """
-        if self.outline_key_active:
-            self.outline_key_active = False
+        if self.token_is_active:
+            self.token_is_active = False
         else:
-            self.outline_key_active = True
+            self.token_is_active = True
         self.save()
-        return self.outline_key_active
+        return self.token_is_active
 
-    def change_valid_until(self, days: int) -> datetime or None:
+    def change_valid_until(self, days: int = 0) -> datetime or None:
         """
-        Метод изменения срока действия записи OutlineVPNKeys
+        Метод изменения срока действия записи VPNToken. По умолчанию удаляет значение
         Params:
              days: int
         Returns:
             datetime.datetime
         Exceptions: None
         """
-        if not days:
-            self.outline_key_valid_until = None
+        if days:
+            self.token_valid_until = self.token_valid_until + timedelta(days=days)
         else:
-            self.outline_key_valid_until = datetime.today() + timedelta(days=days)
+            self.token_valid_until = None
         self.save()
-        return self.outline_key_valid_until
+        return self.token_valid_until
