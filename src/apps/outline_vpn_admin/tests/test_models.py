@@ -1,67 +1,94 @@
-import datetime
+from decimal import Decimal
+
 from django.test import TestCase
 from apps.outline_vpn_admin.tests import helpers
-from apps.outline_vpn_admin.models import TelegramUsers, OutlineVPNKeys
-from django.db.utils import IntegrityError
+from apps.outline_vpn_admin.models import (
+    Client,
+    Contact,
+    Transport,
+    VPNToken,
+    VPNServer,
+    Tariffication,
+)
 
 
-class TelegramUsersTestCase(TestCase):
-    def test_create_telegram_users(self):
-        users_to_create = 100
-        self.assertEqual(users_to_create, len(helpers.create_telegram_users(users_to_create)))
-        self.assertEqual(users_to_create, len(TelegramUsers.objects.all()))
-
-    def test_uniq_constraint(self):
-        helpers.create_telegram_users()
-        with self.assertRaises(IntegrityError) as err:
-            helpers.create_telegram_users()
-        self.assertIn('unique_telegram_id', str(err.exception))
-
-    def test_change_is_admin(self):
-        tg_user = helpers.create_telegram_users()[0]
-        self.assertFalse(tg_user.is_admin)
-        tg_user.change_is_admin()
-        self.assertTrue(tg_user.is_admin)
-        tg_user.change_is_admin()
-        self.assertFalse(tg_user.is_admin)
+class BaseTestCase(TestCase):
+    def setUp(self) -> None:
+        self.cnt = 100
+        self.test_str_value = 'test'
 
 
-class OutlineVPNKeysTestCase(TestCase):
-    def test_create_vpn_keys(self):
-        keys_to_create = 100
-        self.assertEqual(keys_to_create, len(helpers.create_vpn_keys(keys_to_create)))
-        self.assertEqual(keys_to_create, len(OutlineVPNKeys.objects.all()))
+class ClientTestCase(BaseTestCase):
+    def test_create_clients(self):
+        self.assertEqual(self.cnt, len(helpers.create_client(self.cnt)))
+        self.assertEqual(self.cnt, len(Client.objects.all()))
+        obj = Client.objects.first()
+        self.assertIn(self.test_str_value, obj.full_name)
+        self.assertIsNotNone(obj.created_at)
+        self.assertIsNotNone(obj.updated_at)
 
-    def test_add_tg_user(self):
-        vpn_key = helpers.create_vpn_keys()[0]
-        tg_user = helpers.create_telegram_users()[0]
-        self.assertIsNone(vpn_key.telegram_user_record)
-        vpn_key.add_tg_user(tg_user)
-        self.assertIsNotNone(vpn_key.telegram_user_record)
-        self.assertEqual(tg_user, vpn_key.telegram_user_record)
 
-    def test_change_active_status(self):
-        vpn_key = helpers.create_vpn_keys()[0]
-        self.assertFalse(vpn_key.outline_key_active)
-        vpn_key.change_active_status()
-        self.assertTrue(vpn_key.outline_key_active)
-        vpn_key.change_active_status()
-        self.assertFalse(vpn_key.outline_key_active)
+class TransportTestCase(BaseTestCase):
+    def test_create_transports(self):
+        self.assertEqual(self.cnt, len(helpers.create_transport(self.cnt)))
+        self.assertEqual(self.cnt, len(Transport.objects.all()))
+        obj = Transport.objects.first()
+        self.assertIn(self.test_str_value, obj.name)
+        self.assertEqual(helpers.TRANSPORT_CREDENTIALS, obj.credentials)
+        self.assertIsNotNone(obj.created_at)
+        self.assertIsNotNone(obj.updated_at)
 
-    def test_change_valid_until(self):
-        vpn_key = helpers.create_vpn_keys()[0]
-        self.assertIsNotNone(vpn_key.outline_key_valid_until)
-        vpn_key.change_valid_until(0)
-        self.assertIsNone(vpn_key.outline_key_valid_until)
-        vpn_key.change_valid_until(10)
-        self.assertIsNotNone(vpn_key.outline_key_valid_until)
-        from_method = vpn_key.change_valid_until(50)
-        self.assertIsInstance(from_method, datetime.datetime)
-        from_method = vpn_key.change_valid_until(0)
-        self.assertIsNone(from_method)
 
-    def test_uniq_constraint_vpn(self):
-        helpers.create_vpn_keys()
-        with self.assertRaises(IntegrityError) as err:
-            helpers.create_vpn_keys()
-        self.assertIn('unique_outline_key_id', str(err.exception))
+class ContactTestCase(BaseTestCase):
+    def test_create_contacts(self):
+        self.assertEqual(self.cnt, len(helpers.create_contact(self.cnt)))
+        self.assertEqual(self.cnt, len(Contact.objects.all()))
+        obj = Contact.objects.first()
+        self.assertIsInstance(obj.client, Client)
+        self.assertIsInstance(obj.transport, Transport)
+        self.assertIn(self.test_str_value, obj.name)
+        self.assertEqual(helpers.CONTACT_CREDENTIALS, obj.credentials)
+        self.assertIsNotNone(obj.created_at)
+        self.assertIsNotNone(obj.updated_at)
+
+
+class VPNTokenTestCase(BaseTestCase):
+    def test_create_vpn_tokens(self):
+        self.assertEqual(self.cnt, len(helpers.create_vpn_token(self.cnt)))
+        self.assertEqual(self.cnt, len(VPNToken.objects.all()))
+        obj = VPNToken.objects.first()
+        self.assertIn(self.test_str_value, obj.name)
+        self.assertIn(self.test_str_value, obj.vpn_key)
+        self.assertIsInstance(obj.client, Client)
+        self.assertIsInstance(obj.server, VPNServer)
+        self.assertIsInstance(obj.outline_id, int)
+        self.assertIsNone(obj.traffic_limit)
+        self.assertIsNone(obj.valid_until)
+        self.assertTrue(obj.is_active)
+        self.assertIsNotNone(obj.created_at)
+        self.assertIsNotNone(obj.updated_at)
+
+
+class VPNServerTestCase(BaseTestCase):
+    def test_create_vpn_server(self):
+        self.assertEqual(self.cnt, len(helpers.create_vpn_server(self.cnt)))
+        self.assertEqual(self.cnt, len(VPNServer.objects.all()))
+        obj = VPNServer.objects.first()
+        self.assertIn(self.test_str_value, obj.name)
+        self.assertIn(self.test_str_value, obj.uri)
+        self.assertIsNotNone(obj.created_at)
+        self.assertIsNotNone(obj.updated_at)
+
+
+class TarifficationTestCase(BaseTestCase):
+    def test_create_tariffications(self):
+        self.assertEqual(self.cnt, len(helpers.create_tariffication(self.cnt)))
+        self.assertEqual(self.cnt, len(Tariffication.objects.all()))
+        obj = Tariffication.objects.first()
+        self.assertIn(self.test_str_value, obj.name)
+        self.assertTrue(obj.is_active)
+        self.assertIsInstance(obj.prolong_days, int)
+        self.assertIsInstance(obj.price, Decimal)
+        self.assertIsNotNone(obj.valid_until)
+        self.assertIsNotNone(obj.created_at)
+        self.assertIsNotNone(obj.updated_at)
