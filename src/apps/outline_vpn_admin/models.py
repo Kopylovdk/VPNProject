@@ -85,8 +85,8 @@ class VPNToken(models.Model):
         """
         Метод изменения статуса записи VPNToken
         Params: None
-        Returns: bool
-        Exceptions: None
+        Returns:
+            bool
         """
         if self.token_is_active:
             self.token_is_active = False
@@ -101,8 +101,7 @@ class VPNToken(models.Model):
         Params:
              days: int
         Returns:
-            datetime.datetime
-        Exceptions: None
+            datetime.datetime or None
         """
         if days:
             self.token_valid_until = self.token_valid_until + timedelta(days=days)
