@@ -2,16 +2,16 @@ name: Docker Compose Actions Workflow
 on: push
 
 
-env:
-  BUNDLE_JOBS: 4
-  BUNDLE_RETRY: 3
-  CI: true
-  RAILS_ENV: test
-  DATABASE_URL: postgres://postgres:postgres@localhost:5432/zumi_backend_test
-  APPLICATION_HOST: localhost:3000
-  DOMAIN: localhost:3000
-  MAIL_SENDER: test@zumi.com
-  ImageOS: ubuntu20
+#env:
+#  BUNDLE_JOBS: 4
+#  BUNDLE_RETRY: 3
+#  CI: true
+##  RAILS_ENV: test
+#  DATABASE_URL: postgres://postgres:postgres@localhost:5432/zumi_backend_test
+#  APPLICATION_HOST: localhost:3000
+#  DOMAIN: localhost:3000
+#  MAIL_SENDER: test@zumi.com
+#  ImageOS: ubuntu20
 
 jobs:
 #  rubocop:
@@ -46,7 +46,7 @@ jobs:
           --health-retries 5
     steps:
     - uses: actions/checkout@v2
-    - uses: python/setup-python@v1
+#    - uses: python/setup-python@v1
       with:
         python-version: latest
         bundler-cache: true
