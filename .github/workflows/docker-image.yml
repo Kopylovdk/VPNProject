@@ -1,9 +1,63 @@
 name: Docker Compose Actions Workflow
 on: push
+
+
+env:
+  BUNDLE_JOBS: 4
+  BUNDLE_RETRY: 3
+  CI: true
+  RAILS_ENV: test
+  DATABASE_URL: postgres://postgres:postgres@localhost:5432/zumi_backend_test
+  APPLICATION_HOST: localhost:3000
+  DOMAIN: localhost:3000
+  MAIL_SENDER: test@zumi.com
+  ImageOS: ubuntu20
+
 jobs:
-  test:
-    runs-on: ubuntu-latest
+#  rubocop:
+#    runs-on: [ubuntu-latest]
+#    steps:
+#    - uses: actions/checkout@v2
+#    - uses: python/setup-python@v1
+#      with:
+#        python-version: latest
+#        bundler-cache: true
+#    - name: RuboCop
+#      run: bundle exec rubocop
+
+#  test:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Build the stack
+#        run: docker-compose up -d
+  rspec:
+    runs-on: [ubuntu-latest]
+    services:
+      postgres:
+        image: postgres:13
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
-      - uses: actions/checkout@v2
-      - name: Build the stack
-        run: docker-compose up -d
+    - uses: actions/checkout@v2
+    - uses: python/setup-python@v1
+      with:
+        python-version: latest
+        bundler-cache: true
+    - name: Setup database
+      run: |
+        bundle exec rake db:create
+        bundle exec rake db:migrate:reset
+    - name: Run RSpec
+      run: bundle exec rspec -f d --force-color
+#    - name: Simplecov Report
+#      uses: aki77/simplecov-report-action@v1
+#      with:
+#        failedThreshold: 50
+#        token: ${{ secrets.GITHUB_TOKEN }}
