@@ -27,11 +27,11 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='Tariffication',
+            name='Tariff',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=254, verbose_name='Имя тарифа')),
-                ('prolong_days', models.IntegerField(verbose_name='Срок продления в днях')),
+                ('prolong_period', models.IntegerField(verbose_name='Срок продления в днях')),
                 ('price', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Стоимость')),
                 ('valid_until', models.DateField(verbose_name='Срок активности тарифа')),
                 ('is_active', models.BooleanField(default=True, verbose_name='Активность тарифа')),
@@ -39,9 +39,9 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateField(auto_now=True, verbose_name='Дата обновления записи')),
             ],
             options={
-                'verbose_name': 'Tariffication',
-                'verbose_name_plural': 'Tariffications',
-                'db_table': 'Tariffication',
+                'verbose_name': 'Tariff',
+                'verbose_name_plural': 'Tariffs',
+                'db_table': 'Tariff',
             },
         ),
         migrations.CreateModel(
@@ -49,6 +49,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(blank=True, max_length=254, null=True, verbose_name='Название бота')),
+                ('uid_format', models.CharField(blank=False, max_length=254, verbose_name='Формат уникального идентификатора бота')),
+                ('full_name_format', models.CharField(max_length=254, null=True, verbose_name='Формат имени клиента', default='')),
                 ('credentials', models.JSONField(verbose_name='Реквизиты бота')),
                 ('created_at', models.DateField(auto_now_add=True, verbose_name='Дата создания записи')),
                 ('updated_at', models.DateField(auto_now=True, verbose_name='Дата обновления записи')),
@@ -65,6 +67,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(blank=True, max_length=254, null=True, verbose_name='Название VPN сервера')),
                 ('uri', models.CharField(blank=True, max_length=254, null=True, verbose_name='URI для создания ключей OutLine')),
+                ('is_default', models.BooleanField(default=False, verbose_name='Сервер по умолчанию')),
                 ('created_at', models.DateField(auto_now_add=True, verbose_name='Дата создания записи')),
                 ('updated_at', models.DateField(auto_now=True, verbose_name='Дата обновления записи')),
             ],
@@ -100,6 +103,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(blank=True, max_length=254, null=True, verbose_name='Название контакта')),
+                ('uid', models.CharField(blank=True, max_length=254, null=True, verbose_name='Идентификатор контакта', help_text='<Transport.name`>@<Transport.uid_format>')),
                 ('credentials', models.JSONField(blank=True, null=True, verbose_name='Реквизиты пользователя')),
                 ('created_at', models.DateField(auto_now_add=True, verbose_name='Дата создания записи')),
                 ('updated_at', models.DateField(auto_now=True, verbose_name='Дата обновления записи')),

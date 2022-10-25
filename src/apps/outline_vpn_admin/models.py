@@ -1,7 +1,14 @@
 from django.db import models
+from django.forms import model_to_dict
 
 
-class Client(models.Model):
+class DictRepresentationMixin:
+    def as_dict(self, exclude: list = None) -> dict:
+        """Метод для конвертации Объекта модели в словарь"""
+        return model_to_dict(self, exclude=exclude)
+
+
+class Client(models.Model, DictRepresentationMixin):
     class Meta:
         db_table = 'Client'
         verbose_name = 'Client'
@@ -12,25 +19,36 @@ class Client(models.Model):
     updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __repr__(self):
-        return f"<{self.__class__.__name__!r} id={self.id!r} name={self.full_name!r}>"
+        return f"<{self.__class__.__name__} id={self.id!r} name={self.full_name!r}>"
 
 
-class Transport(models.Model):
+class Transport(models.Model, DictRepresentationMixin):
     class Meta:
         db_table = 'Transport'
         verbose_name = 'Transport'
         verbose_name_plural = 'Transports'
 
     name = models.CharField(verbose_name='Название бота', max_length=254, null=True, blank=True)
+
+    uid_format = models.CharField(verbose_name='Формат уникального идентификатора бота', max_length=254, blank=False)
+    full_name_format = models.CharField(verbose_name='Формат имени клиента', max_length=254, default='')
     credentials = models.JSONField(verbose_name='Реквизиты бота')
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
     updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __repr__(self):
-        return f"<{self.__class__.__name__!r} id={self.id!r} name={self.name!r}>"
+        return f"<{self.__class__.__name__} id={self.id!r} name={self.name!r}>"
+
+    def make_contact_credentials_uid(self, contact_credentials: dict):
+        return f'{self.name}@{self.uid_format}'.format(**contact_credentials)
+
+    def fill_client_details(self, client: Client, contact_credentials: dict):
+        client.full_name = f'{self.full_name_format}'.format(**contact_credentials)
+        client.save()
+        return client
 
 
-class Contact(models.Model):
+class Contact(models.Model, DictRepresentationMixin):
     class Meta:
         db_table = 'Contact'
         verbose_name = 'Contact'
@@ -38,16 +56,22 @@ class Contact(models.Model):
 
     client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Владелец ключа')
     transport = models.ForeignKey(Transport, on_delete=models.RESTRICT, verbose_name='Канал связи')
+    uid = models.CharField(verbose_name='Идентификатор контакта', max_length=254, help_text='<Transport.name>@<Transport.uid_format>')
     name = models.CharField(verbose_name='Название контакта', max_length=254, null=True, blank=True)
     credentials = models.JSONField(verbose_name='Реквизиты пользователя', null=True, blank=True)
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
     updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __repr__(self):
-        return f"<{self.__class__.__name__!r} id={self.id!r} name={self.name!r}>"
+        return f"<{self.__class__.__name__} id={self.id!r} name={self.name!r}>"
+
+    def save(self, **kwargs):
+        if not self.uid:
+            self.uid = self.transport.make_contact_credentials_uid(self.credentials)
+        super().save(**kwargs)
 
 
-class VPNServer(models.Model):
+class VPNServer(models.Model, DictRepresentationMixin):
     class Meta:
         db_table = 'VPNServer'
         verbose_name = 'VPNServer'
@@ -55,14 +79,15 @@ class VPNServer(models.Model):
 
     name = models.CharField(verbose_name='Название VPN сервера', max_length=254, null=True, blank=True)
     uri = models.CharField(verbose_name='URI для создания ключей OutLine', max_length=254, null=True, blank=True)
+    is_default = models.BooleanField(verbose_name='Сервер по умолчанию', default=False)
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
     updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __repr__(self):
-        return f"<{self.__class__.__name__!r} id={self.id!r} name={self.name!r}>"
+        return f"<{self.__class__.__name__} id={self.id!r} name={self.name!r}>"
 
 
-class VPNToken(models.Model):
+class VPNToken(models.Model, DictRepresentationMixin):
     class Meta:
         db_table = 'VPNToken'
         verbose_name = 'VPNToken'
@@ -75,27 +100,41 @@ class VPNToken(models.Model):
     vpn_key = models.TextField(verbose_name='VPN ключ', null=True, blank=True)
     valid_until = models.DateField(verbose_name='Дата окончания подписки', null=True, blank=True)
     is_active = models.BooleanField(verbose_name='Активность VPN ключа', default=True)
+    # TODO: Проверить процессы связанные с лимитом траффика
     traffic_limit = models.BigIntegerField(verbose_name='Лимит трафика', null=True, blank=True)
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
     updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __repr__(self):
-        return f"<{self.__class__.__name__!r} id={self.id!r} outline_id={self.outline_id!r}>"
+        return f"<{self.__class__.__name__} id={self.id!r} outline_id={self.outline_id!r}>"
 
 
-class Tariffication(models.Model):
+class Tariff(models.Model, DictRepresentationMixin):
     class Meta:
-        db_table = 'Tariffication'
-        verbose_name = 'Tariffication'
-        verbose_name_plural = 'Tariffications'
+        db_table = 'Tariff'
+        verbose_name = 'Tariff'
+        verbose_name_plural = 'Tariffs'
 
     name = models.CharField(verbose_name='Имя тарифа', max_length=254)
-    prolong_days = models.IntegerField(verbose_name='Срок продления в днях')
+    prolong_period = models.IntegerField(verbose_name='Срок продления в днях')
     price = models.DecimalField(verbose_name='Стоимость', max_digits=10, decimal_places=2)
+    # TODO: add вид валюты
     valid_until = models.DateField(verbose_name='Срок активности тарифа')
     is_active = models.BooleanField(verbose_name='Активность тарифа', default=True)
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
     updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __repr__(self):
-        return f"<{self.__class__.__name__!r} id={self.id!r} name={self.name!r}>"
+        return f"<{self.__class__.__name__} id={self.id!r} name={self.name!r}>"
+
+
+# TODO: Сделать миграции, тесты и дополнить модель полями при подключении оплат
+# class Payment(models.Model):
+#     class Meta:
+#         db_table = 'Payment'
+#         verbose_name = 'Payment'
+#         verbose_name_plural = 'Payments'
+#
+#     client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Плательщик')
+#     value = models.CharField(verbose_name='Значение', max_length=254)
+#     bill = models.CharField(verbose_name='Счет', max_length=254)
