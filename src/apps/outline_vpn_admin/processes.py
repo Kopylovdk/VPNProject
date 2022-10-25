@@ -1,15 +1,176 @@
-# import logging
-# from outline_vpn.outline_vpn import OutlineKey
-# from apps.outline_vpn_admin.models import TelegramUsers, OutlineVPNKeys
-# from telebot.types import User
-# from apps.outline_vpn_admin.outline_api import get_outline_client
-#
-# from outline_vpn_admin_bot.bot_exceptions import OUTLINE_VPN_KEY_NOT_FOUND, TELEGRAM_USER_NOT_FOUND, NOT_INTEGER
-#
-#
-# log = logging.getLogger(__name__)
-#
-#
+import logging
+from copy import copy
+from apps.outline_vpn_admin import exceptions
+from apps.outline_vpn_admin.models import (
+    Client,
+    Contact,
+    Transport,
+    VPNToken,
+    VPNServer,
+    Tariff,
+)
+from apps.outline_vpn_admin.outline_api import get_outline_client
+
+
+log = logging.getLogger(__name__)
+
+
+def get_transport_contact(
+    transport_name: str,
+    credentials: dict
+) -> Contact or dict:
+    try:
+        transport = Transport.objects.get(name=transport_name)
+    except Transport.DoesNotExist:
+        raise exceptions.TransportDoesNotExist(message=f'Bot {transport_name!r} does not exist')
+    check_uid = transport.make_contact_credentials_uid(credentials)
+    contacts = transport.contact_set
+
+    try:
+        contact = contacts.get(uid=check_uid)
+    except Contact.DoesNotExist:
+        raise exceptions.UserDoesNotExist(message=f'User does not exist')
+    return transport, contact
+
+
+def create_or_update_client_contact(transport_name: str, credentials: dict) -> dict:
+    response = {}
+    try:
+        transport, contact = get_transport_contact(transport_name, credentials)
+    except exceptions.UserDoesNotExist:
+        transport = Transport.objects.get(name=transport_name)
+        client = Client()
+        transport.fill_client_details(client, credentials)
+        contact = Contact.objects.create(
+            client=client,
+            transport=transport,
+            credentials=credentials,
+        )
+        response['details'] = 'Created new user'
+    else:
+        contact.credentials = credentials
+        response['details'] = 'Updated exist user'
+
+    contact.save()
+    response["user_info"] = {
+            "user": contact.client.as_dict(),
+            "contact": contact.as_dict()
+        }
+
+    return response
+
+
+def get_client_tokens(transport_name: str, credentials: dict) -> dict:
+    transport, contact = get_transport_contact(transport_name, credentials)
+
+    client = contact.client
+    response = {
+        "details": "client_tokens",
+        "tokens": [token.as_dict(exclude='id') for token in VPNToken.objects.filter(client=client)],
+        "user_info": {
+            "user": contact.client.as_dict(),
+            "contact": contact.as_dict(),
+        },
+    }
+    return response
+
+
+def get_client(transport_name: str, credentials: dict) -> dict:
+    transport, contact = get_transport_contact(transport_name, credentials)
+
+    response = {
+        "details": "get_client",
+        "user_info": {
+            "user": contact.client.as_dict(),
+            "contact": contact.as_dict(),
+        },
+    }
+    return response
+
+
+def token_new(
+    transport_name: str,
+    server_name: str,
+    credentials: dict
+) -> dict:
+
+    transport, contact = get_transport_contact(transport_name, credentials)
+    try:
+        vpn_server = VPNServer.objects.get(name=server_name)
+    except VPNServer.DoesNotExist:
+        raise exceptions.VPNServerDoesNotExist(message=f'VPN Server {server_name!r} does not exist')
+    else:
+        outline_client = get_outline_client(vpn_server.name)
+        outline_key = outline_client.create_key()
+        outline_key_name = f"OUTLINE_VPN_id:{outline_key.key_id!r}, uid: {contact.uid!r}"
+        outline_client.rename_key(outline_key.key_id, outline_key_name)
+
+        new_token = VPNToken(
+            client=contact.client,
+            server=vpn_server,
+            outline_id=outline_key.key_id,
+            vpn_key=outline_key.access_url,
+            name=outline_key_name,
+        )
+        new_token.save()
+        response = {
+            "details": "new_token",
+            "tokens": [new_token.as_dict(exclude=['id'])],
+            "user_info": {
+                "user": contact.client.as_dict(),
+                "contact": contact.as_dict(),
+            },
+        }
+        return response
+
+
+def token_renew(
+    transport_name: str,
+    server_name: str,
+    credentials: dict,
+    token_id: int
+) -> dict:
+    transport, contact = get_transport_contact(transport_name, credentials)
+
+    old_token = VPNToken.objects.get(outline_id=token_id)
+
+    outline_client = get_outline_client(server_name)
+    new_outline_key = outline_client.create_key()
+    outline_key_name = f"OUTLINE_VPN_id:{new_outline_key.key_id!r}, uid: {contact.uid!r}"
+    outline_client.rename_key(new_outline_key.key_id, outline_key_name)
+
+    new_token = copy(old_token)
+    new_token.id = None
+    new_token.outline_id = new_outline_key.key_id
+    new_token.name = outline_key_name
+    new_token.vpn_key = new_outline_key.access_url
+    new_token.save()
+
+    old_token.is_active = False
+    old_token.name = "DELETED"
+    old_token.save()
+    outline_client.delete_key(old_token.outline_id)
+
+    response = {
+        "details": "renew_token",
+        "tokens": [new_token.as_dict(exclude='id')],
+        "user_info": {
+            "user": contact.client.as_dict(),
+            "contact": contact.as_dict(),
+        },
+    }
+
+    return response
+
+
+def get_tariffications() -> list[dict]:
+    response = []
+    for tariff in Tariff.objects.filter(is_active=True):
+        to_dict_tariff = tariff.as_dict(exclude=['is_active', 'id', 'valid_until', 'prolong_days'])
+        response.append(to_dict_tariff)
+    return response
+
+
 # def validate_int(data: str) -> int or bool:
 #     """
 #     Валидация. Является ли полученная строка числом
@@ -22,8 +183,8 @@
 #         return int(data)
 #     except ValueError:
 #         return NOT_INTEGER
-#
-#
+
+
 # def get_outline_key_by_id(telegram_data: int or str) -> OutlineVPNKeys or str:
 #     """
 #     Функция получения конкретного OutlineVPNKeys
