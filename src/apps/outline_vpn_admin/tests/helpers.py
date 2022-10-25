@@ -5,10 +5,10 @@ from apps.outline_vpn_admin.models import (
     Transport,
     VPNToken,
     VPNServer,
-    Tariffication,
+    Tariff,
 )
 TRANSPORT_CREDENTIALS = {"token": "Some token", "URL": "Any"}
-CONTACT_CREDENTIALS = {"messenger_id": 'Some client ID', "Any_data": "Any_data"}
+CONTACT_CREDENTIALS = {"id": "some_id", "first_name": "some_first_name", "last_name": "some_last_name"}
 
 
 def create_client(cnt: int = 1) -> list[Client]:
@@ -25,34 +25,39 @@ def create_client(cnt: int = 1) -> list[Client]:
     return result
 
 
-def create_transport(cnt: int = 1) -> list[Transport]:
+def create_transport(cnt: int = 1, transport_name: str = None) -> list[Transport]:
     """
     Функция создания записей в таблице Transport
     """
+    if not transport_name:
+        transport_name = "test"
+
     result = []
     for obj_cnt in range(1000, cnt + 1000):
         new_obj = Transport(
-            name=f'test {obj_cnt}',
-            credentials=TRANSPORT_CREDENTIALS
+            name=transport_name,
+            credentials=TRANSPORT_CREDENTIALS,
+            uid_format='{id}',
+            full_name_format='{first_name} {last_name}'
         )
         new_obj.save()
         result.append(new_obj)
     return result
 
 
-def create_contact(cnt: int = 1) -> list[Contact]:
+def create_contact(client: Client, transport: Transport, credentials: dict = None, cnt: int = 1) -> list[Contact]:
     """
     Функция создания записей в таблице Contact
     """
+    if not credentials:
+        credentials = CONTACT_CREDENTIALS
     result = []
-    clients = create_client(cnt)
-    transports = create_transport(cnt)
-    for _, obj_cnt in enumerate(range(1000, cnt + 1000)):
+    for obj_cnt in range(1000, cnt + 1000):
         new_obj = Contact(
-            client=clients[_],
-            transport=transports[_],
-            name=f'test {obj_cnt}',
-            credentials=CONTACT_CREDENTIALS,
+            client=client,
+            transport=transport,
+            uid=transport.make_contact_credentials_uid(credentials),
+            credentials=credentials,
         )
         new_obj.save()
         result.append(new_obj)
@@ -74,17 +79,15 @@ def create_vpn_server(cnt: int = 1) -> list[VPNServer]:
     return result
 
 
-def create_vpn_token(cnt: int = 1) -> list[VPNToken]:
+def create_vpn_token(client: Client, vpn_server: VPNServer, cnt: int = 1) -> list[VPNToken]:
     """
     Функция создания записей в таблице VPNToken
     """
     result = []
-    clients = create_client(cnt)
-    servers = create_vpn_server(cnt)
-    for _, obj_cnt in enumerate(range(1000, cnt + 1000)):
+    for obj_cnt in range(1000, cnt + 1000):
         new_obj = VPNToken(
-            client=clients[_],
-            server=servers[_],
+            client=client,
+            server=vpn_server,
             outline_id=obj_cnt,
             name=f'test {obj_cnt}',
             vpn_key=f'test {obj_cnt}',
@@ -94,15 +97,15 @@ def create_vpn_token(cnt: int = 1) -> list[VPNToken]:
     return result
 
 
-def create_tariffication(cnt: int = 1) -> list[Tariffication]:
+def create_tariff(cnt: int = 1) -> list[Tariff]:
     """
     Функция создания записей в таблице Tariffication
     """
     result = []
     for obj_cnt in range(1000, cnt + 1000):
-        new_obj = Tariffication(
+        new_obj = Tariff(
             name=f'test {obj_cnt}',
-            prolong_days=obj_cnt,
+            prolong_period=obj_cnt,
             price=obj_cnt * 1000,
             valid_until=datetime.datetime.now() + datetime.timedelta(days=365)
         )
