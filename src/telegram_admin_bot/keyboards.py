@@ -39,23 +39,23 @@
 #     return kb
 #
 #
-# def subscribe_keyboard() -> ReplyKeyboardMarkup:
-#     """
-#     Клавиатура вариантов подписки
-#     Params:
-#         subscribes: list
-#     Returns:
-#         ReplyKeyboardMarkup
-#     Exceptions: None
-#     """
-#     subscribes = ['Демо', '3 месяца', '6 месяцев']
-#     kb = ReplyKeyboardMarkup(row_width=3, resize_keyboard=True)
-#     subscribes_buttons = []
-#     for subscribe in subscribes:
-#         subscribes_buttons.append(KeyboardButton(text=subscribe))
-#     kb.add(*subscribes_buttons, KeyboardButton(text='В основное меню'))
-#     return kb
-#
+def subscribe_keyboard() -> ReplyKeyboardMarkup:
+    """
+    Клавиатура вариантов подписки
+    Params:
+        subscribes: list
+    Returns:
+        ReplyKeyboardMarkup
+    Exceptions: None
+    """
+    subscribes = ['Демо', '3 месяца', '6 месяцев']
+    kb = ReplyKeyboardMarkup(row_width=3, resize_keyboard=True)
+    subscribes_buttons = []
+    for subscribe in subscribes:
+        subscribes_buttons.append(KeyboardButton(text=subscribe))
+    kb.add(*subscribes_buttons, KeyboardButton(text='В основное меню'))
+    return kb
+
 #
 # def bot_message_keyboard() -> ReplyKeyboardMarkup:
 #     """

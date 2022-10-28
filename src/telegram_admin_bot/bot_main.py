@@ -1,6 +1,7 @@
-# from telebot import TeleBot
-# from telebot.types import Message, User
-# from outline_vpn_admin_bot.bot_processes import (
+from config_loader import CONFIG
+from telebot import TeleBot
+from telebot.types import Message, User
+# from telegram_client_bot.bot_processes import (
 #     api_key_edit_step_1,
 #     user_vpn_keys_list_step_1,
 #     messages_send_choice_step_1,
@@ -11,20 +12,18 @@
 #     add_new_tg_user,
 #     get_all_vpn_keys_of_user,
 # )
-# from outline_vpn_admin_bot.keyboards import (
+# from telegram_client_bot.keyboards import (
 #     main_keyboard,
 #     subscribe_keyboard,
 #     main_admin_keyboard,
 # )
-# from vpnservice.settings import EXTERNAL_CFG
-#
-#
+
+
+
 # tg_bot_conf = EXTERNAL_CFG['tg_bot']
-# bot = TeleBot(tg_bot_conf['token'])
-#
-# VPN_SERVER_NAME = 'kz'
-#
-#
+bot = TeleBot(CONFIG['bot']['telegram_token'])
+
+
 # def send_msg_to_admins(user: User, text: str) -> None:
 #     """
 #     Функция отправки сообщений всем администратора
@@ -45,17 +44,17 @@
 #         )
 #
 #
-# @bot.message_handler(commands=['start'])
-# def start(message: Message):
-#     """Обработчик команды Start"""
-#     tg_user = message.from_user
-#     bot.send_message(
-#         message.chat.id,
-#         text='Добро пожаловать в VPN Project!',
-#         reply_markup=main_keyboard(tg_user.id),
-#     )
-#     add_new_tg_user(tg_user.to_dict())
-#
+@bot.message_handler(commands=['start'])
+def start(message: Message):
+    """Обработчик команды Start"""
+    tg_user = message.from_user
+    bot.send_message(
+        message.chat.id,
+        text='Добро пожаловать в VPN Project!',
+        reply_markup=main_keyboard(tg_user.id),
+    )
+    add_new_tg_user(tg_user.to_dict())
+
 #
 # @bot.message_handler(content_types=["text"])
 # def handle_text(message: Message):
@@ -96,7 +95,7 @@
 #         )
 #
 #     elif 'Инструкция' in message.text:
-#         with open('outline_vpn_admin_bot/instructions.txt', 'r') as f:
+#         with open('telegram_client_bot/instructions.txt', 'r') as f:
 #             instruction = f.read()
 #         bot.send_message(
 #             tg_user.id,
@@ -105,7 +104,7 @@
 #         )
 #
 #     elif 'Памятка администратора' in message.text:
-#         with open('outline_vpn_admin_bot/instructions_admin.txt', 'r') as fa:
+#         with open('telegram_client_bot/instructions_admin.txt', 'r') as fa:
 #             instruction = fa.read()
 #         bot.send_message(
 #             tg_user.id,

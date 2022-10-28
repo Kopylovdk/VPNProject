@@ -1,29 +1,142 @@
-# import logging
-# from django.contrib import admin
-#
+import logging
+from django.contrib import admin
+
 # from django.http import HttpResponseRedirect
 # from django.urls import path
 # from django.utils.translation import ngettext
 # from django.contrib import messages
-# # from rest_framework.authtoken.models import Token
-#
-# from apps.outline_vpn_admin.models import TelegramUsers, OutlineVPNKeys
-# from apps.outline_vpn_admin.processes import (
-#     create_new_key,
-#     add_traffic_limit,
-#     del_traffic_limit,
-#     del_outline_vpn_key,
-# )
-#
-#
-# log = logging.getLogger(__name__)
-#
-#
-# # @admin.register(Token)
-# # class BotsTokens(admin.ModelAdmin):
-# #     pass
-#
-#
+from rest_framework.authtoken.models import Token
+
+import apps.outline_vpn_admin.models as vpn_models
+
+
+log = logging.getLogger(__name__)
+
+
+@admin.register(Token)
+class BotsTokens(admin.ModelAdmin):
+    list_display = (
+        'user',
+        'key',
+        'created',
+    )
+
+    list_filter = (
+        'created',
+    )
+
+    search_fields = (
+        'user',
+    )
+
+
+@admin.register(vpn_models.VPNToken)
+class VPNToken(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'outline_id',
+        'valid_until',
+        'is_active',
+        'traffic_limit',
+    )
+
+    search_fields = (
+        'name',
+    )
+
+    list_filter = (
+        'server',
+        'name',
+        'valid_until',
+        'is_active',
+    )
+
+
+@admin.register(vpn_models.VPNServer)
+class VPNServer(admin.ModelAdmin):
+    list_display = (
+            'name',
+            'uri',
+            'is_default',
+            'created_at',
+            'updated_at',
+        )
+
+    search_fields = (
+        'name',
+    )
+
+    list_filter = (
+        'name',
+    )
+
+
+@admin.register(vpn_models.Tariff)
+class Tariff(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'prolong_period',
+        'price',
+        'valid_until',
+        'is_active',
+    )
+
+    search_fields = (
+        'name',
+    )
+
+    list_filter = (
+        'prolong_period',
+        'price',
+        'is_active',
+    )
+
+
+@admin.register(vpn_models.Transport)
+class Transport(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'uid_format',
+        'full_name_format',
+    )
+
+    search_fields = (
+        'name',
+    )
+
+
+@admin.register(vpn_models.Client)
+class Client(admin.ModelAdmin):
+    list_display = (
+        'full_name',
+    )
+
+    search_fields = (
+        'full_name',
+    )
+
+
+@admin.register(vpn_models.Contact)
+class Contact(admin.ModelAdmin):
+    list_display = (
+        'client',
+        'transport',
+        'name',
+        'uid',
+        'created_at',
+    )
+
+    search_fields = (
+        'name',
+        'client',
+        'transport',
+    )
+
+    list_filter = (
+        'client',
+        'transport',
+    )
+
 # @admin.register(TelegramUsers)
 # class VPNServiceTelegramUsersAdmin(admin.ModelAdmin):
 #     list_display = (

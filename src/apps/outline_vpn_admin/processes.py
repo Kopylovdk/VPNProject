@@ -1,3 +1,4 @@
+import datetime
 import logging
 from copy import copy
 from apps.outline_vpn_admin import exceptions
@@ -10,20 +11,26 @@ from apps.outline_vpn_admin.models import (
     Tariff,
 )
 from apps.outline_vpn_admin.outline_api import get_outline_client
-
+from vpnservice.settings import DEMO_KEY_PERIOD, DEMO_TRAFFIC_LIMIT
 
 log = logging.getLogger(__name__)
 
 
-def get_transport_contact(
+def get_transport_contact_by_(
     transport_name: str,
-    credentials: dict
-) -> Contact or dict:
+    credentials: dict = None,
+    messenger_id: int = None,
+) -> Transport and Contact:
     try:
         transport = Transport.objects.get(name=transport_name)
     except Transport.DoesNotExist:
         raise exceptions.TransportDoesNotExist(message=f'Bot {transport_name!r} does not exist')
-    check_uid = transport.make_contact_credentials_uid(credentials)
+
+    if credentials:
+        check_uid = transport.make_contact_credentials_uid(credentials)
+    else:
+        check_uid = transport.make_contact_messenger_id_uid(messenger_id)
+
     contacts = transport.contact_set
 
     try:
@@ -33,10 +40,10 @@ def get_transport_contact(
     return transport, contact
 
 
-def create_or_update_client_contact(transport_name: str, credentials: dict) -> dict:
+def create_or_update_contact(transport_name: str, credentials: dict) -> dict:
     response = {}
     try:
-        transport, contact = get_transport_contact(transport_name, credentials)
+        transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
     except exceptions.UserDoesNotExist:
         transport = Transport.objects.get(name=transport_name)
         client = Client()
@@ -60,13 +67,13 @@ def create_or_update_client_contact(transport_name: str, credentials: dict) -> d
     return response
 
 
-def get_client_tokens(transport_name: str, credentials: dict) -> dict:
-    transport, contact = get_transport_contact(transport_name, credentials)
+def get_client_tokens(transport_name: str, messenger_id: int) -> dict:
+    transport, contact = get_transport_contact_by_(transport_name=transport_name, messenger_id=messenger_id)
 
     client = contact.client
     response = {
         "details": "client_tokens",
-        "tokens": [token.as_dict(exclude='id') for token in VPNToken.objects.filter(client=client)],
+        "tokens": [token.as_dict(exclude=['id']) for token in VPNToken.objects.filter(client=client)],
         "user_info": {
             "user": contact.client.as_dict(),
             "contact": contact.as_dict(),
@@ -75,9 +82,8 @@ def get_client_tokens(transport_name: str, credentials: dict) -> dict:
     return response
 
 
-def get_client(transport_name: str, credentials: dict) -> dict:
-    transport, contact = get_transport_contact(transport_name, credentials)
-
+def get_client(transport_name: str, messenger_id: int) -> dict:
+    transport, contact = get_transport_contact_by_(transport_name=transport_name, messenger_id=messenger_id)
     response = {
         "details": "get_client",
         "user_info": {
@@ -94,7 +100,7 @@ def token_new(
     credentials: dict
 ) -> dict:
 
-    transport, contact = get_transport_contact(transport_name, credentials)
+    transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
     try:
         vpn_server = VPNServer.objects.get(name=server_name)
     except VPNServer.DoesNotExist:
@@ -130,7 +136,7 @@ def token_renew(
     credentials: dict,
     token_id: int
 ) -> dict:
-    transport, contact = get_transport_contact(transport_name, credentials)
+    transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
 
     old_token = VPNToken.objects.get(outline_id=token_id)
 
@@ -153,7 +159,7 @@ def token_renew(
 
     response = {
         "details": "renew_token",
-        "tokens": [new_token.as_dict(exclude='id')],
+        "tokens": [new_token.as_dict(exclude=['id'])],
         "user_info": {
             "user": contact.client.as_dict(),
             "contact": contact.as_dict(),
@@ -163,71 +169,70 @@ def token_renew(
     return response
 
 
-def get_tariffications() -> list[dict]:
-    response = []
+def token_demo(
+    transport_name: str,
+    server_name: str,
+    credentials: dict
+) -> dict:
+    transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
+    if contact.client.is_has_demo():
+        raise exceptions.DemoKeyExist(message=f'User {contact.client!r} already have demo key')
+    try:
+        vpn_server = VPNServer.objects.get(name=server_name)
+    except VPNServer.DoesNotExist:
+        raise exceptions.VPNServerDoesNotExist(message=f'VPN Server {server_name!r} does not exist')
+    else:
+        outline_client = get_outline_client(vpn_server.name)
+        outline_key = outline_client.create_key()
+        outline_key_name = f"OUTLINE_VPN_id:{outline_key.key_id!r}, uid: {contact.uid!r}"
+        outline_client.rename_key(outline_key.key_id, outline_key_name)
+        outline_client.add_data_limit(outline_key.key_id, DEMO_TRAFFIC_LIMIT)
+
+        demo_token = VPNToken(
+            client=contact.client,
+            server=vpn_server,
+            outline_id=outline_key.key_id,
+            vpn_key=outline_key.access_url,
+            name=outline_key_name,
+            traffic_limit=DEMO_TRAFFIC_LIMIT,
+            valid_until=datetime.datetime.now() + datetime.timedelta(days=DEMO_KEY_PERIOD),
+            is_demo=True,
+        )
+        demo_token.save()
+        response = {
+            "details": "demo_token",
+            "tokens": [demo_token.as_dict(exclude=['id'])],
+            "user_info": {
+                "user": contact.client.as_dict(),
+                "contact": contact.as_dict(),
+            },
+        }
+        return response
+
+
+def get_tariff() -> dict:
+    response = {
+        "details": "get_tariff",
+        "tariffs": [],
+    }
     for tariff in Tariff.objects.filter(is_active=True):
         to_dict_tariff = tariff.as_dict(exclude=['is_active', 'id', 'valid_until', 'prolong_days'])
-        response.append(to_dict_tariff)
+        response["tariffs"].append(to_dict_tariff)
     return response
 
 
-# def validate_int(data: str) -> int or bool:
-#     """
-#     Валидация. Является ли полученная строка числом
-#     Params:
-#         data: str
-#     Returns: bool
-#     Exceptions: None
-#     """
-#     try:
-#         return int(data)
-#     except ValueError:
-#         return NOT_INTEGER
+# TODO: add tests
+def get_vpn_servers() -> dict:
+    response = {
+        "details": "get_vpn_servers",
+        "vpn_servers": [],
+    }
+    for vpn_server in VPNServer.objects.filter(is_active=True):
+        response["vpn_servers"].append(vpn_server.name)
+    return response
 
 
-# def get_outline_key_by_id(telegram_data: int or str) -> OutlineVPNKeys or str:
-#     """
-#     Функция получения конкретного OutlineVPNKeys
-#     Params:
-#         outline_key_id: int
-#     Returns:
-#         OutlineVPNKeys or None
-#     Exceptions:
-#         OUTLINE_VPN_KEY_NOT_FOUND
-#         NOT_INTEGER
-#     """
-#     valid_data = validate_int(telegram_data)
-#     try:
-#         if isinstance(valid_data, int):
-#             return OutlineVPNKeys.objects.get(outline_key_id=valid_data)
-#     except OutlineVPNKeys.DoesNotExist:
-#         return OUTLINE_VPN_KEY_NOT_FOUND
-#     else:
-#         return NOT_INTEGER
-#
-#
-# def get_tg_user_by_(telegram_data: str or int) -> TelegramUsers or str:
-#     """
-#     Функция получения конкретного TelegramUsers
-#     Params:
-#         telegram_login: str = None
-#         telegram_id: int = None
-#     Returns:
-#         TelegramUsers or None
-#     Exceptions:
-#         TELEGRAM_USER_NOT_FOUND
-#     """
-#
-#     valid_data = validate_int(telegram_data)
-#     try:
-#         if isinstance(valid_data, int):
-#             return TelegramUsers.objects.get(telegram_id=valid_data)
-#         else:
-#             return TelegramUsers.objects.get(telegram_login=telegram_data)
-#     except TelegramUsers.DoesNotExist:
-#         return TELEGRAM_USER_NOT_FOUND
-#
-#
+# TODO: Переделать под новые реалии
 # def get_all_admins() -> list[int]:
 #     """
 #     Функция получения Telegram_id ВСЕХ администраторов
@@ -248,82 +253,7 @@ def get_tariffications() -> list[dict]:
 #     """
 #     return list(TelegramUsers.objects.filter(is_admin=False).values_list('telegram_id', flat=True))
 #
-#
-# def add_new_tg_user(tg_user: dict) -> None:
-#     """
-#     Функция добавления нового пользователя
-#     Params:
-#         telegram_user: User
-#     Returns: None
-#     Exceptions:
-#         exceptions.ProcessException
-#     """
-#     try:
-#         from_db_user = TelegramUsers.objects.get(telegram_id=tg_user['id'])
-#     except TelegramUsers.DoesNotExist:
-#         TelegramUsers(
-#             telegram_id=tg_user['id'],
-#             telegram_login=tg_user['username'],
-#             telegram_first_name=tg_user['first_name'],
-#             telegram_last_name=tg_user['last_name'],
-#         ).save()
-#     else:
-#         from_db_user.telegram_login = tg_user['username']
-#         from_db_user.telegram_first_name = tg_user['first_name']
-#         from_db_user.telegram_last_name = tg_user['last_name']
-#         from_db_user.save()
-#
-#
-# def create_new_key(vpn_server_name: str) -> OutlineVPNKeys or str:
-#     outline_client = get_outline_client(vpn_server_name)
-#     create_key_response = outline_client.create_key()
-#     if isinstance(create_key_response, OutlineKey):
-#         vpn_key = OutlineVPNKeys(
-#             outline_key_id=create_key_response.key_id,
-#             outline_key_name=create_key_response.name,
-#             outline_key_value=create_key_response.access_url,
-#         )
-#         vpn_key.save()
-#         return vpn_key
-#     return create_key_response
-#
-#
-# def get_all_vpn_keys_of_user(user_data: str or int) -> list or str:
-#     """
-#     Функция получения всех VPN ключей конкретного пользователя
-#     Params:
-#         userid: int
-#     Returns: list
-#     Exceptions:
-#         TELEGRAM_USER_NOT_FOUND
-#     """
-#     tg_user = get_tg_user_by_(telegram_data=user_data)
-#     if isinstance(tg_user, TelegramUsers):
-#         vpn_keys = \
-#             OutlineVPNKeys.objects.select_related('telegram_user_record').filter(telegram_user_record=tg_user.id)
-#         if vpn_keys:
-#             to_return = [f'Логин: {tg_user.telegram_login!r}, Telegram ID: {tg_user.telegram_id!r}']
-#             for vpn_key in vpn_keys:
-#                 vpn_key_date = vpn_key.outline_key_valid_until
-#                 if vpn_key_date:
-#                     vpn_key_date = f'Срок действия до: {vpn_key_date.strftime("%d-%m-%Y")!r}'
-#                 else:
-#                     vpn_key_date = 'Срок действия без ограничений'\
-#                         if not vpn_key.outline_key_traffic_limit else 'Демо ключ на 1 гб траффика'
-#
-#                 to_return.append(
-#                     f'ID: {vpn_key.outline_key_id!r}, '
-#                     f'Ключ: {vpn_key.outline_key_value!r}, '
-#                     f'{vpn_key_date},'
-#                     f' {"Ключ АКТИВЕН" if vpn_key.outline_key_active else "Ключ НЕАКТИВЕН"}'
-#                 )
-#             return to_return
-#         else:
-#             return []
-#     else:
-#         return tg_user
-#
-#
+
 # def add_traffic_limit(vpn_server_name: str, obj: OutlineVPNKeys, limit_in_bytes: int = 1024) -> bool:
 #     """
 #     Метод установки лимита трафика на запись OutlineVPNKeys

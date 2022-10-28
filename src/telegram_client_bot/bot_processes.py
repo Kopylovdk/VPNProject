@@ -1,6 +1,11 @@
-# from telebot import TeleBot
-# from telebot.types import Message
-# from outline_vpn_admin_bot.keyboards import (
+import requests
+from telebot import TeleBot
+
+from bot_exceptions import SERVER_EXCEPTION
+from config_loader import CONFIG
+from telebot.types import Message, User
+
+# from telegram_client_bot.keyboards import (
 #     one_time_keyboard_back_to_main,
 #     one_time_keyboard_send_edit,
 #     vpn_key_edit_actions_keyboard,
@@ -22,10 +27,89 @@
 #     del_outline_vpn_key,
 #     change_outline_vpn_key_name,
 # )
-#
-# # TODO: Ограничить количество демо ключей у пользователя
-#
-#
+
+API_CREDS_USERNAME = CONFIG['bot']['api']['username']
+API_CREDS_PASSWORD = CONFIG['bot']['api']['password']
+API_URL = CONFIG['bot']['api']['url']
+API_URIS = CONFIG['bot']['api']['uris']
+BOT_NAME = CONFIG['bot']['name']
+ADMINS = CONFIG['bot']['admin_users']
+
+
+def get_auth_api_headers():
+    response = requests.post(
+        f'{API_URL}{API_URIS["get_auth_token"]}',
+        data={
+            'username': API_CREDS_USERNAME,
+            'password': API_CREDS_PASSWORD
+        },
+        allow_redirects=True,
+    )
+    return {'Authorization': f'Token  {response.json()["token"]}'}
+
+
+def send_alert_to_admins(bot: TeleBot, user: User, text: str) -> None:
+    """Функция отправки сообщений всем администратора"""
+    for admin_id in ADMINS:
+        bot.send_message(
+            admin_id,
+            text=f'ОШИБКА У ПОЛЬЗОВАТЕЛЯ:'
+                 f'Пользователь:\n'
+                 f'ID - {user.id!r}\n'
+                 f'Логин - {user.username!r}\n'
+                 f'ФИО - {user.full_name!r}\n'
+                 f'Произошла ошибка:\n{text}',
+        )
+
+
+def send_msg_to_admins(bot: TeleBot, user: User, text: str, message: Message) -> None:
+    """Функция отправки сообщений всем администратора"""
+    for admin_id in ADMINS:
+        bot.send_message(
+            admin_id,
+            text=f'Пользователь:\n'
+                 f'ID - {user.id!r}\n'
+                 f'Логин - {user.username!r}\n'
+                 f'ФИО - {user.full_name!r}\n'
+                 f'{text}',
+        )
+        bot.forward_message(admin_id, message.chat.id, message.message_id)
+
+
+def add_or_update_user(user: User) -> None:
+
+    headers = get_auth_api_headers()
+    to_send = {
+        'transport_name': BOT_NAME,
+        'credentials': user.to_dict()
+    }
+
+    response = requests.post(
+        f'{API_URL}{API_URIS["creat_or_update_contact"]}',
+        headers=headers,
+        json=to_send,
+        allow_redirects=True,
+    )
+    # print(response.json())
+
+
+def get_vpn_keys(user: User) -> list or str:
+    headers = get_auth_api_headers()
+    to_send = {
+        'transport_name': BOT_NAME,
+        'messenger_id': user.id
+    }
+    response = requests.get(
+        f'{API_URL}{API_URIS["get_client_tokens"].format(**to_send)}',
+        headers=headers,
+        allow_redirects=True,
+    )
+    if response.status_code == 200:
+        return response.json()['tokens'], ''
+
+    return SERVER_EXCEPTION, f'{response.status_code=!r}\n{response.json()=!r}'
+    # print(response.json())
+
 # def bot_create_key(server_name: str, tg_user_id: int = None):
 #     vpn_key = create_new_key(server_name)
 #     demo_traffic_limit = None
@@ -44,7 +128,7 @@
 #      Получение ID VPN ключа от пользователя. Шаг 1 из 3
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #     Returns: None
 #     Exceptions: None
 #     """
@@ -62,7 +146,7 @@
 #      Валидация ID VPN ключа и получение OutlineVPNKeys для дальнейшей обработки. Шаг 2 из 3
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #     Returns: None
 #     Exceptions: None
 #     """
@@ -89,7 +173,7 @@
 #     Меню выбора действий над ключом.
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #         outline_vpn_record: OutlineVPNKeys
 #     Returns: None
 #     Exceptions: None
@@ -216,7 +300,7 @@
 #         Удаление VPN ключа
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #     Returns: None
 #     Exceptions: None
 #     """
@@ -276,7 +360,7 @@
 #         Добавление VPN ключа к пользователю.
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #     Returns: None
 #     Exceptions: None
 #     """
@@ -335,7 +419,7 @@
 #         Установка срока действия ключа.
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #         outline_vpn_record: OutlineVPNKeys
 #     Returns: None
 #     Exceptions: None
@@ -385,7 +469,7 @@
 #         Установка лимита трафика
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #         outline_vpn_record: OutlineVPNKeys
 #     Returns: None
 #     Exceptions: None
@@ -445,7 +529,7 @@
 #     Отправка личного сообщение от лица Бота. Шаг 1 из 3
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #     Returns: None
 #     Exceptions: None
 #     """
@@ -462,7 +546,7 @@
 #     Отправка личного сообщение от лица Бота. Шаг 2 из 3
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #     Returns: None
 #     Exceptions: None
 #     """
@@ -492,7 +576,7 @@
 #     Отправка личного сообщение от лица Бота. Шаг 3 из 4
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #     Returns: None
 #     Exceptions: None
 #     """
@@ -518,7 +602,7 @@
 #     Отправка личного сообщение от лица Бота. Шаг 4 из 4
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #         tg_user: TelegramUsers
 #     Returns: None
 #     Exceptions: None
@@ -555,7 +639,7 @@
 #     Отправка сообщений от лица Бота ВСЕМ пользователям, кроме администраторов. Шаг 1 из 3
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #     Returns: None
 #     Exceptions: None
 #     """
@@ -572,7 +656,7 @@
 #     Отправка сообщений от лица Бота ВСЕМ пользователям, кроме администраторов. Шаг 2 из 3
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #     Returns: None
 #     Exceptions: None
 #     """
@@ -598,7 +682,7 @@
 #     Отправка сообщений от лица Бота ВСЕМ пользователям, кроме администраторов. Шаг 3 из 3
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #         msg: str
 #     Returns: None
 #     Exceptions: None
@@ -636,7 +720,7 @@
 #     Получение списка VPN ключей пользователя. Шаг 1 из 2
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #     Returns: None
 #     Exceptions: None
 #     """
@@ -653,7 +737,7 @@
 #     Получение списка VPN ключей пользователя. Шаг 2 из 2
 #     Params:
 #         message: Message
-#         outline_vpn_admin_bot: TeleBot
+#         telegram_client_bot: TeleBot
 #     Returns: None
 #     Exceptions: None
 #     """

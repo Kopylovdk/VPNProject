@@ -8,6 +8,7 @@ from apps.outline_vpn_admin.models import (
     Contact,
     VPNToken,
     Tariff,
+    Transport,
 )
 from apps.outline_vpn_admin.tests.mocks import (
     MockResponseCreateKey,
@@ -18,23 +19,60 @@ from apps.outline_vpn_admin.tests.mocks import (
 class GetTransportContact(TestCase):
     def setUp(self) -> None:
         self.transport_name = 'test_test_test'
-        self.cred = {'id': 9999999}
+        self.cred = {'id': 9999999, "first_name": "some", "last_name": "some"}
 
-    def test_get_transport_contact_transport_does_not_exist(self):
+    def test_get_transport_contact_by_credentials(self):
+        transports = helpers.create_transport(transport_name=self.transport_name)
+        clients = helpers.create_client()
+        contacts = helpers.create_contact(
+            transport=transports[0],
+            client=clients[0],
+            credentials=self.cred
+        )
+        transport, contact = processes.get_transport_contact_by_(
+            transport_name=self.transport_name,
+            credentials=self.cred
+        )
+        self.assertIsInstance(transport, Transport)
+        self.assertIsInstance(contact, Contact)
+        self.assertEqual(contact.transport, transports[0])
+        self.assertEqual(contact.client, clients[0])
+        self.assertEqual(contact, contacts[0])
+        self.assertEqual(transport, transports[0])
+        self.assertEqual(transport.name, self.transport_name)
+        self.assertEqual(contact.credentials, self.cred)
+
+    def test_get_transport_contact_by_messenger_id(self):
+        transports = helpers.create_transport(transport_name=self.transport_name)
+        clients = helpers.create_client()
+        contacts = helpers.create_contact(
+            transport=transports[0],
+            client=clients[0],
+            credentials=self.cred
+        )
+        transport, contact = processes.get_transport_contact_by_(
+            transport_name=self.transport_name,
+            messenger_id=self.cred['id']
+        )
+
+        self.assertIsInstance(transport, Transport)
+        self.assertIsInstance(contact, Contact)
+        self.assertEqual(contact.transport, transports[0])
+        self.assertEqual(contact.client, clients[0])
+        self.assertEqual(contact, contacts[0])
+        self.assertEqual(transport, transports[0])
+        self.assertEqual(transport.name, self.transport_name)
+        self.assertEqual(contact.credentials, self.cred)
+
+    def test_get_transport_contact_by_transport_does_not_exist(self):
         with self.assertRaises(exceptions.TransportDoesNotExist) as err:
-            processes.get_transport_contact(
-                transport_name=self.transport_name,
-                credentials=self.cred
-            )
+            processes.get_transport_contact_by_(transport_name=self.transport_name, credentials=self.cred)
         self.assertIn(f'Bot {self.transport_name!r} does not exist', err.exception.message)
 
-    def test_get_transport_contact_user_does_not_exist(self):
+    def test_get_transport_contact_by_user_does_not_exist(self):
         helpers.create_transport(transport_name=self.transport_name)
         with self.assertRaises(exceptions.UserDoesNotExist) as err:
-            processes.get_transport_contact(
-                transport_name=self.transport_name,
-                credentials=self.cred
-            )
+            processes.get_transport_contact_by_(transport_name=self.transport_name, credentials=self.cred)
         self.assertIn(f'User does not exist', err.exception.message)
 
 
@@ -84,10 +122,8 @@ class CreateOrUpdateClientContactTestCase(TestCase):
         contacts = self.transports[0].contact_set
         self.assertFalse(contacts.filter(uid=uid_check))
 
-        response = processes.create_or_update_client_contact(
-            transport_name=to_send['transport_name'],
-            credentials=to_send["credentials"]
-        )
+        response = processes.create_or_update_contact(transport_name=to_send['transport_name'],
+                                                      credentials=to_send["credentials"])
 
         created_contact = Contact.objects.select_related('client', 'transport').last()
 
@@ -110,10 +146,8 @@ class CreateOrUpdateClientContactTestCase(TestCase):
         cred_before = Contact.objects.get(credentials__id=self.send_json["credentials"]["id"]).credentials
         self.assertEqual(cred_before, self.data)
 
-        response = processes.create_or_update_client_contact(
-            transport_name=self.send_json['transport_name'],
-            credentials=self.send_json["credentials"]
-        )
+        response = processes.create_or_update_contact(transport_name=self.send_json['transport_name'],
+                                                      credentials=self.send_json["credentials"])
 
         self.assertIn('details', response.keys())
         self.assertEqual('Updated exist user', response['details'])
@@ -174,7 +208,7 @@ class GetClientTokens(TestCase):
 
         response = processes.get_client_tokens(
             transport_name=self.transports[0].name,
-            credentials=self.cred
+            messenger_id=self.cred['id']
         )
 
         self.assertIn('details', response.keys())
@@ -191,7 +225,7 @@ class GetClientTokens(TestCase):
     def test_get_client_tokens_no_tokens(self):
         response = processes.get_client_tokens(
             transport_name=self.transports[0].name,
-            credentials=self.cred_no_token
+            messenger_id=self.cred_no_token['id']
         )
         self.assertEqual(0, len(response['tokens']))
         self.assertIsInstance(response['tokens'], list)
@@ -285,5 +319,6 @@ class GetTarifficationsTestCase(TestCase):
         cls.tariffications[5].save()
 
     def test_get_tariffications(self):
-        response = processes.get_tariffications()
-        self.assertEqual(len(response), len(Tariff.objects.filter(is_active=True)))
+        response = processes.get_tariff()
+        self.assertEqual(len(response['tariffs']), len(Tariff.objects.filter(is_active=True)))
+        self.assertIn("get_tariff", response["details"])

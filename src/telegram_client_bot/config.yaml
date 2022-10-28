@@ -1,0 +1,19 @@
+bot:
+  name: "telegram_client_bot"
+  telegram_token: "_____"
+  admin_users: []
+  api:
+    username: "telegram_client_bot"
+    password: "_____"
+    url: "http://localhost:8080/"
+    uris: {
+      "get_auth_token": "api/api-token-auth/",
+      "get_tariffs": "api/tariff/",
+      "get_contact": "api/contact/{transport_name}/{messenger_id}",
+      "get_client_tokens": "api/token/{transport_name}/{messenger_id}",
+      "creat_or_update_contact": "api/contact/",
+      "renew_exist_token": "api/token/renew/{token_id}",
+      "create_demo_token": "api/token/demo/",
+      "create_new_token": "api/token/new/",
+      "get_vpn_servers": "api/vpn-servers/",
+      }

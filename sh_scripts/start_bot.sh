@@ -1,3 +1,3 @@
 #!/bin/sh
 
-exec python manage.py botpooling
+#exec python manage.py botpooling

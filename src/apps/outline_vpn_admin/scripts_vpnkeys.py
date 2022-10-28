@@ -5,9 +5,9 @@
 # from django.db.models import QuerySet
 #
 # from apps.outline_vpn_admin.processes import add_traffic_limit
-# from outline_vpn_admin_bot.keyboards import main_keyboard
+# from telegram_client_bot.keyboards import main_keyboard
 # from apps.outline_vpn_admin.models import OutlineVPNKeys
-# from outline_vpn_admin_bot.bot_main import bot
+# from telegram_client_bot.bot_main import bot
 #
 #
 # log = logging.getLogger(__name__)
