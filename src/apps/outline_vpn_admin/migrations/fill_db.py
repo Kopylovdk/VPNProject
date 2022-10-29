@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
         VPNServer.objects.create(
             name='test_vpn_server_name',
             external_name='test_vpn_server_external_name',
-            uri='change_to_real_test_uri',
+            uri='https://62.113.111.75:20125/et_PPlt-7Kz-O0FxVnT4gQ',
         ).save()
 
         prolong_periods = [30, 90, 180, 360]
