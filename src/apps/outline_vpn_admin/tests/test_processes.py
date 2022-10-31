@@ -279,6 +279,19 @@ class TokenNewTestCase(TokenBaseTestCase):
         self.assertEqual(self.clients[0].as_dict(), response['user_info']['user'])
         self.assertEqual(self.contact_first.as_dict(), response['user_info']['contact'])
 
+    def test_token_new_vpn_server_does_not_exist(self):
+        not_exist_vpn_server = "no_name"
+        with self.assertRaises(exceptions.VPNServerDoesNotExist) as err:
+            processes.token_new(
+                transport_name="telegram",
+                server_name=not_exist_vpn_server,
+                credentials={"id": 1000, "some": "data"},
+            )
+        self.assertEqual(
+            f'VPN Server {not_exist_vpn_server!r} does not exist',
+            str(err.exception.message)
+        )
+
 
 class TokenRenewTestCase(TokenBaseTestCase):
     @patch("requests.delete", return_value=MockResponseStatusCode204())
@@ -307,6 +320,63 @@ class TokenRenewTestCase(TokenBaseTestCase):
         self.assertEqual(response['tokens'][0], new_token.as_dict(exclude=['id']))
         self.assertEqual(self.clients[0].as_dict(), response['user_info']['user'])
         self.assertEqual(self.contact_first.as_dict(), response['user_info']['contact'])
+
+
+class TokenDemoTestCase(TokenBaseTestCase):
+    @patch("requests.put", return_value=MockResponseStatusCode204())
+    @patch("requests.post", return_value=MockResponseCreateKey())
+    def test_token_demo(self, mocked_put, mocked_post):
+        response = processes.token_demo(
+            transport_name="telegram",
+            server_name="kz",
+            credentials={"id": 1000, "some": "data"},
+        )
+        self.assertEqual(response['details'], 'demo_token')
+        self.assertEqual(response['tokens'][0]['outline_id'], 9999)
+        new_token = VPNToken.objects.get(outline_id=9999)
+        self.assertTrue(new_token.is_active)
+        self.assertTrue(new_token.is_demo)
+        self.assertTrue(new_token.traffic_limit)
+        self.assertTrue(new_token.valid_until)
+        self.assertEqual(self.clients[0].as_dict(), response['user_info']['user'])
+        self.assertEqual(self.contact_first.as_dict(), response['user_info']['contact'])
+
+    def test_token_demo_vpn_server_does_not_exist(self):
+        not_exist_vpn_server = "no_name"
+        with self.assertRaises(exceptions.VPNServerDoesNotExist) as err:
+            processes.token_demo(
+                transport_name="telegram",
+                server_name=not_exist_vpn_server,
+                credentials={"id": 1000, "some": "data"},
+            )
+        self.assertEqual(
+            f'VPN Server {not_exist_vpn_server!r} does not exist',
+            str(err.exception.message)
+        )
+
+    def test_token_demo_demo_key_exist(self):
+        contact = helpers.create_contact(
+            client=helpers.create_client()[0],
+            transport=self.transport,
+            credentials={"id": 909090, "some": "data"}
+        )[0]
+        token_demo = helpers.create_vpn_token(
+            contact.client,
+            vpn_server=self.vpn_server,
+        )[0]
+        token_demo.is_demo = True
+        token_demo.save()
+        not_exist_vpn_server = "no_name"
+        with self.assertRaises(exceptions.DemoKeyExist) as err:
+            processes.token_demo(
+                transport_name="telegram",
+                server_name=not_exist_vpn_server,
+                credentials={"id": 909090, "some": "data"},
+            )
+        self.assertEqual(
+            f'User {contact.client!r} already have demo key',
+            str(err.exception.message)
+        )
 
 
 class GetTarifficationsTestCase(TestCase):

@@ -23,17 +23,29 @@ class ClientTestCase(BaseTestCase):
     def test_create_clients(self):
         self.assertEqual(self.cnt, len(helpers.create_client(self.cnt)))
         self.assertEqual(self.cnt, len(Client.objects.all()))
-        obj = Client.objects.first()
-        self.assertIn(self.test_str_value, obj.full_name)
-        self.assertIsNotNone(obj.created_at)
-        self.assertIsNotNone(obj.updated_at)
+        client = Client.objects.first()
+        self.assertIn(self.test_str_value, client.full_name)
+        self.assertIsNotNone(client.created_at)
+        self.assertIsNotNone(client.updated_at)
+
+    def test_is_has_demo_false(self):
+        client = helpers.create_client()[0]
+        self.assertFalse(client.is_has_demo())
+        token = helpers.create_vpn_token(
+            client=client,
+            vpn_server=helpers.create_vpn_server()[0],
+        )[0]
+        token.is_demo = True
+        token.save()
+        self.assertTrue(client.is_has_demo())
 
 
 class TransportTestCase(BaseTestCase):
     def test_create_transports(self):
+        exist = len(Transport.objects.all())
         self.assertEqual(self.cnt, len(helpers.create_transport(self.cnt)))
-        self.assertEqual(self.cnt, len(Transport.objects.all()))
-        transport = Transport.objects.first()
+        self.assertEqual(self.cnt, len(Transport.objects.all()) - exist)
+        transport = Transport.objects.last()
         self.assertIn(self.test_str_value, transport.name)
         self.assertEqual(helpers.TRANSPORT_CREDENTIALS, transport.credentials)
         self.assertIsNotNone(transport.created_at)
@@ -44,6 +56,12 @@ class TransportTestCase(BaseTestCase):
         transport.name = self.name
         transport.save()
         self.assertEqual(transport.make_contact_credentials_uid(self.cred), f'{self.name}@{self.cred["id"]}')
+
+    def test_make_contact_messenger_id_uid(self):
+        transport = helpers.create_transport()[0]
+        transport.name = self.name
+        transport.save()
+        self.assertEqual(transport.make_contact_messenger_id_uid(self.cred["id"]), f'{self.name}@{self.cred["id"]}')
 
     def test_fill_client_details(self):
         client = helpers.create_client()[0]
@@ -101,9 +119,10 @@ class VPNTokenTestCase(BaseTestCase):
 
 class VPNServerTestCase(BaseTestCase):
     def test_create_vpn_server(self):
+        exist = len(VPNServer.objects.all())
         self.assertEqual(self.cnt, len(helpers.create_vpn_server(self.cnt)))
-        self.assertEqual(self.cnt, len(VPNServer.objects.all()))
-        obj = VPNServer.objects.first()
+        self.assertEqual(self.cnt, len(VPNServer.objects.all()) - exist)
+        obj = VPNServer.objects.last()
         self.assertIn(self.test_str_value, obj.name)
         self.assertIn(self.test_str_value, obj.uri)
         self.assertFalse(obj.is_default)
@@ -113,9 +132,10 @@ class VPNServerTestCase(BaseTestCase):
 
 class TarifficationTestCase(BaseTestCase):
     def test_create_tariffications(self):
+        exist = len(Tariff.objects.all())
         self.assertEqual(self.cnt, len(helpers.create_tariff(self.cnt)))
-        self.assertEqual(self.cnt, len(Tariff.objects.all()))
-        tariff = Tariff.objects.first()
+        self.assertEqual(self.cnt, len(Tariff.objects.all()) - exist)
+        tariff = Tariff.objects.last()
         self.assertIn(self.test_str_value, tariff.name)
         self.assertTrue(tariff.is_active)
         self.assertIsInstance(tariff.prolong_period, int)

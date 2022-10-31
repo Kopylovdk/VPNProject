@@ -1,5 +1,5 @@
 import datetime
-import logging
+# import logging
 from copy import copy
 from apps.outline_vpn_admin import exceptions
 from apps.outline_vpn_admin.models import (
@@ -11,11 +11,13 @@ from apps.outline_vpn_admin.models import (
     Tariff,
 )
 from apps.outline_vpn_admin.outline_api import get_outline_client
+from logger_decorator import func_detail
 from vpnservice.settings import DEMO_KEY_PERIOD, DEMO_TRAFFIC_LIMIT
 
-log = logging.getLogger(__name__)
+# log = logging.getLogger(__name__)
 
 
+@func_detail
 def get_transport_contact_by_(
     transport_name: str,
     credentials: dict = None,
@@ -40,6 +42,7 @@ def get_transport_contact_by_(
     return transport, contact
 
 
+@func_detail
 def create_or_update_contact(transport_name: str, credentials: dict) -> dict:
     response = {}
     try:
@@ -67,6 +70,7 @@ def create_or_update_contact(transport_name: str, credentials: dict) -> dict:
     return response
 
 
+@func_detail
 def get_client_tokens(transport_name: str, messenger_id: int) -> dict:
     transport, contact = get_transport_contact_by_(transport_name=transport_name, messenger_id=messenger_id)
 
@@ -82,6 +86,7 @@ def get_client_tokens(transport_name: str, messenger_id: int) -> dict:
     return response
 
 
+@func_detail
 def get_client(transport_name: str, messenger_id: int) -> dict:
     transport, contact = get_transport_contact_by_(transport_name=transport_name, messenger_id=messenger_id)
     response = {
@@ -94,6 +99,7 @@ def get_client(transport_name: str, messenger_id: int) -> dict:
     return response
 
 
+@func_detail
 def token_new(
     transport_name: str,
     server_name: str,
@@ -130,6 +136,7 @@ def token_new(
         return response
 
 
+@func_detail
 def token_renew(
     transport_name: str,
     server_name: str,
@@ -169,6 +176,7 @@ def token_renew(
     return response
 
 
+@func_detail
 def token_demo(
     transport_name: str,
     server_name: str,
@@ -210,6 +218,7 @@ def token_demo(
         return response
 
 
+@func_detail
 def get_tariff() -> dict:
     response = {
         "details": "get_tariff",
@@ -222,6 +231,7 @@ def get_tariff() -> dict:
 
 
 # TODO: add tests
+@func_detail
 def get_vpn_servers() -> dict:
     response = {
         "details": "get_vpn_servers",

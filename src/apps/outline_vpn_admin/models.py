@@ -19,7 +19,7 @@ class Client(models.Model, DictRepresentationMixin):
     updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
 
     def is_has_demo(self):
-        return self.vpntoken_set.exists(is_demo=True)
+        return self.vpntoken_set.filter(is_demo=True).exists()
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id!r} name={self.full_name!r}>"

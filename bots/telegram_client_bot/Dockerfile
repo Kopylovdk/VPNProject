@@ -1,13 +1,11 @@
 FROM python:latest
 
-WORKDIR /usr/src
+WORKDIR /usr/telegram_client_bot
 
 COPY requirements.txt .
-
-COPY sh_scripts/* sh_scripts/
 
 
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
-COPY src .
+COPY . .
