@@ -13,23 +13,6 @@ import apps.outline_vpn_admin.models as vpn_models
 log = logging.getLogger(__name__)
 
 
-@admin.register(Token)
-class BotsTokens(admin.ModelAdmin):
-    list_display = (
-        'user',
-        'key',
-        'created',
-    )
-
-    list_filter = (
-        'created',
-    )
-
-    search_fields = (
-        'user',
-    )
-
-
 @admin.register(vpn_models.VPNToken)
 class VPNToken(admin.ModelAdmin):
     list_display = (

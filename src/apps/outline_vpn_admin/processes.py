@@ -1,5 +1,5 @@
 import datetime
-# import logging
+import logging
 from copy import copy
 from apps.outline_vpn_admin import exceptions
 from apps.outline_vpn_admin.models import (
@@ -11,38 +11,42 @@ from apps.outline_vpn_admin.models import (
     Tariff,
 )
 from apps.outline_vpn_admin.outline_api import get_outline_client
-from logger_decorator import func_detail
+
 from vpnservice.settings import DEMO_KEY_PERIOD, DEMO_TRAFFIC_LIMIT
 
-# log = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
-@func_detail
 def get_transport_contact_by_(
     transport_name: str,
     credentials: dict = None,
     messenger_id: int = None,
 ) -> Transport and Contact:
+    log.debug('start get_transport_contact_by_')
+    log.debug(f'{transport_name=!r}, {credentials=!r}, {messenger_id=!r}')
     try:
         transport = Transport.objects.get(name=transport_name)
     except Transport.DoesNotExist:
+        log.debug('transport_error')
         raise exceptions.TransportDoesNotExist(message=f'Bot {transport_name!r} does not exist')
 
     if credentials:
         check_uid = transport.make_contact_credentials_uid(credentials)
     else:
         check_uid = transport.make_contact_messenger_id_uid(messenger_id)
+    log.debug(f'{check_uid=!r}')
 
     contacts = transport.contact_set
-
+    log.debug(f'{contacts=!r}')
     try:
         contact = contacts.get(uid=check_uid)
     except Contact.DoesNotExist:
+        log.debug('contact_error')
         raise exceptions.UserDoesNotExist(message=f'User does not exist')
+    log.debug('finish get_transport_contact_by_')
     return transport, contact
 
 
-@func_detail
 def create_or_update_contact(transport_name: str, credentials: dict) -> dict:
     response = {}
     try:
@@ -70,9 +74,10 @@ def create_or_update_contact(transport_name: str, credentials: dict) -> dict:
     return response
 
 
-@func_detail
 def get_client_tokens(transport_name: str, messenger_id: int) -> dict:
+    log.debug('start get_client_tokens')
     transport, contact = get_transport_contact_by_(transport_name=transport_name, messenger_id=messenger_id)
+    log.debug(f'{transport=!r}, {contact=!r}')
 
     client = contact.client
     response = {
@@ -83,10 +88,10 @@ def get_client_tokens(transport_name: str, messenger_id: int) -> dict:
             "contact": contact.as_dict(),
         },
     }
+    log.debug(f'{response=!r}')
     return response
 
 
-@func_detail
 def get_client(transport_name: str, messenger_id: int) -> dict:
     transport, contact = get_transport_contact_by_(transport_name=transport_name, messenger_id=messenger_id)
     response = {
@@ -99,7 +104,6 @@ def get_client(transport_name: str, messenger_id: int) -> dict:
     return response
 
 
-@func_detail
 def token_new(
     transport_name: str,
     server_name: str,
@@ -136,7 +140,6 @@ def token_new(
         return response
 
 
-@func_detail
 def token_renew(
     transport_name: str,
     server_name: str,
@@ -176,7 +179,6 @@ def token_renew(
     return response
 
 
-@func_detail
 def token_demo(
     transport_name: str,
     server_name: str,
@@ -218,7 +220,6 @@ def token_demo(
         return response
 
 
-@func_detail
 def get_tariff() -> dict:
     response = {
         "details": "get_tariff",
@@ -231,7 +232,6 @@ def get_tariff() -> dict:
 
 
 # TODO: add tests
-@func_detail
 def get_vpn_servers() -> dict:
     response = {
         "details": "get_vpn_servers",

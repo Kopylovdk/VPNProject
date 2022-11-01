@@ -2,6 +2,10 @@ version: '3.3'
 volumes:
   static: {}
 
+networks:
+  backnet:
+  frontnet:
+
 services:
   db:
     platform: linux/x86_64
@@ -11,22 +15,26 @@ services:
     ports:
       - "5432:5432"
     restart: always
+    networks:
+      - backnet
 
   vpn_service:
     platform: linux/x86_64
     build: .
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     command:
       sh -c -m "./sh_scripts/migrate.sh && ./sh_scripts/start.sh"
-#      sh -c -m "./sh_scripts/makemigrations.sh && ./sh_scripts/migrate.sh && ./sh_scripts/start.sh"
     volumes:
       - static:/usr/src/static
     depends_on:
       - db
     restart: always
+    networks:
+      - backnet
+      - frontnet
 
-  nginx:
+  proxy:
     build: ./nginx_conf
     ports:
       - "8080:80"
@@ -35,9 +43,15 @@ services:
     restart: always
     depends_on:
       - vpn_service
+    networks:
+      - frontnet
+      - backnet
 
   bot_tg_client:
     build: ./bots/telegram_client_bot
     restart: always
     command:
       sh -c -m "./start_bot.sh"
+    networks:
+      - frontnet
+      - backnet

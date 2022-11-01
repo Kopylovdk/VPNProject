@@ -1,8 +1,11 @@
+import logging
+import sys
+
 from config_loader import CONFIG
 from telebot import TeleBot
 from telebot.types import Message, User
 from bot_processes import (
-    send_msg_to_admins, add_or_update_user, get_vpn_keys, send_alert_to_admins,
+    send_msg_to_admins, add_or_update_user, get_vpn_keys, send_alert_to_admins, health_check,
     # user_vpn_keys_list_step_1,
     # messages_send_choice_step_1,
     # bot_create_key,
@@ -61,9 +64,15 @@ def handle_text(message: Message):
     else:
         bot.send_message(
             tg_user.id,
-            text='Такой команды не существует. Выберите действие на клавиатуре.',
+            text=f'Такой команды не существует. Выберите действие на клавиатуре.\n{health_check()=}\n',
             reply_markup=main_keyboard(),
         )
 
 
-bot.polling(none_stop=True, interval=0)
+if __name__ == '__main__':
+    logging.basicConfig(
+        stream=sys.stderr,
+        level=logging.DEBUG,
+        format='[%(asctime)s] %(levelname)-8s [%(name)s] [line=%(lineno)s] [msg=%(message)s]',
+    )
+    bot.polling(none_stop=True, interval=0)

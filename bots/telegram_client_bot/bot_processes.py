@@ -1,4 +1,5 @@
 import requests
+import logging
 from telebot import TeleBot
 
 from bot_exceptions import SERVER_EXCEPTION
@@ -27,6 +28,7 @@ from telebot.types import Message, User
 #     del_outline_vpn_key,
 #     change_outline_vpn_key_name,
 # )
+log = logging.getLogger(__name__)
 
 API_CREDS_USERNAME = CONFIG['bot']['api']['username']
 API_CREDS_PASSWORD = CONFIG['bot']['api']['password']
@@ -34,6 +36,21 @@ API_URL = CONFIG['bot']['api']['url']
 API_URIS = CONFIG['bot']['api']['uris']
 BOT_NAME = CONFIG['bot']['name']
 ADMINS = CONFIG['bot']['admin_users']
+
+
+def health_check():
+    url = f'{API_URL}{API_URIS["health"]}'
+    # url = 'http://127.0.0.1:8080/health-check/'
+    log.debug(url)
+    response = requests.get(url, allow_redirects=True)
+    log.debug(f'{response=!r}')
+
+    return response.status_code
+
+
+# def health_check_2():
+#     response = requests.get(f'{API_URL}', allow_redirects=True)
+#     return response.status_code
 
 
 def get_auth_api_headers():
@@ -104,10 +121,11 @@ def get_vpn_keys(user: User) -> list or str:
         headers=headers,
         allow_redirects=True,
     )
+    log.debug(f'{response=}')
     if response.status_code == 200:
         return response.json()['tokens'], ''
 
-    return SERVER_EXCEPTION, f'{response.status_code=!r}\n{response.json()=!r}'
+    return SERVER_EXCEPTION, f'{response.status_code=!r}'
     # print(response.json())
 
 # def bot_create_key(server_name: str, tg_user_id: int = None):

@@ -67,13 +67,12 @@ class VPNToken(BaseAPIView):
         return Response(response, status=status.HTTP_201_CREATED)
 
     def get(self, request, transport_name, messenger_id):
-        return Response(
-            get_client_tokens(
+        log.debug(f'{transport_name=!r}, {messenger_id=!r}')
+        data = get_client_tokens(
                 transport_name=transport_name,
                 messenger_id=messenger_id,
-            ),
-            status=status.HTTP_200_OK
-        )
+            )
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class VPNTokenDemo(BaseAPIView):

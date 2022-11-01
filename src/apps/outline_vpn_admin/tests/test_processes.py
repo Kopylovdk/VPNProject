@@ -299,7 +299,7 @@ class TokenRenewTestCase(TokenBaseTestCase):
     @patch("requests.post", return_value=MockResponseCreateKey())
     def test_token_renew(self, mocked_put, mocked_post, mocked_delete):
         self.assertTrue(self.token.is_active)
-        self.assertEqual(1, len(VPNToken.objects.all()))
+        self.assertEqual(1, VPNToken.objects.all().count())
         response = processes.token_renew(
             transport_name="telegram",
             server_name="kz",
@@ -309,7 +309,7 @@ class TokenRenewTestCase(TokenBaseTestCase):
 
         self.token.refresh_from_db()
 
-        self.assertEqual(2, len(VPNToken.objects.all()))
+        self.assertEqual(2, VPNToken.objects.all().count())
         self.assertEqual(response['details'], 'renew_token')
         self.assertEqual(response['tokens'][0]['outline_id'], 9999)
 
@@ -390,5 +390,5 @@ class GetTarifficationsTestCase(TestCase):
 
     def test_get_tariffications(self):
         response = processes.get_tariff()
-        self.assertEqual(len(response['tariffs']), len(Tariff.objects.filter(is_active=True)))
+        self.assertEqual(len(response['tariffs']), Tariff.objects.filter(is_active=True).count())
         self.assertIn("get_tariff", response["details"])

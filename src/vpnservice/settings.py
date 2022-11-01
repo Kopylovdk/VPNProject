@@ -32,7 +32,7 @@ SECRET_KEY = EXTERNAL_CFG['django']['secret_key']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = EXTERNAL_CFG['django']['debug']
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['http://127.0.0.1:8080', 'http://localhost:8080', 'http://localhost:8000', '*']
 
 LOGGING = logging_config_update(
     config=EXTERNAL_CFG['logging'],
@@ -91,10 +91,6 @@ WSGI_APPLICATION = 'vpnservice.wsgi.application'
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    # }
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': EXTERNAL_CFG['db']['name'],
@@ -145,7 +141,7 @@ STATIC_URL = '/static/'
 
 STATIC_ROOT = BASE_DIR + STATIC_URL
 
-CSRF_TRUSTED_ORIGINS = ['http://localhost:8080']
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8080', 'http://127.0.0.1:8080']
 
 APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
 APSCHEDULER_RUN_NOW_TIMEOUT = 25
