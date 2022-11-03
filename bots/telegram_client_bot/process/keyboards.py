@@ -26,3 +26,10 @@ def generate_action_keyboard(data: list = None) -> ReplyKeyboardMarkup:
         buttons.append(KeyboardButton(text=text))
     kb.add(*buttons, KeyboardButton(text='В основное меню'))
     return kb
+
+
+def back_to_main_menu_keyboard() -> ReplyKeyboardMarkup:
+    """Клавиатура возврата в основное меню"""
+    kb = ReplyKeyboardMarkup(row_width=3, resize_keyboard=True)
+    kb.add(KeyboardButton(text='В основное меню'))
+    return kb

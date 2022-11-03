@@ -1,21 +1,26 @@
 import logging
 import sys
-
-from config_loader import CONFIG
+from process.config_loader import CONFIG
 from telebot import TeleBot
-from telebot.types import Message, User
-from bot_processes import (
-    send_msg_to_admins, add_or_update_user, get_vpn_keys, send_alert_to_admins, health_check,
-    # user_vpn_keys_list_step_1,
+from telebot.types import Message
+from process.bot_processes import (
+    send_msg_to_managers,
+    add_or_update_user,
+    get_vpn_keys,
+    send_alert_to_admins,
+    health_check,
+    get_auth_api_headers,
+    get_tariffs,
+    get_vpn_servers,
+    renew_token_step_1,
+    subscribes_step_1,
     # messages_send_choice_step_1,
     # bot_create_key,
 )
+from process.keyboards import main_keyboard
 
-from keyboards import (
-    main_keyboard,
-    generate_action_keyboard,
-)
 
+log = logging.getLogger(__name__)
 bot = TeleBot(CONFIG['bot']['telegram_token'])
 
 
@@ -27,25 +32,30 @@ def start(message: Message):
         text='Добро пожаловать в VPN Project!',
         reply_markup=main_keyboard(),
     )
-    add_or_update_user(message.from_user)
+    add_or_update_user(bot=bot, user=message.from_user)
 
 
 @bot.message_handler(content_types=["text"])
 def handle_text(message: Message):
     """Обработчик текстовых команд клавиатуры от пользователя"""
     tg_user = message.from_user
-    add_or_update_user(tg_user)
+    add_or_update_user(bot=bot, user=message.from_user)
     if 'Оформить подписку' in message.text:
-        pass
+        subscribes_step_1(
+            bot=bot,
+            message=message,
+        )
     elif 'Перевыпустить VPN ключ' in message.text:
-        pass
+        renew_token_step_1(
+            bot=bot,
+            message=message,
+        )
     elif 'Мои VPN ключи' in message.text:
-        data, msg = get_vpn_keys(tg_user)
-        if isinstance(data, list):
-            bot.send_message(tg_user.id, '\n'.join(data) if data else 'Ключи отсутствуют', reply_markup=main_keyboard())
-        else:
-            bot.send_message(tg_user.id, data, reply_markup=main_keyboard())
-            send_alert_to_admins(bot=bot, user=tg_user, text=msg)
+        get_vpn_keys(
+            bot=bot,
+            user=tg_user,
+        )
+
     elif 'Инструкция' in message.text:
         with open('instruction/instructions.txt', 'r') as f:
             instruction = f.read()
@@ -55,7 +65,7 @@ def handle_text(message: Message):
             reply_markup=main_keyboard(),
         )
     elif 'Поддержка' in message.text:
-        send_msg_to_admins(bot=bot, user=tg_user, text='Требуется помощь администратора.', message=message)
+        send_msg_to_managers(bot=bot, text='Требуется помощь администратора.', message=message)
         bot.send_message(
             tg_user.id,
             text='Администратор свяжется с Вами в ближайшее время.',
@@ -64,7 +74,7 @@ def handle_text(message: Message):
     else:
         bot.send_message(
             tg_user.id,
-            text=f'Такой команды не существует. Выберите действие на клавиатуре.\n{health_check()=}\n',
+            text=f'Такой команды не существует. Выберите действие на клавиатуре.\n',
             reply_markup=main_keyboard(),
         )
 
@@ -75,4 +85,15 @@ if __name__ == '__main__':
         level=logging.DEBUG,
         format='[%(asctime)s] %(levelname)-8s [%(name)s] [line=%(lineno)s] [msg=%(message)s]',
     )
+
+    # TODO: таймер проверки
+    response = health_check()
+    if response.status_code != 200:
+        send_alert_to_admins(bot=bot, response=response)
+    else:
+        # add to cache
+        get_auth_api_headers(bot=bot)
+        get_tariffs(bot=bot)
+        get_vpn_servers(bot=bot)
+
     bot.polling(none_stop=True, interval=0)
