@@ -1,6 +1,7 @@
-from config_loader import CONFIG
+from process.config_loader import CONFIG
 from telebot import TeleBot
-from telebot.types import Message, User
+from telebot.types import Message
+
 # from telegram_client_bot.bot_processes import (
 #     api_key_edit_step_1,
 #     user_vpn_keys_list_step_1,

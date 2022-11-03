@@ -5,7 +5,7 @@ bot:
   api:
     username: "telegram_admin_bot"
     password: "_____"
-    url: "http://localhost:8080/"
+    url: "http://proxy:80/"
     uris: {
       "get_auth_token": "api/api-token-auth/",
       "get_tariffs": "api/tariff/",
