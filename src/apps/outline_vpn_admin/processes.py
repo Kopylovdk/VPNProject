@@ -18,32 +18,28 @@ log = logging.getLogger(__name__)
 
 
 def get_transport_contact_by_(
-    transport_name: str,
-    credentials: dict = None,
-    messenger_id: int = None,
+        transport_name: str,
+        credentials: dict = None,
+        messenger_id: int = None,
 ) -> Transport and Contact:
-    log.debug('start get_transport_contact_by_')
-    log.debug(f'{transport_name=!r}, {credentials=!r}, {messenger_id=!r}')
     try:
         transport = Transport.objects.get(name=transport_name)
-    except Transport.DoesNotExist:
-        log.debug('transport_error')
+    except Transport.DoesNotExist as err:
+        log.debug(f'Error get_transport_contact_by_ {transport_name=!r}, {credentials=!r}, {messenger_id=!r}, {err=!r}')
         raise exceptions.TransportDoesNotExist(message=f'Bot {transport_name!r} does not exist')
 
     if credentials:
         check_uid = transport.make_contact_credentials_uid(credentials)
     else:
         check_uid = transport.make_contact_messenger_id_uid(messenger_id)
-    log.debug(f'{check_uid=!r}')
 
     contacts = transport.contact_set
-    log.debug(f'{contacts=!r}')
+
     try:
         contact = contacts.get(uid=check_uid)
-    except Contact.DoesNotExist:
-        log.debug('contact_error')
+    except Contact.DoesNotExist as err:
+        log.debug(f'Error get_transport_contact_by_ {transport_name=!r}, {credentials=!r}, {messenger_id=!r}, {err=!r}')
         raise exceptions.UserDoesNotExist(message=f'User does not exist')
-    log.debug('finish get_transport_contact_by_')
     return transport, contact
 
 
@@ -67,33 +63,33 @@ def create_or_update_contact(transport_name: str, credentials: dict) -> dict:
 
     contact.save()
     response["user_info"] = {
-            "user": contact.client.as_dict(),
-            "contact": contact.as_dict()
-        }
-
+        "user": contact.client.as_dict(),
+        "contact": contact.as_dict()
+    }
+    log.debug(f"{response['details']} - {response}")
     return response
 
 
 def get_client_tokens(transport_name: str, messenger_id: int) -> dict:
-    log.debug('start get_client_tokens')
     transport, contact = get_transport_contact_by_(transport_name=transport_name, messenger_id=messenger_id)
-    log.debug(f'{transport=!r}, {contact=!r}')
+    log.debug(f'get_client_tokens - {transport=!r}, {contact=!r}')
 
     client = contact.client
     response = {
         "details": "client_tokens",
-        "tokens": [token.as_dict(exclude=['id']) for token in VPNToken.objects.filter(client=client)],
+        "tokens": [token.as_dict(exclude=['id']) for token in client.vpntoken_set.all()],
         "user_info": {
             "user": contact.client.as_dict(),
             "contact": contact.as_dict(),
         },
     }
-    log.debug(f'{response=!r}')
+    log.debug(f'get_client_tokens result- {response=!r}')
     return response
 
 
 def get_client(transport_name: str, messenger_id: int) -> dict:
     transport, contact = get_transport_contact_by_(transport_name=transport_name, messenger_id=messenger_id)
+    log.debug(f'get_client start - {transport=!r}, {contact=!r}')
     response = {
         "details": "get_client",
         "user_info": {
@@ -101,19 +97,20 @@ def get_client(transport_name: str, messenger_id: int) -> dict:
             "contact": contact.as_dict(),
         },
     }
+    log.debug(f'get_client result - {response=!r}')
     return response
 
 
 def token_new(
-    transport_name: str,
-    server_name: str,
-    credentials: dict
+        transport_name: str,
+        server_name: str,
+        credentials: dict
 ) -> dict:
-
     transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
     try:
         vpn_server = VPNServer.objects.get(name=server_name)
-    except VPNServer.DoesNotExist:
+    except VPNServer.DoesNotExist as err:
+        log.debug(f'Error token_new {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
         raise exceptions.VPNServerDoesNotExist(message=f'VPN Server {server_name!r} does not exist')
     else:
         outline_client = get_outline_client(vpn_server.name)
@@ -141,16 +138,20 @@ def token_new(
 
 
 def token_renew(
-    transport_name: str,
-    server_name: str,
-    credentials: dict,
-    token_id: int
+        transport_name: str,
+        credentials: dict,
+        token_id: int
 ) -> dict:
     transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
+    client = contact.client
+    log.debug(f'{transport=!r}, {contact=!r}, {client=!r}')
+    if not client.is_token_owner(token_id):
+        log.error(f'Error token renew. Token belongs to another user.')
+        raise exceptions.BelongToAnotherUser(message='Error token renew. Token belongs to another user.')
 
-    old_token = VPNToken.objects.get(outline_id=token_id)
+    old_token = client.vpntoken_set.get(outline_id=token_id)
 
-    outline_client = get_outline_client(server_name)
+    outline_client = get_outline_client(old_token.server.name)
     new_outline_key = outline_client.create_key()
     outline_key_name = f"OUTLINE_VPN_id:{new_outline_key.key_id!r}, uid: {contact.uid!r}"
     outline_client.rename_key(new_outline_key.key_id, outline_key_name)
@@ -180,16 +181,19 @@ def token_renew(
 
 
 def token_demo(
-    transport_name: str,
-    server_name: str,
-    credentials: dict
+        transport_name: str,
+        server_name: str,
+        credentials: dict
 ) -> dict:
     transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
     if contact.client.is_has_demo():
-        raise exceptions.DemoKeyExist(message=f'User {contact.client!r} already have demo key')
+        err = f'User {contact.client!r} already have demo key'
+        log.debug(f'Error token_demo {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
+        raise exceptions.DemoKeyExist(message=err)
     try:
         vpn_server = VPNServer.objects.get(name=server_name)
-    except VPNServer.DoesNotExist:
+    except VPNServer.DoesNotExist as err:
+        log.debug(f'Error token_demo {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
         raise exceptions.VPNServerDoesNotExist(message=f'VPN Server {server_name!r} does not exist')
     else:
         outline_client = get_outline_client(vpn_server.name)
@@ -223,15 +227,15 @@ def token_demo(
 def get_tariff() -> dict:
     response = {
         "details": "get_tariff",
-        "tariffs": [],
+        "tariffs": []
     }
     for tariff in Tariff.objects.filter(is_active=True):
-        to_dict_tariff = tariff.as_dict(exclude=['is_active', 'id', 'valid_until', 'prolong_days'])
-        response["tariffs"].append(to_dict_tariff)
+        add_to_dict = tariff.as_dict(exclude=['is_active', 'id', 'valid_until', 'prolong_days'])
+        add_to_dict['price'] = str(add_to_dict['price'])
+        response["tariffs"].append(add_to_dict)
     return response
 
 
-# TODO: add tests
 def get_vpn_servers() -> dict:
     response = {
         "details": "get_vpn_servers",
@@ -240,7 +244,6 @@ def get_vpn_servers() -> dict:
     for vpn_server in VPNServer.objects.filter(is_active=True):
         response["vpn_servers"].append(vpn_server.name)
     return response
-
 
 # TODO: Переделать под новые реалии
 # def get_all_admins() -> list[int]:

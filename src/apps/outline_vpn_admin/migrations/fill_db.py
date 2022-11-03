@@ -30,14 +30,18 @@ class Migration(migrations.Migration):
             uri='https://62.113.111.75:20125/et_PPlt-7Kz-O0FxVnT4gQ',
         ).save()
 
-        prolong_periods = [30, 90, 180, 360]
-        prices = [500, 1350, 2500, 4500]
-        months = [1, 3, 6, 12]
-        months_names = ['месяц', 'месяца', 'месяцев', 'месяцев']
+        prolong_periods = [7, 90, 180]
+        prices = [0, 1350, 1500]
+        months = [0, 3, 6]
+        months_names = ['demo', 'месяца', 'месяцев']
 
-        for i in range(4):
+        for i in range(3):
+            if months[i] == 0:
+                name = f'{months_names[i]}'
+            else:
+                name = f'{months[i]} {months_names[i]}'
             Tariff.objects.create(
-                name=f'{months[i]} {months_names[i]}',
+                name=name,
                 prolong_period=prolong_periods[i],
                 price=prices[i],
             ).save()

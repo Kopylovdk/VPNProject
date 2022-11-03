@@ -20,3 +20,7 @@ class VPNServerDoesNotExist(ProcessException):
 
 class DemoKeyExist(ProcessException):
     """User already have demo key"""
+
+
+class BelongToAnotherUser(ProcessException):
+    """VPN Token belongs to another user"""
