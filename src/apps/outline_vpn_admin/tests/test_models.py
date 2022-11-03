@@ -39,6 +39,17 @@ class ClientTestCase(BaseTestCase):
         token.save()
         self.assertTrue(client.is_has_demo())
 
+    def test_is_token_owner(self):
+        client = helpers.create_client()[0]
+        self.assertFalse(client.is_token_owner(999))
+        token = helpers.create_vpn_token(
+            client=client,
+            vpn_server=helpers.create_vpn_server()[0],
+        )[0]
+        token.outline_id = 999
+        token.save()
+        self.assertTrue(client.is_token_owner(999))
+
 
 class TransportTestCase(BaseTestCase):
     def test_create_transports(self):

@@ -9,6 +9,7 @@ from apps.outline_vpn_admin.models import (
     VPNToken,
     Tariff,
     Transport,
+    VPNServer
 )
 from apps.outline_vpn_admin.tests.mocks import (
     MockResponseCreateKey,
@@ -302,7 +303,6 @@ class TokenRenewTestCase(TokenBaseTestCase):
         self.assertEqual(1, VPNToken.objects.all().count())
         response = processes.token_renew(
             transport_name="telegram",
-            server_name="kz",
             credentials={"id": 1000, "some": "data"},
             token_id=self.token.outline_id,
         )
@@ -320,6 +320,15 @@ class TokenRenewTestCase(TokenBaseTestCase):
         self.assertEqual(response['tokens'][0], new_token.as_dict(exclude=['id']))
         self.assertEqual(self.clients[0].as_dict(), response['user_info']['user'])
         self.assertEqual(self.contact_first.as_dict(), response['user_info']['contact'])
+
+    def test_token_renew_belong_to_another_user(self):
+        with self.assertRaises(exceptions.BelongToAnotherUser) as err:
+            processes.token_renew(
+                transport_name="telegram",
+                credentials={"id": 1000, "some": "data"},
+                token_id=959595,
+            )
+        self.assertEqual('Error token renew. Token belongs to another user.', str(err.exception.message))
 
 
 class TokenDemoTestCase(TokenBaseTestCase):
@@ -392,3 +401,10 @@ class GetTarifficationsTestCase(TestCase):
         response = processes.get_tariff()
         self.assertEqual(len(response['tariffs']), Tariff.objects.filter(is_active=True).count())
         self.assertIn("get_tariff", response["details"])
+
+
+class GetVPNServers(TestCase):
+    def test_get_vpn_servers(self):
+        helpers.create_vpn_server(5)
+        response = processes.get_vpn_servers()
+        self.assertEqual(len(response['vpn_servers']), VPNServer.objects.all().count())
