@@ -1,7 +1,7 @@
 from django.db import migrations
 from django.contrib.auth.models import User
 
-from apps.outline_vpn_admin.models import Transport, VPNServer, Tariff
+from apps.outline_vpn_admin.models import Transport, VPNServer, Tariff, Currency
 
 
 class Migration(migrations.Migration):
@@ -25,17 +25,30 @@ class Migration(migrations.Migration):
         ).save()
 
         VPNServer.objects.create(
-            name='test_vpn_server_name',
-            external_name='test_vpn_server_external_name',
+            name='test_vpn_server_in_russia',
+            external_name='В России',
             uri='https://62.113.111.75:20125/et_PPlt-7Kz-O0FxVnT4gQ',
         ).save()
 
-        prolong_periods = [7, 90, 180]
-        prices = [0, 1350, 1500]
-        months = [0, 3, 6]
-        months_names = ['demo', 'месяца', 'месяцев']
+        cur_names = ['RUB', 'USD', 'EUR']
+        names_iso = [643, 840, 978]
+        exchange_rate = [1, 65, 65]
+        for i in range(len(cur_names)):
+            Currency.objects.create(
+                name=cur_names[i],
+                name_iso=names_iso[i],
+                exchange_rate=exchange_rate[i],
+                is_main=True if cur_names[i] in 'RUB' else False,
+            ).save()
 
-        for i in range(3):
+        prolong_periods = [7, 92, 183, 0]
+        traffic_limits = [1073741824, 0, 0, 0]
+        prices = [0, 1350, 1500, 0]
+        months = [0, 3, 6, 0]
+        months_names = ['Demo', 'месяца', 'месяцев', 'Tech']
+
+        currency = Currency.objects.get(name='RUB')
+        for i in range(len(months_names)):
             if months[i] == 0:
                 name = f'{months_names[i]}'
             else:
@@ -44,6 +57,10 @@ class Migration(migrations.Migration):
                 name=name,
                 prolong_period=prolong_periods[i],
                 price=prices[i],
+                traffic_limit=traffic_limits[i],
+                currency=currency,
+                is_demo=True if name in "Demo" else False,
+                is_tech=True if name in "Tech" else False,
             ).save()
 
     operations = [
