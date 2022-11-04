@@ -5,12 +5,26 @@ from django.contrib import admin
 # from django.urls import path
 # from django.utils.translation import ngettext
 # from django.contrib import messages
-from rest_framework.authtoken.models import Token
+# from rest_framework.authtoken.models import Token
 
 import apps.outline_vpn_admin.models as vpn_models
 
 
 log = logging.getLogger(__name__)
+
+
+@admin.register(vpn_models.Currency)
+class Currency(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'name_iso',
+        'is_main',
+        'exchange_rate',
+        'is_active',
+    )
+    search_fields = (
+        'name',
+    )
 
 
 @admin.register(vpn_models.VPNToken)
@@ -19,8 +33,9 @@ class VPNToken(admin.ModelAdmin):
         'name',
         'outline_id',
         'valid_until',
-        'is_active',
         'traffic_limit',
+        'is_demo',
+        'is_active',
     )
 
     search_fields = (
@@ -32,6 +47,7 @@ class VPNToken(admin.ModelAdmin):
         'name',
         'valid_until',
         'is_active',
+        'is_demo',
     )
 
 
@@ -58,9 +74,11 @@ class VPNServer(admin.ModelAdmin):
 class Tariff(admin.ModelAdmin):
     list_display = (
         'name',
+        'is_demo',
         'prolong_period',
+        'traffic_limit',
         'price',
-        'valid_until',
+        'currency',
         'is_active',
     )
 
@@ -72,6 +90,7 @@ class Tariff(admin.ModelAdmin):
         'prolong_period',
         'price',
         'is_active',
+        'is_demo',
     )
 
 

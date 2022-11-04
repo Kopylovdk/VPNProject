@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator
 from django.db import models
 from django.forms import model_to_dict
 
@@ -37,7 +38,7 @@ class Transport(models.Model, DictRepresentationMixin):
         verbose_name = 'Transport'
         verbose_name_plural = 'Transports'
 
-    name = models.CharField(verbose_name='Название бота', max_length=254, null=True, blank=True)
+    name = models.CharField(verbose_name='Название бота', max_length=254, editable=False)
 
     uid_format = models.CharField(
         verbose_name='Формат уникального идентификатора бота',
@@ -87,6 +88,7 @@ class Contact(models.Model, DictRepresentationMixin):
         help_text='<Transport.name>@<Transport.uid_format>'
     )
     name = models.CharField(verbose_name='Название контакта', max_length=254, null=True, blank=True)
+    phone_number = models.CharField(verbose_name='Номер телефона', max_length=20, null=True, blank=True)
     credentials = models.JSONField(verbose_name='Реквизиты пользователя', null=True, blank=True)
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
     updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
@@ -121,27 +123,26 @@ class VPNServer(models.Model, DictRepresentationMixin):
         return self.name
 
 
-class VPNToken(models.Model, DictRepresentationMixin):
+# TODO: tests add
+class Currency(models.Model, DictRepresentationMixin):
     class Meta:
-        db_table = 'VPNToken'
-        verbose_name = 'VPNToken'
-        verbose_name_plural = 'VPNTokens'
+        db_table = 'Currency'
+        verbose_name = 'Currency'
+        verbose_name_plural = 'Currencies'
 
-    client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Владелец ключа')
-    server = models.ForeignKey(VPNServer, on_delete=models.RESTRICT, verbose_name='VPN сервер')
-    outline_id = models.BigIntegerField(verbose_name='VPN Token ID on VPN Server', null=True, blank=True)
-    name = models.CharField(verbose_name='Имя VPN ключа', max_length=254, null=True, blank=True)
-    vpn_key = models.TextField(verbose_name='VPN ключ', null=True, blank=True)
-    valid_until = models.DateField(verbose_name='Дата окончания подписки', null=True, blank=True)
-    is_active = models.BooleanField(verbose_name='Активность VPN ключа', default=True)
-    is_demo = models.BooleanField(verbose_name='Демо', default=False)
-    # TODO: Проверить процессы связанные с лимитом траффика
-    traffic_limit = models.BigIntegerField(verbose_name='Лимит трафика', null=True, blank=True)
+    name = models.CharField(verbose_name='Буквенный код валюты по ISO 4217', max_length=3)
+    name_iso = models.IntegerField(verbose_name='Цифровой код валюты по ISO 4217', validators=[MaxValueValidator(999)])
+    is_main = models.BooleanField(verbose_name='Основная валюта', default=False)
+    exchange_rate = models.DecimalField(verbose_name='Курс к основной валюте', max_digits=5, decimal_places=2)
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
     updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
+    is_active = models.BooleanField(verbose_name='Активность валюты', default=True)
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} id={self.id!r} outline_id={self.outline_id!r}>"
+        return f"<{self.__class__.__name__} id={self.id!r} name={self.name!r}>"
+
+    def __str__(self):
+        return self.name
 
 
 class Tariff(models.Model, DictRepresentationMixin):
@@ -153,14 +154,41 @@ class Tariff(models.Model, DictRepresentationMixin):
     name = models.CharField(verbose_name='Имя тарифа', max_length=254)
     prolong_period = models.IntegerField(verbose_name='Срок продления в днях')
     price = models.DecimalField(verbose_name='Стоимость', max_digits=10, decimal_places=2)
-    # TODO: add вид валюты
+    currency = models.ForeignKey(Currency, on_delete=models.RESTRICT, verbose_name='Валюта')
+    traffic_limit = models.IntegerField(verbose_name='Ограничение трафика в байтах')
     valid_until = models.DateField(verbose_name='Срок активности тарифа', null=True, blank=True)
+    is_demo = models.BooleanField(verbose_name='Демо тариф', default=False)
+    is_tech = models.BooleanField(verbose_name='Технический тариф', default=False)
     is_active = models.BooleanField(verbose_name='Активность тарифа', default=True)
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
     updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id!r} name={self.name!r}>"
+
+
+class VPNToken(models.Model, DictRepresentationMixin):
+    class Meta:
+        db_table = 'VPNToken'
+        verbose_name = 'VPNToken'
+        verbose_name_plural = 'VPNTokens'
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Владелец ключа')
+    server = models.ForeignKey(VPNServer, on_delete=models.RESTRICT, verbose_name='VPN сервер')
+    tariff = models.ForeignKey(Tariff, on_delete=models.RESTRICT, verbose_name='Тариф')
+    outline_id = models.BigIntegerField(verbose_name='VPN Token ID on VPN Server', null=True, blank=True)
+    previous_vpn_token_id = models.BigIntegerField(verbose_name='ID предыдущего VPN ключа', null=True, blank=True)
+    name = models.CharField(verbose_name='Имя VPN ключа', max_length=254, null=True, blank=True)
+    vpn_key = models.TextField(verbose_name='VPN ключ', null=True, blank=True)
+    valid_until = models.DateField(verbose_name='Дата окончания подписки', null=True, blank=True)
+    is_active = models.BooleanField(verbose_name='Активность VPN ключа', default=True)
+    is_demo = models.BooleanField(verbose_name='Демо', default=False)
+    traffic_limit = models.BigIntegerField(verbose_name='Лимит трафика', null=True, blank=True)
+    created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
+    updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} id={self.id!r} outline_id={self.outline_id!r}>"
 
 
 # TODO: Сделать миграции, тесты и дополнить модель полями при подключении оплат
@@ -170,6 +198,8 @@ class Tariff(models.Model, DictRepresentationMixin):
 #         verbose_name = 'Payment'
 #         verbose_name_plural = 'Payments'
 #
-#     client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Плательщик')
+#     client = models.ForeignKey(Client, on_delete=models.RESTRICT, verbose_name='Плательщик')
+#     vpn_token = models.ForeignKey(VPNToken, on_delete=models.RESTRICT, verbose_name='VPN Ключ')
 #     value = models.CharField(verbose_name='Значение', max_length=254)
 #     bill = models.CharField(verbose_name='Счет', max_length=254)
+#     is_payed = models.BooleanField(verbose_name='Оплачен', default=False)

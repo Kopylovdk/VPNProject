@@ -18,6 +18,10 @@ class VPNServerDoesNotExist(ProcessException):
     """VPNServer does not exist"""
 
 
+class TariffDoesNotExist(ProcessException):
+    """Tariff does not exist"""
+
+
 class DemoKeyExist(ProcessException):
     """User already have demo key"""
 

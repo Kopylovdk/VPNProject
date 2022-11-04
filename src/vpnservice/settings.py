@@ -38,8 +38,7 @@ LOGGING = logging_config_update(
     config=EXTERNAL_CFG['logging'],
     log_path=BASE_DIR)
 
-DEMO_KEY_PERIOD = EXTERNAL_CFG['django']['demo_key_period']
-DEMO_TRAFFIC_LIMIT = EXTERNAL_CFG['django']['demo_traffic_limit']
+DATE_STRING_FORMAT = EXTERNAL_CFG['django']['date_string_format']
 # Application definition
 
 INSTALLED_APPS = [
