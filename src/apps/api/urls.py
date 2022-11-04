@@ -14,7 +14,6 @@ urlpatterns = [
     # post
     path('contact/', api_views.ContactCreateOrUpdate.as_view(), name='creat_or_update_contact'),
     path('token/renew/', api_views.VPNTokenRenew.as_view(), name='renew_exist_token'),
-    path('token/demo/', api_views.VPNTokenDemo.as_view(), name='create_demo_token'),
     path('token/new/', api_views.VPNTokenNew.as_view(), name='create_new_token'),
 
     # patch
