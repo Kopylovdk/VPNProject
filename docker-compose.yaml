@@ -25,6 +25,7 @@ services:
       - "8000:8000"
     command:
       sh -c -m "./sh_scripts/migrate.sh && ./sh_scripts/start.sh"
+#      sh -c -m "./sh_scripts/makemigrations.sh && ./sh_scripts/migrate.sh && ./sh_scripts/start.sh"
     volumes:
       - static:/usr/src/static
     depends_on:
@@ -52,6 +53,8 @@ services:
     restart: always
     command:
       sh -c -m "./start_bot.sh"
+    depends_on:
+      - proxy
     networks:
       - frontnet
       - backnet
