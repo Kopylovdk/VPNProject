@@ -14,10 +14,9 @@ from process.bot_processes import (
     get_vpn_servers,
     renew_token_step_1,
     subscribes_step_1,
-    # messages_send_choice_step_1,
-    # bot_create_key,
+    tariffs_step_1,
 )
-from process.keyboards import main_keyboard
+from process.keyboards import main_keyboard, register_keyboard
 
 
 log = logging.getLogger(__name__)
@@ -30,33 +29,45 @@ def start(message: Message):
     bot.send_message(
         message.chat.id,
         text='Добро пожаловать в VPN Project!',
-        reply_markup=main_keyboard(),
+        reply_markup=register_keyboard(),
     )
-    add_or_update_user(bot=bot, user=message.from_user)
+
+
+@bot.message_handler(content_types=["contact"])
+def contact_handler(message: Message):
+    add_or_update_user(bot=bot, message=message)
 
 
 @bot.message_handler(content_types=["text"])
 def handle_text(message: Message):
     """Обработчик текстовых команд клавиатуры от пользователя"""
     tg_user = message.from_user
-    add_or_update_user(bot=bot, user=message.from_user)
-    if 'Оформить подписку' in message.text:
+    user_answer = message.text
+    if 'Оформить подписку' in user_answer:
         subscribes_step_1(
             bot=bot,
             message=message,
         )
-    elif 'Перевыпустить VPN ключ' in message.text:
+
+    elif 'Перевыпустить VPN ключ' in user_answer:
         renew_token_step_1(
             bot=bot,
             message=message,
         )
-    elif 'Мои VPN ключи' in message.text:
+
+    elif 'Мои VPN ключи' in user_answer:
         get_vpn_keys(
             bot=bot,
             user=tg_user,
         )
 
-    elif 'Инструкция' in message.text:
+    elif 'Доступные тарифы' in user_answer:
+        tariffs_step_1(
+            bot=bot,
+            message=message
+        )
+
+    elif 'Инструкция' in user_answer:
         with open('instruction/instructions.txt', 'r') as f:
             instruction = f.read()
         bot.send_message(

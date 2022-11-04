@@ -77,7 +77,7 @@ class GetTransportContact(TestCase):
         self.assertIn(f'User does not exist', err.exception.message)
 
 
-class CreateOrUpdateClientContactTestCase(TestCase):
+class CreateOrUpdateContactTestCase(TestCase):
     clients = None
     data = None
     contacts = None
@@ -261,6 +261,7 @@ class TokenBaseTestCase(TestCase):
         cls.token = helpers.create_vpn_token(cls.clients[0], cls.vpn_server)[0]
         cls.token.outline_id = 9000
         cls.token.save()
+        cls.tariffs = helpers.create_tariff(3)
 
 
 class TokenNewTestCase(TokenBaseTestCase):
@@ -271,6 +272,7 @@ class TokenNewTestCase(TokenBaseTestCase):
             transport_name="telegram",
             server_name="kz",
             credentials={"id": 1000, "some": "data"},
+            tariff=self.tariffs[0].as_dict(),
         )
         self.assertEqual(response['details'], 'new_token')
         self.assertEqual(response['tokens'][0]['outline_id'], 9999)
@@ -287,9 +289,49 @@ class TokenNewTestCase(TokenBaseTestCase):
                 transport_name="telegram",
                 server_name=not_exist_vpn_server,
                 credentials={"id": 1000, "some": "data"},
+                tariff=self.tariffs[0].as_dict(),
             )
         self.assertEqual(
             f'VPN Server {not_exist_vpn_server!r} does not exist',
+            str(err.exception.message)
+        )
+
+    def test_token_new_tariff_does_not_exist(self):
+        not_exist_tariff = "no_name"
+        with self.assertRaises(exceptions.TariffDoesNotExist) as err:
+            processes.token_new(
+                transport_name="telegram",
+                server_name="kz",
+                credentials={"id": 1000, "some": "data"},
+                tariff={'name': not_exist_tariff},
+            )
+        self.assertEqual(
+            f'Tariff {not_exist_tariff!r} does not exist',
+            str(err.exception.message)
+        )
+
+    def test_token_new_demo_key_exist(self):
+        contact = helpers.create_contact(
+            client=helpers.create_client()[0],
+            transport=self.transport,
+            credentials={"id": 909090, "some": "data"}
+        )[0]
+        token_demo = helpers.create_vpn_token(
+            contact.client,
+            vpn_server=self.vpn_server,
+        )[0]
+        token_demo.is_demo = True
+        token_demo.save()
+        not_exist_vpn_server = "no_name"
+        with self.assertRaises(exceptions.DemoKeyExist) as err:
+            processes.token_new(
+                transport_name="telegram",
+                server_name=not_exist_vpn_server,
+                credentials={"id": 909090, "some": "data"},
+                tariff=self.tariffs[0].as_dict()
+            )
+        self.assertEqual(
+            f'User {contact.client!r} already have demo key',
             str(err.exception.message)
         )
 
@@ -331,64 +373,7 @@ class TokenRenewTestCase(TokenBaseTestCase):
         self.assertEqual('Error token renew. Token belongs to another user.', str(err.exception.message))
 
 
-class TokenDemoTestCase(TokenBaseTestCase):
-    @patch("requests.put", return_value=MockResponseStatusCode204())
-    @patch("requests.post", return_value=MockResponseCreateKey())
-    def test_token_demo(self, mocked_put, mocked_post):
-        response = processes.token_demo(
-            transport_name="telegram",
-            server_name="kz",
-            credentials={"id": 1000, "some": "data"},
-        )
-        self.assertEqual(response['details'], 'demo_token')
-        self.assertEqual(response['tokens'][0]['outline_id'], 9999)
-        new_token = VPNToken.objects.get(outline_id=9999)
-        self.assertTrue(new_token.is_active)
-        self.assertTrue(new_token.is_demo)
-        self.assertTrue(new_token.traffic_limit)
-        self.assertTrue(new_token.valid_until)
-        self.assertEqual(self.clients[0].as_dict(), response['user_info']['user'])
-        self.assertEqual(self.contact_first.as_dict(), response['user_info']['contact'])
-
-    def test_token_demo_vpn_server_does_not_exist(self):
-        not_exist_vpn_server = "no_name"
-        with self.assertRaises(exceptions.VPNServerDoesNotExist) as err:
-            processes.token_demo(
-                transport_name="telegram",
-                server_name=not_exist_vpn_server,
-                credentials={"id": 1000, "some": "data"},
-            )
-        self.assertEqual(
-            f'VPN Server {not_exist_vpn_server!r} does not exist',
-            str(err.exception.message)
-        )
-
-    def test_token_demo_demo_key_exist(self):
-        contact = helpers.create_contact(
-            client=helpers.create_client()[0],
-            transport=self.transport,
-            credentials={"id": 909090, "some": "data"}
-        )[0]
-        token_demo = helpers.create_vpn_token(
-            contact.client,
-            vpn_server=self.vpn_server,
-        )[0]
-        token_demo.is_demo = True
-        token_demo.save()
-        not_exist_vpn_server = "no_name"
-        with self.assertRaises(exceptions.DemoKeyExist) as err:
-            processes.token_demo(
-                transport_name="telegram",
-                server_name=not_exist_vpn_server,
-                credentials={"id": 909090, "some": "data"},
-            )
-        self.assertEqual(
-            f'User {contact.client!r} already have demo key',
-            str(err.exception.message)
-        )
-
-
-class GetTarifficationsTestCase(TestCase):
+class GetTariffTestCase(TestCase):
     tariffications = None
 
     @classmethod
@@ -408,3 +393,15 @@ class GetVPNServers(TestCase):
         helpers.create_vpn_server(5)
         response = processes.get_vpn_servers()
         self.assertEqual(len(response['vpn_servers']), VPNServer.objects.all().count())
+
+
+class GetClient(TokenBaseTestCase):
+    def test_get_client(self):
+        response = processes.get_client(
+            messenger_id=self.cred['id'],
+            transport_name="telegram",
+        )
+        self.assertEqual(response['details'], "get_client")
+        self.assertIn('user_info', response.keys())
+        self.assertIn('user', response['user_info'].keys())
+        self.assertIn('contact', response['user_info'].keys())
