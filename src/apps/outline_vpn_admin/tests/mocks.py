@@ -1,11 +1,12 @@
 class MockResponseCreateKey:
 
-    def __init__(self):
+    def __init__(self, outline_id: int = 9999):
         self.status_code = 201
+        self.outline_id = outline_id
 
     def json(self):
         return {
-            "id": 9999,
+            "id": self.outline_id,
             "name": "test",
             "password": "test",
             "port": 7000,

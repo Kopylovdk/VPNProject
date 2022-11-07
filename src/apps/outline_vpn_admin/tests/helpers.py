@@ -9,7 +9,7 @@ from apps.outline_vpn_admin.models import (
     Currency,
 )
 TRANSPORT_CREDENTIALS = {"token": "Some token", "URL": "Any"}
-CONTACT_CREDENTIALS = {"id": "some_id", "first_name": "some_first_name", "last_name": "some_last_name"}
+CONTACT_CREDENTIALS = {"id": "some_id", "first_name": "some_first_name", "last_name": "some_last_name", "phone_number": ''}
 
 
 def create_client(cnt: int = 1) -> list[Client]:
@@ -58,6 +58,7 @@ def create_contact(client: Client, transport: Transport, credentials: dict = Non
             client=client,
             transport=transport,
             uid=transport.make_contact_credentials_uid(credentials),
+            phone_number=credentials['phone_number'] if credentials['phone_number'] else None,
             credentials=credentials,
         )
         new_obj.save()
@@ -65,14 +66,14 @@ def create_contact(client: Client, transport: Transport, credentials: dict = Non
     return result
 
 
-def create_vpn_server(cnt: int = 1) -> list[VPNServer]:
+def create_vpn_server(cnt: int = 1, server_name: str = None) -> list[VPNServer]:
     """
     Функция создания записей в таблице VPNServer
     """
     result = []
     for obj_cnt in range(1000, cnt + 1000):
         new_obj = VPNServer(
-            name=f'test {obj_cnt}',
+            name=server_name if server_name else f'test {obj_cnt}',
             uri=f'test {obj_cnt}',
         )
         new_obj.save()

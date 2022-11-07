@@ -21,7 +21,7 @@ from vpnservice.settings import DATE_STRING_FORMAT
 class GetTransportContact(TestCase):
     def setUp(self) -> None:
         self.transport_name = 'test_test_test'
-        self.cred = {'id': 9999999, "first_name": "some", "last_name": "some"}
+        self.cred = {'id': 9999999, "first_name": "some", "phone_number": '', "last_name": "some"}
 
     def test_get_transport_contact_by_credentials(self):
         transports = helpers.create_transport(transport_name=self.transport_name)
@@ -86,7 +86,7 @@ class CreateOrUpdateContactTestCase(TestCase):
 
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.data = {"id": 9999, "first_name": "some", "last_name": "some"}
+        cls.data = {"id": 9999, "first_name": "some", "last_name": "some", "phone_number": ''}
         cls.clients = helpers.create_client(3)
         cls.transports = helpers.create_transport(2)
         cls.transports[0].name = 'telegram'
@@ -186,6 +186,7 @@ class GetClientTokens(TestCase):
             "first_name": "first_name",
             "last_name": "last_name",
             "login": "login",
+            "phone_number": '',
         }
         cls.contact_first = helpers.create_contact(cls.clients[0], cls.transports[0], cls.cred)[0]
         helpers.create_contact(cls.clients[1], cls.transports[1])
@@ -195,6 +196,7 @@ class GetClientTokens(TestCase):
             "first_name": "first_name",
             "last_name": "last_name",
             "login": "login",
+            "phone_number": '',
         }
         helpers.create_contact(cls.clients[2], cls.transports[0], cls.cred_no_token)
 
@@ -262,6 +264,7 @@ class TokenBaseTestCase(TestCase):
             "first_name": "first_name",
             "last_name": "last_name",
             "login": "login",
+            "phone_number": '',
         }
         cls.contact_first = helpers.create_contact(cls.clients[0], cls.transport, cls.cred)[0]
 
@@ -281,7 +284,7 @@ class TokenNewTestCase(TokenBaseTestCase):
         response = processes.token_new(
             transport_name="telegram",
             server_name="kz",
-            credentials={"id": 1000, "some": "data"},
+            credentials={"id": 1000, "some": "data", "phone_number": ''},
             tariff=self.tariffs[0].as_dict(),
         )
         self.assertEqual(response['details'], 'new_token')
@@ -300,7 +303,7 @@ class TokenNewTestCase(TokenBaseTestCase):
             processes.token_new(
                 transport_name="telegram",
                 server_name=not_exist_vpn_server,
-                credentials={"id": 1000, "some": "data"},
+                credentials={"id": 1000, "some": "data", "phone_number": ''},
                 tariff=self.tariffs[0].as_dict(),
             )
         self.assertEqual(
@@ -314,7 +317,7 @@ class TokenNewTestCase(TokenBaseTestCase):
             processes.token_new(
                 transport_name="telegram",
                 server_name="kz",
-                credentials={"id": 1000, "some": "data"},
+                credentials={"id": 1000, "some": "data", "phone_number": ''},
                 tariff={'name': not_exist_tariff},
             )
         self.assertEqual(
@@ -326,7 +329,7 @@ class TokenNewTestCase(TokenBaseTestCase):
         contact = helpers.create_contact(
             client=helpers.create_client()[0],
             transport=self.transport,
-            credentials={"id": 909090, "some": "data"}
+            credentials={"id": 909090, "some": "data", "phone_number": ''}
         )[0]
         token_demo = helpers.create_vpn_token(
             client=contact.client,
@@ -341,11 +344,11 @@ class TokenNewTestCase(TokenBaseTestCase):
             processes.token_new(
                 transport_name="telegram",
                 server_name='kz',
-                credentials={"id": 909090, "some": "data"},
+                credentials={"id": 909090, "some": "data", "phone_number": ''},
                 tariff=self.tariffs[0].as_dict()
             )
         self.assertEqual(
-            f'User {contact.client!r} already have demo key',
+            f'User already have demo key',
             str(err.exception.message)
         )
 
@@ -359,7 +362,7 @@ class TokenRenewTestCase(TokenBaseTestCase):
         self.assertEqual(1, VPNToken.objects.all().count())
         response = processes.token_renew(
             transport_name="telegram",
-            credentials={"id": 1000, "some": "data"},
+            credentials={"id": 1000, "some": "data", "phone_number": ''},
             token_id=self.token.outline_id,
         )
 
@@ -381,7 +384,7 @@ class TokenRenewTestCase(TokenBaseTestCase):
         with self.assertRaises(exceptions.BelongToAnotherUser) as err:
             processes.token_renew(
                 transport_name="telegram",
-                credentials={"id": 1000, "some": "data"},
+                credentials={"id": 1000, "some": "data", "phone_number": ''},
                 token_id=959595,
             )
         self.assertEqual('Error token renew. Token belongs to another user.', str(err.exception.message))
