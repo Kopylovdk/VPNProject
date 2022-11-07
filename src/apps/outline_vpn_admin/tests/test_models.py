@@ -1,5 +1,7 @@
 from decimal import Decimal
+from django.contrib.auth.models import User
 from django.test import TestCase
+from rest_framework.authtoken.models import Token
 from apps.outline_vpn_admin.tests import helpers
 from apps.outline_vpn_admin.models import (
     Client,
@@ -180,3 +182,14 @@ class CurrencyTestCase(BaseTestCase):
         self.assertTrue(obj.is_main)
         self.assertIsNotNone(obj.created_at)
         self.assertIsNotNone(obj.updated_at)
+
+
+class UserTokensTestCase(TestCase):
+    def test_create_user_w_token(self):
+        exist = Token.objects.all().count()
+        User.objects.create(
+            username='test',
+            password='test',
+            email='test@test.ru',
+        ).save()
+        self.assertEqual(1, Token.objects.all().count() - exist)
