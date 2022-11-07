@@ -119,19 +119,18 @@ def token_new(
 ) -> dict:
     transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
     try:
-        # TODO test add
         tariff = Tariff.objects.get(name=tariff['name'])
     except Tariff.DoesNotExist as err:
-        log.error(f'Error token_demo {tariff=!r}, {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
+        log.error(f'Error token_new {tariff=!r}, {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
         raise exceptions.TariffDoesNotExist(message=f'Tariff {tariff["name"]!r} does not exist')
     if tariff.is_demo and contact.client.is_has_demo():
-        err = f'User {contact.client!r} already have demo key'
-        log.debug(f'Error token_demo {tariff=!r}, {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
+        err = f'User already have demo key'
+        log.debug(f'Error token_new {tariff=!r}, {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
         raise exceptions.DemoKeyExist(message=err)
     try:
         vpn_server = VPNServer.objects.get(name=server_name)
     except VPNServer.DoesNotExist as err:
-        log.debug(f'Error token_demo {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
+        log.debug(f'Error token_new {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
         raise exceptions.VPNServerDoesNotExist(message=f'VPN Server {server_name!r} does not exist')
     else:
         outline_client = get_outline_client(vpn_server.name)
@@ -153,7 +152,6 @@ def token_new(
             tariff=tariff,
             traffic_limit=tariff.traffic_limit,
             valid_until=valid_until,
-            is_demo=True,
         )
         if tariff.is_demo:
             new_token.is_demo = True
