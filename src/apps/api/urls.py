@@ -4,7 +4,7 @@ from rest_framework.authtoken import views
 app_name = 'api'
 
 urlpatterns = [
-    path('api-token-auth/', views.obtain_auth_token),
+    path('api-token-auth/', views.obtain_auth_token, name='get_auth_token'),
     # get
     path('tariff/', api_views.Tariff.as_view(), name='get_tariffs'),
     path('contact/<str:transport_name>/<int:messenger_id>', api_views.ContactCreateOrUpdate.as_view(), name='get_cont'),
