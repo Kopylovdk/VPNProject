@@ -19,6 +19,6 @@ jobs:
       - name: Code coverage
         run: pip install coverage
       - name: Run tests
-        run: coverage run python src/manage.py test
+        run: coverage run python3 src/manage.py test
       - name: Tests report
         run: coverage report
