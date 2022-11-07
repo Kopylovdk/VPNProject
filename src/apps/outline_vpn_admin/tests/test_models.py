@@ -8,6 +8,7 @@ from apps.outline_vpn_admin.models import (
     VPNToken,
     VPNServer,
     Tariff,
+    Currency,
 )
 
 
@@ -22,7 +23,7 @@ class BaseTestCase(TestCase):
 class ClientTestCase(BaseTestCase):
     def test_create_clients(self):
         self.assertEqual(self.cnt, len(helpers.create_client(self.cnt)))
-        self.assertEqual(self.cnt, len(Client.objects.all()))
+        self.assertEqual(self.cnt, Client.objects.all().count())
         client = Client.objects.first()
         self.assertIn(self.test_str_value, client.full_name)
         self.assertIsNotNone(client.created_at)
@@ -34,6 +35,9 @@ class ClientTestCase(BaseTestCase):
         token = helpers.create_vpn_token(
             client=client,
             vpn_server=helpers.create_vpn_server()[0],
+            tariff=helpers.create_tariff(
+                currency=helpers.create_currency()[0]
+            )[0]
         )[0]
         token.is_demo = True
         token.save()
@@ -45,6 +49,9 @@ class ClientTestCase(BaseTestCase):
         token = helpers.create_vpn_token(
             client=client,
             vpn_server=helpers.create_vpn_server()[0],
+            tariff=helpers.create_tariff(
+                currency=helpers.create_currency()[0]
+            )[0]
         )[0]
         token.outline_id = 999
         token.save()
@@ -53,9 +60,9 @@ class ClientTestCase(BaseTestCase):
 
 class TransportTestCase(BaseTestCase):
     def test_create_transports(self):
-        exist = len(Transport.objects.all())
+        exist = Transport.objects.all().count()
         self.assertEqual(self.cnt, len(helpers.create_transport(self.cnt)))
-        self.assertEqual(self.cnt, len(Transport.objects.all()) - exist)
+        self.assertEqual(self.cnt, Transport.objects.all().count() - exist)
         transport = Transport.objects.last()
         self.assertIn(self.test_str_value, transport.name)
         self.assertEqual(helpers.TRANSPORT_CREDENTIALS, transport.credentials)
@@ -91,10 +98,10 @@ class ContactTestCase(BaseTestCase):
                 cnt=self.cnt,
                 client=helpers.create_client()[0],
                 transport=helpers.create_transport()[0]
-                )
+            )
             )
         )
-        self.assertEqual(self.cnt, len(Contact.objects.all()))
+        self.assertEqual(self.cnt, Contact.objects.all().count())
         contact = Contact.objects.first()
         self.assertIsInstance(contact.client, Client)
         self.assertIsInstance(contact.transport, Transport)
@@ -111,10 +118,13 @@ class VPNTokenTestCase(BaseTestCase):
                 cnt=self.cnt,
                 vpn_server=helpers.create_vpn_server()[0],
                 client=helpers.create_client()[0],
-                )
+                tariff=helpers.create_tariff(
+                    currency=helpers.create_currency()[0]
+                )[0]
+            )
             )
         )
-        self.assertEqual(self.cnt, len(VPNToken.objects.all()))
+        self.assertEqual(self.cnt, VPNToken.objects.all().count())
         token = VPNToken.objects.first()
         self.assertIn(self.test_str_value, token.name)
         self.assertIn(self.test_str_value, token.vpn_key)
@@ -130,9 +140,9 @@ class VPNTokenTestCase(BaseTestCase):
 
 class VPNServerTestCase(BaseTestCase):
     def test_create_vpn_server(self):
-        exist = len(VPNServer.objects.all())
+        exist = VPNServer.objects.all().count()
         self.assertEqual(self.cnt, len(helpers.create_vpn_server(self.cnt)))
-        self.assertEqual(self.cnt, len(VPNServer.objects.all()) - exist)
+        self.assertEqual(self.cnt, VPNServer.objects.all().count() - exist)
         obj = VPNServer.objects.last()
         self.assertIn(self.test_str_value, obj.name)
         self.assertIn(self.test_str_value, obj.uri)
@@ -143,9 +153,16 @@ class VPNServerTestCase(BaseTestCase):
 
 class TarifficationTestCase(BaseTestCase):
     def test_create_tariffications(self):
-        exist = len(Tariff.objects.all())
-        self.assertEqual(self.cnt, len(helpers.create_tariff(self.cnt)))
-        self.assertEqual(self.cnt, len(Tariff.objects.all()) - exist)
+        exist = Tariff.objects.all().count()
+        self.assertEqual(
+            self.cnt,
+            len(helpers.create_tariff(
+                currency=helpers.create_currency()[0],
+                cnt=self.cnt
+            )
+            )
+        )
+        self.assertEqual(self.cnt, Tariff.objects.all().count() - exist)
         tariff = Tariff.objects.last()
         self.assertIn(self.test_str_value, tariff.name)
         self.assertTrue(tariff.is_active)
@@ -154,3 +171,12 @@ class TarifficationTestCase(BaseTestCase):
         self.assertIsNotNone(tariff.valid_until)
         self.assertIsNotNone(tariff.created_at)
         self.assertIsNotNone(tariff.updated_at)
+
+
+class CurrencyTestCase(BaseTestCase):
+    def test_create_currencies(self):
+        self.assertEqual(3, len(helpers.create_currency()))
+        obj = Currency.objects.first()
+        self.assertTrue(obj.is_main)
+        self.assertIsNotNone(obj.created_at)
+        self.assertIsNotNone(obj.updated_at)

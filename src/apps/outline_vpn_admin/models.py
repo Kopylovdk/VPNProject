@@ -123,7 +123,6 @@ class VPNServer(models.Model, DictRepresentationMixin):
         return self.name
 
 
-# TODO: tests add
 class Currency(models.Model, DictRepresentationMixin):
     class Meta:
         db_table = 'Currency'

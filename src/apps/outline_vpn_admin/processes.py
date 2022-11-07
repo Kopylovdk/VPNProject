@@ -89,7 +89,8 @@ def get_client_tokens(transport_name: str, messenger_id: int) -> dict:
 
     for token in client.vpntoken_set.filter(is_active=True):
         token_dict = token.as_dict(exclude=['id'])
-        token_dict['valid_until'] = token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+        if token_dict['valid_until']:
+            token_dict['valid_until'] = token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
         response["tokens"].append(token_dict)
 
     log.debug(f'get_client_tokens result- {response=!r}')
@@ -122,10 +123,10 @@ def token_new(
         tariff = Tariff.objects.get(name=tariff['name'])
     except Tariff.DoesNotExist as err:
         log.error(f'Error token_demo {tariff=!r}, {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
-        raise exceptions.TariffDoesNotExist(message=f'Tariff {tariff!r} does not exist')
+        raise exceptions.TariffDoesNotExist(message=f'Tariff {tariff["name"]!r} does not exist')
     if tariff.is_demo and contact.client.is_has_demo():
         err = f'User {contact.client!r} already have demo key'
-        log.debug(f'Error token_demo {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
+        log.debug(f'Error token_demo {tariff=!r}, {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
         raise exceptions.DemoKeyExist(message=err)
     try:
         vpn_server = VPNServer.objects.get(name=server_name)
@@ -140,6 +141,9 @@ def token_new(
         outline_client.add_data_limit(outline_key.key_id, tariff.traffic_limit)
 
         client = contact.client
+        valid_until = None
+        if tariff.prolong_period:
+            valid_until = datetime.datetime.now() + datetime.timedelta(days=tariff.prolong_period)
         new_token = VPNToken(
             client=client,
             server=vpn_server,
@@ -148,7 +152,7 @@ def token_new(
             name=outline_key_name,
             tariff=tariff,
             traffic_limit=tariff.traffic_limit,
-            valid_until=datetime.datetime.now() + datetime.timedelta(days=tariff.prolong_period),
+            valid_until=valid_until,
             is_demo=True,
         )
         if tariff.is_demo:
@@ -205,7 +209,8 @@ def token_renew(
     old_token.save()
     outline_client.delete_key(old_token.outline_id)
     new_token_dict = new_token.as_dict(exclude=['id'])
-    new_token_dict['valid_until'] = new_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+    if new_token_dict['valid_until']:
+        new_token_dict['valid_until'] = new_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
     response = {
         "details": "renew_token",
         "tokens": [new_token_dict],

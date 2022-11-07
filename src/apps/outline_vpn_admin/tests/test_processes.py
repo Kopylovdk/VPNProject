@@ -15,6 +15,7 @@ from apps.outline_vpn_admin.tests.mocks import (
     MockResponseCreateKey,
     MockResponseStatusCode204,
 )
+from vpnservice.settings import DATE_STRING_FORMAT
 
 
 class GetTransportContact(TestCase):
@@ -113,6 +114,7 @@ class CreateOrUpdateContactTestCase(TestCase):
                 "first_name": "first_name",
                 "last_name": "last_name",
                 "login": "login",
+                "phone_number": 1234567890,
             }
         }
 
@@ -160,6 +162,7 @@ class CreateOrUpdateContactTestCase(TestCase):
 
 
 class GetClientTokens(TestCase):
+    tariff = None
     cred_no_token = None
     token_1 = None
     token_2 = None
@@ -176,7 +179,7 @@ class GetClientTokens(TestCase):
         cls.transports = helpers.create_transport(2)
         cls.transports[0].name = 'telegram'
         cls.transports[0].save()
-
+        cls.tariff = helpers.create_tariff(currency=helpers.create_currency()[0])[0]
         cls.vpn_servers = helpers.create_vpn_server()
         cls.cred = {
             "id": 1000,
@@ -195,13 +198,13 @@ class GetClientTokens(TestCase):
         }
         helpers.create_contact(cls.clients[2], cls.transports[0], cls.cred_no_token)
 
-        cls.token_1 = helpers.create_vpn_token(cls.clients[0], cls.vpn_servers[0])[0]
+        cls.token_1 = helpers.create_vpn_token(cls.clients[0], cls.vpn_servers[0], cls.tariff)[0]
         cls.token_1.outline_id = 1
         cls.token_1.save()
-        cls.token_2 = helpers.create_vpn_token(cls.clients[0], cls.vpn_servers[0])[0]
+        cls.token_2 = helpers.create_vpn_token(cls.clients[0], cls.vpn_servers[0], cls.tariff)[0]
         cls.token_2.outline_id = 2
         cls.token_2.save()
-        cls.token_3 = helpers.create_vpn_token(cls.clients[1], cls.vpn_servers[0])[0]
+        cls.token_3 = helpers.create_vpn_token(cls.clients[1], cls.vpn_servers[0], cls.tariff)[0]
         cls.token_3.outline_id = 3
         cls.token_3.save()
 
@@ -234,6 +237,7 @@ class GetClientTokens(TestCase):
 
 class TokenBaseTestCase(TestCase):
     token = None
+    tariffs = None
     vpn_server = None
     contact_first = None
     cred = None
@@ -246,7 +250,10 @@ class TokenBaseTestCase(TestCase):
         cls.transport = helpers.create_transport()[0]
         cls.transport.name = 'telegram'
         cls.transport.save()
-
+        cls.tariffs = helpers.create_tariff(
+            currency=helpers.create_currency()[0],
+            cnt=3
+        )
         cls.vpn_server = helpers.create_vpn_server()[0]
         cls.vpn_server.name = 'kz'
         cls.vpn_server.save()
@@ -258,10 +265,13 @@ class TokenBaseTestCase(TestCase):
         }
         cls.contact_first = helpers.create_contact(cls.clients[0], cls.transport, cls.cred)[0]
 
-        cls.token = helpers.create_vpn_token(cls.clients[0], cls.vpn_server)[0]
+        cls.token = helpers.create_vpn_token(
+            client=cls.clients[0],
+            vpn_server=cls.vpn_server,
+            tariff=cls.tariffs[0]
+        )[0]
         cls.token.outline_id = 9000
         cls.token.save()
-        cls.tariffs = helpers.create_tariff(3)
 
 
 class TokenNewTestCase(TokenBaseTestCase):
@@ -278,7 +288,9 @@ class TokenNewTestCase(TokenBaseTestCase):
         self.assertEqual(response['tokens'][0]['outline_id'], 9999)
         new_token = VPNToken.objects.get(outline_id=9999)
         self.assertTrue(new_token.is_active)
-        self.assertEqual(response['tokens'][0], new_token.as_dict(exclude=['id']))
+        new_token_dict = new_token.as_dict(exclude=['id'])
+        new_token_dict['valid_until'] = new_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+        self.assertEqual(response['tokens'][0], new_token_dict)
         self.assertEqual(self.clients[0].as_dict(), response['user_info']['user'])
         self.assertEqual(self.contact_first.as_dict(), response['user_info']['contact'])
 
@@ -317,16 +329,18 @@ class TokenNewTestCase(TokenBaseTestCase):
             credentials={"id": 909090, "some": "data"}
         )[0]
         token_demo = helpers.create_vpn_token(
-            contact.client,
+            client=contact.client,
             vpn_server=self.vpn_server,
+            tariff=self.tariffs[0],
         )[0]
+        self.tariffs[0].is_demo = True
+        self.tariffs[0].save()
         token_demo.is_demo = True
         token_demo.save()
-        not_exist_vpn_server = "no_name"
         with self.assertRaises(exceptions.DemoKeyExist) as err:
             processes.token_new(
                 transport_name="telegram",
-                server_name=not_exist_vpn_server,
+                server_name='kz',
                 credentials={"id": 909090, "some": "data"},
                 tariff=self.tariffs[0].as_dict()
             )
@@ -358,7 +372,7 @@ class TokenRenewTestCase(TokenBaseTestCase):
         new_token = VPNToken.objects.get(outline_id=9999)
         self.assertTrue(new_token.is_active)
         self.assertFalse(self.token.is_active)
-        self.assertEqual(self.token.name, 'DELETED')
+        self.assertIn('Renewed.', self.token.name)
         self.assertEqual(response['tokens'][0], new_token.as_dict(exclude=['id']))
         self.assertEqual(self.clients[0].as_dict(), response['user_info']['user'])
         self.assertEqual(self.contact_first.as_dict(), response['user_info']['contact'])
@@ -378,7 +392,7 @@ class GetTariffTestCase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.tariffications = helpers.create_tariff(6)
+        cls.tariffications = helpers.create_tariff(currency=helpers.create_currency()[0], cnt=6)
         cls.tariffications[5].is_active = False
         cls.tariffications[5].save()
 
