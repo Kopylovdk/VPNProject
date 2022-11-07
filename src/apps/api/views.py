@@ -24,7 +24,6 @@ class BaseAPIView(views.APIView):
     renderer_classes = (BaseJSONRenderer,)
 
 
-# TODO: тесты
 class Tariff(BaseAPIView):
     def get(self, request):
         return Response(get_tariff(), status=status.HTTP_200_OK)
@@ -48,7 +47,7 @@ class ContactCreateOrUpdate(BaseAPIView):
             return Response({"details": str(err.message)}, status=status.HTTP_404_NOT_FOUND)
         else:
             log.debug(f'{response}')
-            if 'created' in response["details"]:
+            if 'Created' in response["details"]:
                 return Response(response, status=status.HTTP_201_CREATED)
             return Response(response, status=status.HTTP_200_OK)
 
