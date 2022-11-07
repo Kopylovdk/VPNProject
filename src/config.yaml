@@ -1,8 +1,7 @@
 django:
   debug: True
   secret_key:
-  demo_key_period: 7
-  demo_traffic_limit: 1073741824
+  date_string_format: '%d-%m-%Y'
 
 logging:
   disable_existing_loggers: true
@@ -37,10 +36,3 @@ db:
   name: postgres
   user: postgres
   password: postgres
-
-tg_bot:
-  token:
-
-outline_vpn_urls:
-  kz:
-
