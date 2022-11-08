@@ -357,7 +357,7 @@ class TokenRenewTestCase(TokenBaseTestCase):
     @patch("requests.delete", return_value=MockResponseStatusCode204())
     @patch("requests.put", return_value=MockResponseStatusCode204())
     @patch("requests.post", return_value=MockResponseCreateKey())
-    def test_token_renew(self, mocked_put, mocked_post, mocked_delete):
+    def test_token_renew_ok(self, mocked_put, mocked_post, mocked_delete):
         self.assertTrue(self.token.is_active)
         self.assertEqual(1, VPNToken.objects.all().count())
         response = processes.token_renew(
@@ -388,6 +388,9 @@ class TokenRenewTestCase(TokenBaseTestCase):
                 token_id=959595,
             )
         self.assertEqual('Error token renew. Token belongs to another user.', str(err.exception.message))
+
+    def test_token_renew_renew_demo_key_not_allowed(self):
+        pass
 
 
 class GetTariffTestCase(TestCase):

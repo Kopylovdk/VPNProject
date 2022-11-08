@@ -112,10 +112,10 @@ def get_client(transport_name: str, messenger_id: int) -> dict:
 
 
 def token_new(
-        transport_name: str,
-        server_name: str,
-        credentials: dict,
-        tariff: dict,
+    transport_name: str,
+    server_name: str,
+    credentials: dict,
+    tariff: dict,
 ) -> dict:
     transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
     try:
@@ -171,9 +171,9 @@ def token_new(
 
 
 def token_renew(
-        transport_name: str,
-        credentials: dict,
-        token_id: int
+    transport_name: str,
+    credentials: dict,
+    token_id: int
 ) -> dict:
     transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
     client = contact.client
