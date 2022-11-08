@@ -19,10 +19,10 @@ jobs:
         run: pip install -r requirements.txt
       - name: Install code coverage
         run: pip install coverage
-#      - name: Run tests
-#        env:
-#          SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
-#        run: python ./src/manage.py test
+      - name: Run tests
+        env:
+          SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
+        run: python3 ./src/manage.py test
       - name: Run coverage
         env:
           SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
