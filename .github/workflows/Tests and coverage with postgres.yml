@@ -27,6 +27,12 @@ jobs:
         architecture: 'x64'
     - name: Upgrade pip
       run: pip3 install --upgrade pip
+    - name: Install env
+      run: pip3 install --user virtualenv
+    - name: Create env
+      run: python3 -m venv env
+    - name: Active env
+      run: source env/bin/activate
     - name: Install requirements
       run: pip3 install -r requirements.txt
     - name: Install code coverage
