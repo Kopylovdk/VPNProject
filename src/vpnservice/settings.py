@@ -15,7 +15,7 @@ import yaml
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 
-from log import logging_config_update
+from logs.config.logging_config_update import logging_config_update
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -33,8 +33,11 @@ DEBUG = EXTERNAL_CFG['django']['debug']
 
 ALLOWED_HOSTS = ['http://127.0.0.1:8080', 'http://localhost:8080', 'http://localhost:8000', '*']
 
+with open(f'{BASE_DIR}/logs/config/log_config.yaml', 'r', encoding='utf8') as stream:
+    EXTERNAL_LOG_CFG = yaml.safe_load(stream)
+
 LOGGING = logging_config_update(
-    config=EXTERNAL_CFG['logging'],
+    config=EXTERNAL_LOG_CFG['logging'],
     log_path=BASE_DIR)
 
 DATE_STRING_FORMAT = EXTERNAL_CFG['django']['date_string_format']
