@@ -1,5 +1,5 @@
 /src/logs/*.log*
 .idea/*
-/src/vpnservice/.env
+/src/.env
 /bots/telegram_client_bot/configs/config_test.yaml
 /bots/telegram_admin_bot/configs/config_test.yaml
