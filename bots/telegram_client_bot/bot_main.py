@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 from process.config_loader import CONFIG
 from telebot import TeleBot
@@ -20,7 +21,7 @@ from process.keyboards import main_keyboard, register_keyboard
 
 
 log = logging.getLogger(__name__)
-bot = TeleBot(CONFIG['bot']['telegram_token'])
+bot = TeleBot(os.environ.get("TELEGRAM_TOKEN"))
 
 
 @bot.message_handler(commands=['start'])

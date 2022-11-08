@@ -1,6 +1,6 @@
 import requests
 import logging
-
+import os
 
 from requests import Response
 from telebot import TeleBot, types
@@ -17,13 +17,16 @@ from process.keyboards import (
 
 log = logging.getLogger(__name__)
 
-API_CREDS_USERNAME = CONFIG['bot']['api']['username']
-API_CREDS_PASSWORD = CONFIG['bot']['api']['password']
+API_CREDS_USERNAME = os.environ.get('USERNAME')
+API_CREDS_PASSWORD = os.environ.get('PASSWORD')
 API_URL = CONFIG['bot']['api']['url']
 API_URIS = CONFIG['bot']['api']['uris']
 BOT_NAME = CONFIG['bot']['name']
 TECH_ADMIN = CONFIG['bot']['tech_admin']
 MANAGERS = CONFIG['bot']['managers']
+
+
+
 
 
 def check_int(data: str) -> int or str:
@@ -50,6 +53,7 @@ def get_auth_api_headers(bot: TeleBot) -> dict:
         },
         allow_redirects=True,
     )
+    log.info(f'{API_CREDS_USERNAME=}, {API_CREDS_PASSWORD=}')
     if response.status_code == 200:
         log.info('get_auth_api_headers executed')
         return {'Authorization': f'Token  {response.json()["token"]}'}

@@ -1,11 +1,8 @@
 bot:
-  name: "telegram_client_bot"
-  telegram_token: "_____"
-  tech_admin: []
-  managers: []
+  name: "test_client_telegram_bot"
+  tech_admin: [480629416]
+  managers: [480629416, 290253477]
   api:
-    username: "telegram_client_bot"
-    password: "_____"
     url: "http://proxy:80/"
     uris: {
       "health": "health-check/",
