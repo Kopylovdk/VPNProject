@@ -75,7 +75,7 @@ jobs:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
           SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
-        run: python3 ./src/manage.py test
+        run: python ./src/manage.py test
       - name: Run coverage
         env:
           POSTGRES_HOST: localhost
