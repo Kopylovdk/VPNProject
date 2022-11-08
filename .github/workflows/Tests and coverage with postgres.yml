@@ -26,17 +26,17 @@ jobs:
         python-version: '3.11'
         architecture: 'x64'
     - name: Upgrade pip
-      run: pip install --upgrade pip
+      run: pip3 install --upgrade pip
     - name: Install requirements
-      run: pip install -r requirements.txt
+      run: pip3 install -r requirements.txt
     - name: Install code coverage
-      run: pip install coverage
+      run: pip3 install coverage
     - name: Run tests
       env:
         POSTGRES_HOST: localhost
         POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
         SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
-      run: python ./src/manage.py test
+      run: python3 ./src/manage.py test
     - name: Run coverage
       env:
         POSTGRES_HOST: localhost
