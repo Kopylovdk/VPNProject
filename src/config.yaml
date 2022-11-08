@@ -1,6 +1,5 @@
 django:
   debug: True
-  secret_key:
   date_string_format: '%d-%m-%Y'
 
 logging:
