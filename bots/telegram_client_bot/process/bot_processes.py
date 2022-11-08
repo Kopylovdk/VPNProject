@@ -26,9 +26,6 @@ TECH_ADMIN = CONFIG['bot']['tech_admin']
 MANAGERS = CONFIG['bot']['managers']
 
 
-
-
-
 def check_int(data: str) -> int or str:
     try:
         int(data)
@@ -247,7 +244,7 @@ def renew_token_step_2(message: Message, bot: TeleBot):
             to_send = {
                 'transport_name': BOT_NAME,
                 'credentials': message.from_user.to_dict(),
-                'outline_id': message.text
+                'outline_id': message.text,
             }
             response = requests.post(
                 f'{API_URL}{API_URIS["renew_exist_token"]}',
