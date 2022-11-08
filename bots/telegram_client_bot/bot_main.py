@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-from process.config_loader import CONFIG
 from telebot import TeleBot
 from telebot.types import Message
 from process.bot_processes import (

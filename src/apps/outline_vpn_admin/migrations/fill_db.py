@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
             credentials={"token": "1722461468:AAHi-8QjcE3nvKGrUVkFIFQzdSj1bfN_2Zc"}
         ).save()
 
-        test_admin_bot_name = 'test_admin_bot_name'
+        test_admin_bot_name = 'test_admin_telegram_bot'
         User.objects.create_user(
             username=test_admin_bot_name,
             password=test_admin_bot_name,
