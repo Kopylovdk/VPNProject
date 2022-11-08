@@ -17,7 +17,7 @@ jobs:
         run: pip install --upgrade pip
       - name: Install requirements
         run: pip install -r requirements.txt
-#      - name: Code coverage
+#      - name: Install code coverage
 #        run: pip install coverage
       - name: Run tests
         env:
