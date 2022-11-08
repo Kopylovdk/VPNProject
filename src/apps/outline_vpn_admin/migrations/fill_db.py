@@ -10,33 +10,28 @@ class Migration(migrations.Migration):
     ]
 
     def fill_default_db_data(*args, **kwargs):
-        test_client_bot_name = 'test_client_telegram_bot'
-        User.objects.create_user(
-            username=test_client_bot_name,
-            password=test_client_bot_name,
-            email=f"{test_client_bot_name}_email@test.ru"
-        ).save()
+        test_bots_name = [
+            'test_client_telegram_bot',
+            'test_admin_telegram_bot',
+        ]
+        test_bots_api = [
+            {"token": "1722461468:AAHi-8QjcE3nvKGrUVkFIFQzdSj1bfN_2Zc"},
+            {"token": "5768409931:AAFVnYUYpTAkAcwkqchjNB-r2f5oy-t3BL8"},
+        ]
 
-        Transport.objects.create(
-            name=test_client_bot_name,
-            uid_format='{id}',
-            full_name_format='{first_name} {last_name}',
-            credentials={"token": "1722461468:AAHi-8QjcE3nvKGrUVkFIFQzdSj1bfN_2Zc"}
-        ).save()
+        for test_bot_cnt in range(len(test_bots_name)):
+            User.objects.create_user(
+                username=test_bots_name[test_bot_cnt],
+                password=test_bots_name[test_bot_cnt],
+                email=f"{test_bots_name[test_bot_cnt]}_email@test.ru"
+            ).save()
 
-        test_admin_bot_name = 'test_admin_telegram_bot'
-        User.objects.create_user(
-            username=test_admin_bot_name,
-            password=test_admin_bot_name,
-            email=f"{test_admin_bot_name}_email@test.ru"
-        ).save()
-
-        Transport.objects.create(
-            name=test_admin_bot_name,
-            uid_format='{id}',
-            full_name_format='{first_name} {last_name}',
-            credentials={"token": "5701018902:AAEFtIgQZSyAde7FOXGtcq_VOq5df-ckxNs"}
-        ).save()
+            Transport.objects.create(
+                name=test_bots_name[test_bot_cnt],
+                uid_format='{id}',
+                full_name_format='{first_name} {last_name}',
+                credentials=test_bots_api[test_bot_cnt]
+            ).save()
 
         VPNServer.objects.create(
             name='test_vpn_server_in_russia',
