@@ -1,7 +1,52 @@
-# from telebot.types import ReplyKeyboardMarkup, KeyboardButton
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 # from apps.outline_vpn_admin.processes import get_all_admins
-#
-#
+
+
+def main_keyboard() -> ReplyKeyboardMarkup:
+    """Основная клавиатура"""
+    kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
+    to_add_btn = [
+        KeyboardButton(text='Регистрация', request_contact=True),
+        KeyboardButton(text='Доступные тарифы'),
+        KeyboardButton(text='Оформить подписку'),
+
+        KeyboardButton(text='Мои VPN ключи'),
+        KeyboardButton(text='Перевыпустить VPN ключ'),
+        KeyboardButton(text='Инструкция'),
+
+        KeyboardButton(text='Поддержка'),
+    ]
+    kb.add(*to_add_btn)
+    return kb
+
+
+def generate_action_keyboard(data: list = None) -> ReplyKeyboardMarkup:
+    """Клавиатура с генерируемыми кнопками по полученному списку"""
+    if not data:
+        data = ['No_data_1', 'No_data_2', 'No_data_3']
+
+    kb = ReplyKeyboardMarkup(row_width=3, resize_keyboard=True)
+    buttons = []
+    for text in data:
+        buttons.append(KeyboardButton(text=text))
+    kb.add(*buttons)
+    kb.add(KeyboardButton(text='В основное меню'))
+    return kb
+
+
+def back_to_main_menu_keyboard() -> ReplyKeyboardMarkup:
+    """Клавиатура возврата в основное меню"""
+    kb = ReplyKeyboardMarkup(row_width=3, resize_keyboard=True)
+    kb.add(KeyboardButton(text='В основное меню'))
+    return kb
+
+
+def register_keyboard() -> ReplyKeyboardMarkup:
+    kb = ReplyKeyboardMarkup(one_time_keyboard=True)
+    kb.add(KeyboardButton(text="Регистрация", request_contact=True))
+    return kb
+
+
 # def main_keyboard(tg_user_id: int) -> ReplyKeyboardMarkup:
 #     """
 #     Основная клавиатура
@@ -38,23 +83,23 @@
 #     )
 #     return kb
 #
-#
-def subscribe_keyboard() -> ReplyKeyboardMarkup:
-    """
-    Клавиатура вариантов подписки
-    Params:
-        subscribes: list
-    Returns:
-        ReplyKeyboardMarkup
-    Exceptions: None
-    """
-    subscribes = ['Демо', '3 месяца', '6 месяцев']
-    kb = ReplyKeyboardMarkup(row_width=3, resize_keyboard=True)
-    subscribes_buttons = []
-    for subscribe in subscribes:
-        subscribes_buttons.append(KeyboardButton(text=subscribe))
-    kb.add(*subscribes_buttons, KeyboardButton(text='В основное меню'))
-    return kb
+# #
+# def subscribe_keyboard() -> ReplyKeyboardMarkup:
+#     """
+#     Клавиатура вариантов подписки
+#     Params:
+#         subscribes: list
+#     Returns:
+#         ReplyKeyboardMarkup
+#     Exceptions: None
+#     """
+#     subscribes = ['Демо', '3 месяца', '6 месяцев']
+#     kb = ReplyKeyboardMarkup(row_width=3, resize_keyboard=True)
+#     subscribes_buttons = []
+#     for subscribe in subscribes:
+#         subscribes_buttons.append(KeyboardButton(text=subscribe))
+#     kb.add(*subscribes_buttons, KeyboardButton(text='В основное меню'))
+#     return kb
 
 #
 # def bot_message_keyboard() -> ReplyKeyboardMarkup:
