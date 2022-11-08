@@ -26,6 +26,6 @@ jobs:
       - name: Run coverage
         env:
           SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
-        run: coverage run --source=apps manage.py test --settings=vpnservice.settings
+        run: coverage run --source=apps src/manage.py test --settings=vpnservice.settings
       - name: Tests report
         run: coverage report
