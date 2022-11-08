@@ -17,15 +17,15 @@ jobs:
         run: pip install --upgrade pip
       - name: Install requirements
         run: pip install -r requirements.txt
-      - name: Code coverage
-        run: pip install coverage
+#      - name: Code coverage
+#        run: pip install coverage
       - name: Run tests
         env:
           SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
-        run: python /src/manage.py test
-      - name: Run coverage
-        env:
-          SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
-        run: coverage run /src/manage.py test
+        run: python ./src/manage.py test
+#      - name: Run coverage
+#        env:
+#          SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
+#        run: coverage run ./src/manage.py test
       - name: Tests report
         run: coverage report
