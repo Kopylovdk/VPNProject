@@ -2,6 +2,7 @@ version: '3.3'
 volumes:
   static: {}
 
+
 networks:
   backnet:
   frontnet:
@@ -44,6 +45,7 @@ services:
       - "8080:80"
     volumes:
       - static:/usr/src/static
+
     restart: always
     depends_on:
       - vpn_service
@@ -54,6 +56,27 @@ services:
   bot_tg_client:
     build: ./bots/telegram_client_bot
     restart: always
+    env_file: .env
+    environment:
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN_CLIENT}
+      - USERNAME=${USERNAME_CLIENT}
+      - PASSWORD=${PASSWORD_CLIENT}
+    command:
+      sh -c -m "./start_bot.sh"
+    depends_on:
+      - proxy
+    networks:
+      - frontnet
+      - backnet
+
+  bot_tg_admin:
+    build: ./bots/telegram_admin_bot
+    restart: always
+    env_file: .env
+    environment:
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN_ADMIN}
+      - USERNAME=${USERNAME_ADMIN}
+      - PASSWORD=${PASSWORD_ADMIN}
     command:
       sh -c -m "./start_bot.sh"
     depends_on:

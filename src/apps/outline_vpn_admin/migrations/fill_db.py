@@ -10,18 +10,32 @@ class Migration(migrations.Migration):
     ]
 
     def fill_default_db_data(*args, **kwargs):
-        test_bot_name = 'test_telegram_bot'
+        test_client_bot_name = 'test_client_telegram_bot'
         User.objects.create_user(
-            username=test_bot_name,
-            password=test_bot_name,
-            email="test_bot_admin_email@test.ru"
+            username=test_client_bot_name,
+            password=test_client_bot_name,
+            email=f"{test_client_bot_name}_email@test.ru"
         ).save()
 
         Transport.objects.create(
-            name=test_bot_name,
+            name=test_client_bot_name,
             uid_format='{id}',
             full_name_format='{first_name} {last_name}',
             credentials={"token": "1722461468:AAHi-8QjcE3nvKGrUVkFIFQzdSj1bfN_2Zc"}
+        ).save()
+
+        test_admin_bot_name = 'test_admin_bot_name'
+        User.objects.create_user(
+            username=test_admin_bot_name,
+            password=test_admin_bot_name,
+            email=f"{test_admin_bot_name}_email@test.ru"
+        ).save()
+
+        Transport.objects.create(
+            name=test_admin_bot_name,
+            uid_format='{id}',
+            full_name_format='{first_name} {last_name}',
+            credentials={"token": "5701018902:AAEFtIgQZSyAde7FOXGtcq_VOq5df-ckxNs"}
         ).save()
 
         VPNServer.objects.create(
