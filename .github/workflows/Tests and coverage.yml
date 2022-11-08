@@ -1,4 +1,4 @@
-name: Run tests on any Push event
+name: Tests and coverage
 on:
   push:
     tags:
@@ -8,17 +8,18 @@ jobs:
   run_tests:
     runs-on: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
           architecture: 'x64'
       - name: Install requirements
-        # Устанавливаем зависимости
         run: pip install -r requirements.txt
       - name: Code coverage
         run: pip install coverage
       - name: Run tests
+        env:
+          SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
         run: coverage run ./src/manage.py test
       - name: Tests report
         run: coverage report
