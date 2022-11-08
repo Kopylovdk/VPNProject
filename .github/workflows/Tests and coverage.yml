@@ -22,10 +22,10 @@ jobs:
       - name: Run tests
         env:
           SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
-        run: python3 ./src/manage.py test
+        run: python /src/manage.py test
       - name: Run coverage
         env:
           SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
-        run: coverage run ./src/manage.py test
+        run: coverage run /src/manage.py test
       - name: Tests report
         run: coverage report
