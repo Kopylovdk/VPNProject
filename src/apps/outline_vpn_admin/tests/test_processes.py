@@ -18,6 +18,8 @@ from apps.outline_vpn_admin.tests.mocks import (
 from vpnservice.settings import DATE_STRING_FORMAT
 
 
+# TODO: Доделать тесты, передалать все тесты в божеский вид
+
 class GetTransportContact(TestCase):
     def setUp(self) -> None:
         self.transport_name = 'test_test_test'
@@ -285,17 +287,23 @@ class TokenNewTestCase(TokenBaseTestCase):
             transport_name="telegram",
             server_name="kz",
             credentials={"id": 1000, "some": "data", "phone_number": ''},
-            tariff=self.tariffs[0].as_dict(),
+            tariff_name=self.tariffs[0].name,
         )
-        self.assertEqual(response['details'], 'new_token')
+        self.assertEqual(response['details'], 'new_token by client')
         self.assertEqual(response['tokens'][0]['outline_id'], 9999)
         new_token = VPNToken.objects.get(outline_id=9999)
         self.assertTrue(new_token.is_active)
-        new_token_dict = new_token.as_dict(exclude=['id'])
+        new_token_dict = new_token.as_dict()
         new_token_dict['valid_until'] = new_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
         self.assertEqual(response['tokens'][0], new_token_dict)
         self.assertEqual(self.clients[0].as_dict(), response['user_info']['user'])
         self.assertEqual(self.contact_first.as_dict(), response['user_info']['contact'])
+
+    def test_token_new_admin_ok(self):
+        pass
+
+    def test_token_new_admin_demo_not_allowed(self):
+        pass
 
     def test_token_new_vpn_server_does_not_exist(self):
         not_exist_vpn_server = "no_name"
@@ -304,7 +312,7 @@ class TokenNewTestCase(TokenBaseTestCase):
                 transport_name="telegram",
                 server_name=not_exist_vpn_server,
                 credentials={"id": 1000, "some": "data", "phone_number": ''},
-                tariff=self.tariffs[0].as_dict(),
+                tariff_name=self.tariffs[0].name,
             )
         self.assertEqual(
             f'VPN Server {not_exist_vpn_server!r} does not exist',
@@ -318,7 +326,7 @@ class TokenNewTestCase(TokenBaseTestCase):
                 transport_name="telegram",
                 server_name="kz",
                 credentials={"id": 1000, "some": "data", "phone_number": ''},
-                tariff={'name': not_exist_tariff},
+                tariff_name=not_exist_tariff,
             )
         self.assertEqual(
             f'Tariff {not_exist_tariff!r} does not exist',
@@ -345,7 +353,7 @@ class TokenNewTestCase(TokenBaseTestCase):
                 transport_name="telegram",
                 server_name='kz',
                 credentials={"id": 909090, "some": "data", "phone_number": ''},
-                tariff=self.tariffs[0].as_dict()
+                tariff_name=self.tariffs[0].name
             )
         self.assertEqual(
             f'User already have demo key',
@@ -369,16 +377,20 @@ class TokenRenewTestCase(TokenBaseTestCase):
         self.token.refresh_from_db()
 
         self.assertEqual(2, VPNToken.objects.all().count())
-        self.assertEqual(response['details'], 'renew_token')
+        self.assertEqual(response['details'], 'renew_token by client')
         self.assertEqual(response['tokens'][0]['outline_id'], 9999)
 
         new_token = VPNToken.objects.get(outline_id=9999)
         self.assertTrue(new_token.is_active)
         self.assertFalse(self.token.is_active)
-        self.assertIn('Renewed.', self.token.name)
-        self.assertEqual(response['tokens'][0], new_token.as_dict(exclude=['id']))
+        self.assertIn('Renewed by client', self.token.name)
+        self.assertEqual(response['tokens'][0], new_token.as_dict())
         self.assertEqual(self.clients[0].as_dict(), response['user_info']['user'])
         self.assertEqual(self.contact_first.as_dict(), response['user_info']['contact'])
+
+    def test_token_renew_admin_ok(self):
+        # TODO:
+        pass
 
     def test_token_renew_belong_to_another_user(self):
         with self.assertRaises(exceptions.BelongToAnotherUser) as err:
@@ -390,6 +402,7 @@ class TokenRenewTestCase(TokenBaseTestCase):
         self.assertEqual('Error token renew. Token belongs to another user.', str(err.exception.message))
 
     def test_token_renew_renew_demo_key_not_allowed(self):
+        # TODO:
         pass
 
 
@@ -408,14 +421,14 @@ class GetTariffTestCase(TestCase):
         self.assertIn("get_tariff", response["details"])
 
 
-class GetVPNServers(TestCase):
+class GetVPNServersTestCase(TestCase):
     def test_get_vpn_servers(self):
         helpers.create_vpn_server(5)
         response = processes.get_vpn_servers()
         self.assertEqual(len(response['vpn_servers']), VPNServer.objects.all().count())
 
 
-class GetClient(TokenBaseTestCase):
+class GetClientTestCase(TokenBaseTestCase):
     def test_get_client(self):
         response = processes.get_client(
             messenger_id=self.cred['id'],
@@ -425,3 +438,71 @@ class GetClient(TokenBaseTestCase):
         self.assertIn('user_info', response.keys())
         self.assertIn('user', response['user_info'].keys())
         self.assertIn('contact', response['user_info'].keys())
+
+
+class GetTransportsTestCase(TestCase):
+    def test_get_transports_ok(self):
+        response = processes.get_transports()
+        self.assertIn("get_bots", response['details'])
+        self.assertEqual(2, len(response['bots']))
+
+
+class GetTokenTestCase(TestCase):
+    def test_get_token_ok(self):
+        pass
+
+    def test_get_token_does_not_exist(self):
+        pass
+
+
+class GetTokenInfoTestCase(TestCase):
+    def test_get_token_info(self):
+        pass
+
+
+class AddTrafficLimitTestCase(TestCase):
+    def test_add_traffic_limit_ok(self):
+        pass
+
+    def test_add_traffic_limit_vpn_server_response_error(self):
+        pass
+
+
+class DelTrafficLimitTestCase(TestCase):
+    def test_del_traffic_limit_ok(self):
+        pass
+
+    def test_del_traffic_limit_vpn_server_response_error(self):
+        pass
+
+
+class DelOutlineVPNKeyTestCase(TestCase):
+    def test_del_outline_vpn_key_ok(self):
+        pass
+
+    def test_del_outline_vpn_key_vpn_server_response_error(self):
+        pass
+
+
+class TelegramMessageSenderTestCase(TestCase):
+    def test_telegram_message_sender_ok_personal(self):
+        pass
+
+    def test_telegram_message_sender_ok_all_users(self):
+        pass
+
+    def test_telegram_message_sender_transport_does_not_exist(self):
+        pass
+
+    def test_telegram_message_sender_personal_transport_message_send_error(self):
+        pass
+
+
+class TokenAdminNewTestCase(TestCase):
+    def test_token_admin_new_ok(self):
+        pass
+
+
+class TokenAdminRenewTestCase(TestCase):
+    def test_token_admin_renew_ok(self):
+        pass

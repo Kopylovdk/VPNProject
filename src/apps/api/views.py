@@ -81,9 +81,12 @@ class VPNTokenNew(BaseAPIView):
                 transport_name=data['transport_name'],
                 credentials=data['credentials'],
                 server_name=data['server_name'],
-                tariff=data['tariff']
+                tariff_name=data['tariff_name'],
             )
-        except exceptions.DemoKeyExist as err:
+        except (
+            exceptions.DemoKeyExist,
+            exceptions.DemoKeyNotAllowed,
+        ) as err:
             msg = str(err.message)
             log.error(msg)
             return Response({"details": msg}, status=status.HTTP_403_FORBIDDEN)
@@ -121,6 +124,7 @@ class VPNTokenRenew(BaseAPIView):
         except (
             exceptions.BelongToAnotherUser,
             exceptions.DemoKeyExist,
+            exceptions.DemoKeyNotAllowed
         ) as err:
             msg = str(err.message)
             log.error(msg)
@@ -250,11 +254,3 @@ class TelegramMessageSend(BaseAPIView):
         else:
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_200_OK)
-
-
-class VPNTokenAdminRenew(BaseAPIView):
-    pass
-
-
-class VPNTokenAdminNew(BaseAPIView):
-    pass

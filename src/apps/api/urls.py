@@ -16,9 +16,7 @@ urlpatterns = [
     path('api-token-auth/', views.obtain_auth_token, name='get_auth_token'),
     path('contact/', api_views.ContactCreateOrUpdate.as_view(), name='creat_or_update_contact'),
     path('token/renew/', api_views.VPNTokenRenew.as_view(), name='renew_exist_token'),
-    path('token/admin/renew/', api_views.VPNTokenAdminRenew.as_view(), name='admin_renew_exist_token'),
     path('token/new/', api_views.VPNTokenNew.as_view(), name='create_new_token'),
-    path('token/admin/new/', api_views.VPNTokenAdminNew.as_view(), name='admin_create_new_token'),
     path('message/telegram/send/', api_views.TelegramMessageSend.as_view(), name='telegram_message_send'),
 
     # patch

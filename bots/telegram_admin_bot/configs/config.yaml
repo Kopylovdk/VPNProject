@@ -17,8 +17,8 @@ bot:
       "get_contact": "api/contact/{transport_name}/{messenger_id}",
 
       "creat_or_update_contact": "api/contact/",
-      "admin_renew_exist_token": "api/token/admin/renew/",
-      "admin_create_new_token": "api/token/admin/new/",
+      "renew_exist_token": "api/token/renew/",
+      "create_new_token": "api/token/new/",
       "update_token": "api/token/",
       "delete_token": "api/token/delete/",
       "telegram_message_send": "api/message/telegram/send/",

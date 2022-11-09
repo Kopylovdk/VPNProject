@@ -119,21 +119,41 @@ def get_client(
 
 
 def token_new(
-    transport_name: str,
     server_name: str,
-    credentials: dict,
-    tariff: dict,
+    tariff_name: str,
+    transport_name: str = None,
+    credentials: dict = None,
 ) -> dict:
-    transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
     try:
-        tariff = Tariff.objects.get(name=tariff['name'])
+        tariff = Tariff.objects.get(name=tariff_name)
     except Tariff.DoesNotExist as err:
-        log.error(f'Error token_new {tariff=!r}, {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
-        raise exceptions.TariffDoesNotExist(message=f'Tariff {tariff["name"]!r} does not exist')
-    if tariff.is_demo and contact.client.is_has_demo():
-        err = f'User already have demo key'
-        log.debug(f'Error token_new {tariff=!r}, {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
-        raise exceptions.DemoKeyExist(message=err)
+        log.error(
+            f'Error token_new {tariff_name=!r}, {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
+        raise exceptions.TariffDoesNotExist(message=f'Tariff {tariff_name!r} does not exist')
+    response = {}
+    if transport_name and credentials:
+        transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
+        if tariff.is_demo and contact.client.is_has_demo():
+            err = f'User already have demo key'
+            log.debug(f'Error token_new {tariff=!r}, {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
+            raise exceptions.DemoKeyExist(message=err)
+        client = contact.client
+        response["details"] = 'new_token by client'
+        response["user_info"] = {
+            "user": client.as_dict(),
+            "contact": contact.as_dict(),
+        }
+    else:
+        if tariff.is_demo:
+            err = f'Cannot create demo key from admin'
+            log.debug(f'Error token_new {tariff=!r}, {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
+            raise exceptions.DemoKeyNotAllowed(message=err)
+        client = Client()
+        response["details"] = 'new_token by admin'
+        response["user_info"] = {
+            "user": client.as_dict(),
+            "contact": '',
+        }
     try:
         vpn_server = VPNServer.objects.get(name=server_name)
     except VPNServer.DoesNotExist as err:
@@ -142,11 +162,10 @@ def token_new(
     else:
         outline_client = get_outline_client(vpn_server.name)
         outline_key = outline_client.create_key()
-        outline_key_name = f"OUTLINE_VPN_id:{outline_key.key_id!r}, uid: {contact.uid!r}"
+        outline_key_name = f"OUTLINE_VPN_id:{outline_key.key_id!r}, client_id: {client.id!r}"
         outline_client.rename_key(outline_key.key_id, outline_key_name)
         outline_client.add_data_limit(outline_key.key_id, tariff.traffic_limit)
 
-        client = contact.client
         valid_until = None
         if tariff.prolong_period:
             valid_until = datetime.datetime.now() + datetime.timedelta(days=tariff.prolong_period)
@@ -166,39 +185,47 @@ def token_new(
         new_token.save()
         token_dict = new_token.as_dict()
         token_dict['valid_until'] = token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
-        response = {
-            "details": "new_token",
-            "tokens": [token_dict],
-            "user_info": {
-                "user": client.as_dict(),
-                "contact": contact.as_dict(),
-            },
-        }
+        response["tokens"] = [token_dict]
         return response
 
 
 def token_renew(
-    transport_name: str,
-    credentials: dict,
     token_id: int,
+    transport_name: str = None,
+    credentials: dict = None,
 ) -> dict:
-    transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
-    client = contact.client
-    log.debug(f'{transport=!r}, {contact=!r}, {client=!r}')
-    if not client.is_token_owner(token_id):
-        err = f'Error token renew. Token belongs to another user.'
-        log.error(err)
-        raise exceptions.BelongToAnotherUser(message=err)
-
-    old_token = client.vpntoken_set.get(id=token_id)
+    response = {}
+    if transport_name and credentials:
+        transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
+        client = contact.client
+        log.debug(f'{transport=!r}, {contact=!r}, {client=!r}')
+        if not client.is_token_owner(token_id):
+            err = f'Error token renew. Token belongs to another user.'
+            log.error(err)
+            raise exceptions.BelongToAnotherUser(message=err)
+        old_token = client.vpntoken_set.get(id=token_id)
+        old_token_name_prefix = 'Renewed by client'
+        response["user_info"] = {
+            "user": client.as_dict(),
+            "contact": contact.as_dict(),
+        }
+        response["details"] = "renew_token by client"
+    else:
+        old_token = get_token(token_id)
+        old_token_name_prefix = 'Renewed by admin'
+        response["user_info"] = {
+            "user": old_token.client.as_dict(),
+            "contact": '',
+        }
+        response["details"] = "renew_token by admin"
     if old_token.is_demo:
         err = f'Error token renew. Cannot renew demo key.'
         log.error(err)
-        raise exceptions.DemoKeyExist(message=err)
+        raise exceptions.DemoKeyNotAllowed(message=err)
 
     outline_client = get_outline_client(old_token.server.name)
     new_outline_key = outline_client.create_key()
-    outline_key_name = f"OUTLINE_VPN_id:{new_outline_key.key_id!r}, uid: {contact.uid!r}"
+    outline_key_name = f"OUTLINE_VPN_id:{new_outline_key.key_id!r}, client_id: {old_token.client.id!r}"
     outline_client.rename_key(new_outline_key.key_id, outline_key_name)
 
     new_token = copy(old_token)
@@ -210,20 +237,13 @@ def token_renew(
     new_token.save()
 
     old_token.is_active = False
-    old_token.name = f'Renewed. {old_token.name}'
+    old_token.name = f'{old_token_name_prefix} {old_token.name}'
     old_token.save()
     outline_client.delete_key(old_token.outline_id)
     new_token_dict = new_token.as_dict()
     if new_token_dict['valid_until']:
         new_token_dict['valid_until'] = new_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
-    response = {
-        "details": "renew_token",
-        "tokens": [new_token_dict],
-        "user_info": {
-            "user": client.as_dict(),
-            "contact": contact.as_dict(),
-        },
-    }
+    response["tokens"] = [new_token_dict]
 
     return response
 
@@ -254,8 +274,6 @@ def get_vpn_servers() -> dict:
         response["vpn_servers"].append(add_to_dict)
     return response
 
-# TODO: Tests needed
-
 
 def get_transports() -> dict:
     response = {
@@ -267,19 +285,19 @@ def get_transports() -> dict:
     return response
 
 
-def get_token_(token_id: int) -> VPNToken:
+def get_token(token_id: int) -> VPNToken:
     try:
-        return VPNToken.objects.select_related('server').get(id=token_id)
+        return VPNToken.objects.select_related('server', 'client').get(id=token_id)
     except VPNToken.DoesNotExist as err:
         raise exceptions.VPNTokenDoesNotExist(message=f'VPN Token id={token_id!r} does not exist, {err=!r}')
 
 
 def get_token_info(token_id: int) -> dict:
-    return {'details': 'get_token_info', 'tokens': [get_token_(token_id).as_dict()]}
+    return {'details': 'get_token_info', 'tokens': [get_token(token_id).as_dict()]}
 
 
 def add_traffic_limit(token_id: int, limit_in_bytes: int = 1024) -> dict:
-    vpn_token = get_token_(token_id)
+    vpn_token = get_token(token_id)
     outline_client = get_outline_client(vpn_token.server.name)
     response = outline_client.add_data_limit(vpn_token.outline_id, limit_in_bytes)
     if not response:
@@ -292,7 +310,7 @@ def add_traffic_limit(token_id: int, limit_in_bytes: int = 1024) -> dict:
 
 
 def del_traffic_limit(token_id: int) -> dict:
-    vpn_token = get_token_(token_id)
+    vpn_token = get_token(token_id)
     outline_client = get_outline_client(vpn_token.server.name)
     response = outline_client.delete_data_limit(vpn_token.outline_id)
     if not response:
@@ -305,7 +323,7 @@ def del_traffic_limit(token_id: int) -> dict:
 
 
 def del_outline_vpn_key(token_id: int) -> dict:
-    vpn_token = get_token_(token_id)
+    vpn_token = get_token(token_id)
     outline_client = get_outline_client(vpn_token.server.name)
     response = outline_client.delete_key(vpn_token.outline_id)
     if not response:

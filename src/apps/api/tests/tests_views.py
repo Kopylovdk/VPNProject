@@ -220,6 +220,14 @@ class VPNTokenNewTest(BaseAPITestCase):
         self.assertEqual(1, len(data_dict.get(self.data_key_name)))
         self.assertEqual(3, VPNToken.objects.all().count())
 
+    def test_vpn_token_demo_key_not_allowed(self):
+        # TODO:
+        pass
+
+    def test_vpn_token_key_admin_ok(self):
+        # TODO:
+        pass
+
     def test_vpn_token_demo_exist(self):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         send_data = {

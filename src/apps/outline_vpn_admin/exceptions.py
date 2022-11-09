@@ -26,6 +26,10 @@ class DemoKeyExist(ProcessException):
     """User already have demo key"""
 
 
+class DemoKeyNotAllowed(ProcessException):
+    """Can not create demo key"""
+
+
 class BelongToAnotherUser(ProcessException):
     """VPN Token belongs to another user"""
 
