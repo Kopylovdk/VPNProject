@@ -88,7 +88,7 @@ def get_client_tokens(transport_name: str, messenger_id: int) -> dict:
     }
 
     for token in client.vpntoken_set.filter(is_active=True):
-        token_dict = token.as_dict(exclude=['id'])
+        token_dict = token.as_dict()
         if token_dict['valid_until']:
             token_dict['valid_until'] = token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
         response["tokens"].append(token_dict)
@@ -157,7 +157,7 @@ def token_new(
             new_token.is_demo = True
 
         new_token.save()
-        token_dict = new_token.as_dict(exclude=['id'])
+        token_dict = new_token.as_dict()
         token_dict['valid_until'] = token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
         response = {
             "details": "new_token",
@@ -183,7 +183,7 @@ def token_renew(
         log.error(err)
         raise exceptions.BelongToAnotherUser(message=err)
 
-    old_token = client.vpntoken_set.get(outline_id=token_id)
+    old_token = client.vpntoken_set.get(id=token_id)
     if old_token.is_demo:
         err = f'Error token renew. Cannot renew demo key.'
         log.error(err)
@@ -206,7 +206,7 @@ def token_renew(
     old_token.name = f'Renewed. {old_token.name}'
     old_token.save()
     outline_client.delete_key(old_token.outline_id)
-    new_token_dict = new_token.as_dict(exclude=['id'])
+    new_token_dict = new_token.as_dict()
     if new_token_dict['valid_until']:
         new_token_dict['valid_until'] = new_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
     response = {

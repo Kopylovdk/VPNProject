@@ -363,7 +363,7 @@ class TokenRenewTestCase(TokenBaseTestCase):
         response = processes.token_renew(
             transport_name="telegram",
             credentials={"id": 1000, "some": "data", "phone_number": ''},
-            token_id=self.token.outline_id,
+            token_id=self.token.id,
         )
 
         self.token.refresh_from_db()

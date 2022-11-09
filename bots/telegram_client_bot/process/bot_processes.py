@@ -203,7 +203,7 @@ def get_vpn_keys(bot: TeleBot, user: User) -> None:
         tokens = response.json()['tokens']
         msg = []
         for token_dict in tokens:
-            msg.append(f"Token ID - {token_dict['outline_id']}, срок действия - {token_dict['valid_until']}, "
+            msg.append(f"Token ID - {token_dict['id']}, срок действия - {token_dict['valid_until']}, "
                        f"демо ключ - {'Да' if token_dict['is_demo'] else 'Нет'}\n"
                        f"Ключ - {token_dict['vpn_key']}\n")
         bot.send_message(user_id, ''.join(msg) if msg else 'Ключи отсутствуют', reply_markup=main_keyboard())
@@ -244,7 +244,7 @@ def renew_token_step_2(message: Message, bot: TeleBot):
             to_send = {
                 'transport_name': BOT_NAME,
                 'credentials': message.from_user.to_dict(),
-                'outline_id': message.text,
+                'token_id': message.text,
             }
             response = requests.post(
                 f'{API_URL}{API_URIS["renew_exist_token"]}',
@@ -259,7 +259,7 @@ def renew_token_step_2(message: Message, bot: TeleBot):
                 bot.send_message(
                     user_id,
                     f'Новый ключ создан.\n'
-                    f'ID ключа - {token["outline_id"]}\n'
+                    f'ID ключа - {token["id"]}\n'
                     f'Срок действия, до- {token["valid_until"]}\n'
                     f'Ключ - {token["vpn_key"]}',
                     reply_markup=main_keyboard()
@@ -370,7 +370,7 @@ def subscribes_step_3(
                 token = response.json()['tokens'][0]
                 bot.send_message(
                     user_id,
-                    f'ID ключа - {token["outline_id"]}\nСрок действия до - {token["valid_until"]}'
+                    f'ID ключа - {token["id"]}\nСрок действия до - {token["valid_until"]}'
                     f'\nЛимит траффика - {token["traffic_limit"] / 1024 / 1024} мб\nКлюч - {token["vpn_key"]}',
                     reply_markup=main_keyboard(),
                 )

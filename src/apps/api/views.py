@@ -98,7 +98,7 @@ class VPNTokenRenew(BaseAPIView):
             response = token_renew(
                 transport_name=data['transport_name'],
                 credentials=data['credentials'],
-                token_id=data['outline_id'],
+                token_id=data['token_id'],
             )
         except (
             exceptions.TransportDoesNotExist,

@@ -32,8 +32,8 @@ class Client(models.Model, DictRepresentationMixin):
     def is_has_demo(self):
         return self.vpntoken_set.filter(is_demo=True).exists()
 
-    def is_token_owner(self, outline_id: int):
-        return self.vpntoken_set.filter(outline_id=outline_id).exists()
+    def is_token_owner(self, token_id: int):
+        return self.vpntoken_set.filter(id=token_id).exists()
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id!r} name={self.full_name!r}>"

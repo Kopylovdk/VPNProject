@@ -337,7 +337,7 @@ class VPNTokenReNewTest(BaseAPITestCase):
         send_data = {
             'transport_name': self.transport_name,
             'credentials': self.credentials,
-            'outline_id': self.vpn_token.outline_id,
+            'token_id': self.vpn_token.id,
         }
         response = self.client.post(self.url, data=send_data, format='json')
         data_dict = response.json()
@@ -362,7 +362,7 @@ class VPNTokenReNewTest(BaseAPITestCase):
         send_data = {
             'transport_name': 'not_exist',
             'credentials': self.credentials,
-            'outline_id': self.vpn_token.outline_id,
+            'token_id': self.vpn_token.id,
         }
         response = self.client.post(self.url, data=send_data, format='json')
         self.assertEqual(self.status_NOT_FOUND, response.status_code)
@@ -375,7 +375,7 @@ class VPNTokenReNewTest(BaseAPITestCase):
         send_data = {
             'transport_name': self.transport_name,
             'credentials': self.credentials,
-            'outline_id': self.vpn_token.outline_id,
+            'token_id': self.vpn_token.id,
         }
         response = self.client.post(self.url, data=send_data, format='json')
         self.assertEqual(self.status_NOT_FOUND, response.status_code)
@@ -387,7 +387,7 @@ class VPNTokenReNewTest(BaseAPITestCase):
         send_data = {
             'transport_name': self.transport_name,
             'credentials': self.credentials,
-            'outline_id': 923139,
+            'token_id': 923139,
         }
         response = self.client.post(self.url, data=send_data, format='json')
         data_dict = response.json()
@@ -399,7 +399,7 @@ class VPNTokenReNewTest(BaseAPITestCase):
         send_data = {
             'transport_name': self.transport_name,
             'credentials': self.credentials,
-            'outline_id': self.vpn_token_demo.outline_id,
+            'token_id': self.vpn_token_demo.id,
         }
         response = self.client.post(self.url, data=send_data, format='json')
         data_dict = response.json()
