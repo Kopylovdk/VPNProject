@@ -1,18 +1,26 @@
 bot:
   name: "test_admin_telegram_bot"
-  tech_admin: [480629416]
-  managers: [480629416, 290253477]
+  admins: [480629416]
+  managers: []
   api:
     url: "http://proxy:80/"
     uris: {
       "health": "health-check/",
       "get_auth_token": "api/api-token-auth/",
+
       "get_tariffs": "api/tariff/",
-      "get_contact": "api/contact/{transport_name}/{messenger_id}",
-      "get_client_tokens": "api/token/{transport_name}/{messenger_id}",
-      "creat_or_update_contact": "api/contact/",
-      "renew_exist_token": "api/token/renew/",
-      "create_demo_token": "api/token/demo/",
-      "create_new_token": "api/token/new/",
       "get_vpn_servers": "api/vpn-servers/",
+      "get_transports": "api/transports/",
+
+      "get_client_tokens": "api/token/{transport_name}/{messenger_id}",
+      "get_token_info": "",
+      "get_contact": "api/contact/{transport_name}/{messenger_id}",
+
+      "creat_or_update_contact": "api/contact/",
+      "admin_renew_exist_token": "api/token/admin/renew/",
+      "admin_create_new_token": "api/token/admin/new/",
+      "update_token": "api/token/",
+      "delete_token": "api/token/delete/",
+      "telegram_message_send": "api/message/telegram/send/",
+
       }
