@@ -338,7 +338,7 @@ def subscribes_step_3(
         message: Message,
         bot: TeleBot,
         selected_tariff_dict: dict,
-        available_vpn_servers_dicts: list,
+        available_vpn_servers_dicts: dict,
         available_vpn_servers_names: list,
 ):
     user_answer = message.text
@@ -356,7 +356,7 @@ def subscribes_step_3(
                 'transport_name': BOT_NAME,
                 'credentials': message.from_user.to_dict(),
                 'server_name': selected_vpn_server_dict['name'],
-                'tariff': selected_tariff_dict,
+                'tariff_name': selected_tariff_dict['name'],
             }
             response = requests.post(
                 f'{API_URL}{API_URIS["create_new_token"]}',
