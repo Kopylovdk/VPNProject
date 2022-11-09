@@ -28,3 +28,15 @@ class DemoKeyExist(ProcessException):
 
 class BelongToAnotherUser(ProcessException):
     """VPN Token belongs to another user"""
+
+
+class VPNServerResponseError(ProcessException):
+    """Error in response from Outline client"""
+
+
+class VPNTokenDoesNotExist(ProcessException):
+    """VPN Token does not exist"""
+
+
+class TransportMessageSendError(ProcessException):
+    """Send message with transport error"""

@@ -1,5 +1,6 @@
 import datetime
 import logging
+import requests
 from copy import copy
 from apps.outline_vpn_admin import exceptions
 from apps.outline_vpn_admin.models import (
@@ -43,7 +44,10 @@ def get_transport_contact_by_(
     return transport, contact
 
 
-def create_or_update_contact(transport_name: str, credentials: dict) -> dict:
+def create_or_update_contact(
+    transport_name: str,
+    credentials: dict,
+) -> dict:
     response = {}
     try:
         transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
@@ -97,7 +101,10 @@ def get_client_tokens(transport_name: str, messenger_id: int) -> dict:
     return response
 
 
-def get_client(transport_name: str, messenger_id: int) -> dict:
+def get_client(
+    transport_name: str,
+    messenger_id: int,
+) -> dict:
     transport, contact = get_transport_contact_by_(transport_name=transport_name, messenger_id=messenger_id)
     log.debug(f'get_client start - {transport=!r}, {contact=!r}')
     response = {
@@ -173,7 +180,7 @@ def token_new(
 def token_renew(
     transport_name: str,
     credentials: dict,
-    token_id: int
+    token_id: int,
 ) -> dict:
     transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
     client = contact.client
@@ -224,7 +231,7 @@ def token_renew(
 def get_tariff() -> dict:
     response = {
         "details": "get_tariff",
-        "tariffs": []
+        "tariffs": [],
     }
     for tariff in Tariff.objects.select_related('currency').filter(is_active=True):
         currency_dict = tariff.currency.as_dict(exclude=['is_active', 'id'])
@@ -247,47 +254,115 @@ def get_vpn_servers() -> dict:
         response["vpn_servers"].append(add_to_dict)
     return response
 
+# TODO: Tests needed
 
-# TODO: Переделать под новые реалии
+
+def get_transports() -> dict:
+    response = {
+        "details": "get_bots",
+        "bots": [],
+    }
+    for transport in Transport.objects.all():
+        response["bots"].append(transport.as_dict(exclude=['credentials']))
+    return response
 
 
-# def add_traffic_limit(vpn_server_name: str, obj: OutlineVPNKeys, limit_in_bytes: int = 1024) -> bool:
+def get_token_(token_id: int) -> VPNToken:
+    try:
+        return VPNToken.objects.select_related('server').get(id=token_id)
+    except VPNToken.DoesNotExist as err:
+        raise exceptions.VPNTokenDoesNotExist(message=f'VPN Token id={token_id!r} does not exist, {err=!r}')
 
-#     outline_client = get_outline_client(vpn_server_name)
-#     response = outline_client.add_data_limit(obj.outline_key_id, limit_in_bytes)
-#     if not response:
-#         return response
-#     obj.outline_key_traffic_limit = limit_in_bytes
-#     obj.save()
-#     return response
-#
-#
-# def del_traffic_limit(vpn_server_name: str, obj: OutlineVPNKeys) -> bool:
 
-#     outline_client = get_outline_client(vpn_server_name)
-#     response = outline_client.delete_data_limit(obj.outline_key_id)
-#     if not response:
-#         return response
-#     obj.outline_key_traffic_limit = None
-#     obj.save()
-#     return response
-#
-#
-# def del_outline_vpn_key(vpn_server_name: str, obj: OutlineVPNKeys) -> bool:
-#     outline_client = get_outline_client(vpn_server_name)
-#     response = outline_client.delete_key(obj.outline_key_id)
-#     if not response:
-#         return response
-#     obj.delete()
-#
-#     return response
-#
-#
-# def change_outline_vpn_key_name(vpn_server_name: str, obj: OutlineVPNKeys, name: str) -> bool:
-#     outline_client = get_outline_client(vpn_server_name)
-#     response = outline_client.rename_key(obj.outline_key_id, name)
-#     if not response:
-#         return response
-#     obj.outline_key_name = name
-#     obj.save()
-#     return response
+def get_token_info(token_id: int) -> dict:
+    return {'details': 'get_token_info', 'tokens': [get_token_(token_id).as_dict()]}
+
+
+def add_traffic_limit(token_id: int, limit_in_bytes: int = 1024) -> dict:
+    vpn_token = get_token_(token_id)
+    outline_client = get_outline_client(vpn_token.server.name)
+    response = outline_client.add_data_limit(vpn_token.outline_id, limit_in_bytes)
+    if not response:
+        msg = 'Outline client error occurred due traffic limit add'
+        log.error(msg)
+        raise exceptions.VPNServerResponseError(message=msg)
+    vpn_token.traffic_limit = limit_in_bytes
+    vpn_token.save()
+    return {'details': 'Traffic limit updated', 'tokens': [vpn_token.as_dict()]}
+
+
+def del_traffic_limit(token_id: int) -> dict:
+    vpn_token = get_token_(token_id)
+    outline_client = get_outline_client(vpn_token.server.name)
+    response = outline_client.delete_data_limit(vpn_token.outline_id)
+    if not response:
+        msg = 'Outline client error occurred due traffic limit delete'
+        log.error(msg)
+        raise exceptions.VPNServerResponseError(message=msg)
+    vpn_token.traffic_limit = None
+    vpn_token.save()
+    return {'details': 'Traffic limit removed', 'tokens': [vpn_token.as_dict()]}
+
+
+def del_outline_vpn_key(token_id: int) -> dict:
+    vpn_token = get_token_(token_id)
+    outline_client = get_outline_client(vpn_token.server.name)
+    response = outline_client.delete_key(vpn_token.outline_id)
+    if not response:
+        msg = 'Outline client error occurred due key delete'
+        log.error(msg)
+        raise exceptions.VPNServerResponseError(message=msg)
+    vpn_token.is_active = False
+    vpn_token.name = f'Deleted {vpn_token.name}'
+    vpn_token.save()
+
+    return {'details': 'VPN Token deleted', 'tokens': [vpn_token.as_dict()]}
+
+
+def telegram_message_sender(
+    transport_name: str,
+    text: str,
+    messenger_id: int = None,
+) -> dict:
+    try:
+        transport = Transport.objects.get(name=transport_name)
+    except Transport.DoesNotExist as err:
+        log.error(f'{transport_name=!r}, {err=!r}')
+        raise exceptions.TransportDoesNotExist(message=f'Bot {transport_name!r} does not exist')
+
+    from telebot import TeleBot
+    bot_creds = transport.credentials
+    bot = TeleBot(bot_creds['token'])
+    response = {
+        'details': str,
+        'info': {
+            'error': int,
+            'success': int,
+        }
+    }
+    if messenger_id:
+        response['details'] = 'Personal message send'
+        try:
+            bot.send_message(messenger_id, text)
+        except requests.RequestException as err:
+            msg = f'{transport_name=!r}, {err=!r}'
+            log.error(msg)
+            response['info']['error'] += 1
+            raise exceptions.TransportMessageSendError(message=msg)
+        else:
+            response['info']['success'] += 1
+    else:
+        contacts_to_send = Contact.objects.select_related('transport').filter(transport=transport)
+        response['details'] = 'All bot users message send'
+        for contact in contacts_to_send:
+            id_to_send = contact.uid.split('@')[1]
+            try:
+                bot.send_message(id_to_send, text)
+            except requests.RequestException as err:
+                msg = f'{transport_name=!r}, {contact!r}, {err=!r}'
+                log.error(msg)
+                response['info']['error'] += 1
+                continue
+            else:
+                response['info']['success'] += 1
+    return response
