@@ -171,13 +171,13 @@ def transfer_token_data_ids_to_names(bot: TeleBot, token_dict: dict) -> dict:
     return token_dict
 
 
-def select_action_with_token_step_1(bot: TeleBot, message: Message):
+def select_action_with_token_step_1(message: Message, bot: TeleBot):
     user_id = message.from_user.id
     bot.send_message(user_id, 'Введите ID VPN ключа для дальнейшей работы.', reply_markup=back_to_main_menu_keyboard())
     bot.register_next_step_handler(message, select_action_with_token_step_2, bot)
 
 
-def select_action_with_token_step_2(bot: TeleBot, message: Message):
+def select_action_with_token_step_2(message: Message, bot: TeleBot):
     user_id = message.from_user.id
     user_answer = message.text
     if 'В основное меню' in user_answer:
@@ -194,8 +194,13 @@ def select_action_with_token_step_2(bot: TeleBot, message: Message):
             if status_code == 200:
                 token_dict = response.json()['tokens'][0]
                 token_dict = transfer_token_data_ids_to_names(bot, token_dict)
-                bot.send_message(user_id, 'Выберите действие', reply_markup=token_actions_keyboard(token_dict))
+                bot.send_message(
+                    user_id,
+                    'Выберите действие',
+                    reply_markup=token_actions_keyboard(token_dict)
+                )
                 bot.register_next_step_handler(message, select_action_with_token_step_3, bot, token_dict)
+
             elif status_code == 404:
                 bot.send_message(
                     user_id,
@@ -203,27 +208,35 @@ def select_action_with_token_step_2(bot: TeleBot, message: Message):
                     reply_markup=back_to_main_menu_keyboard()
                 )
                 bot.register_next_step_handler(message, select_action_with_token_step_2, bot)
+
         else:
             bot.send_message(user_id, 'Вы ввели не число, повторите ввод', reply_markup=back_to_main_menu_keyboard())
             bot.register_next_step_handler(message, select_action_with_token_step_2, bot)
 
 
-def select_action_with_token_step_3(bot: TeleBot, message: Message, token_dict: dict):
+def select_action_with_token_step_3(message: Message, bot: TeleBot, token_dict: dict):
     user_id = message.from_user.id
     user_answer = message.text
     if 'В основное меню' in user_answer:
         bot.send_message(user_id, 'Возврат в основное меню', reply_markup=main_keyboard())
     elif 'Информация о ключе' in user_answer:
+        traffic_limit = "Отсутствует"
+        if token_dict["traffic_limit"]:
+            traffic_limit = token_dict["traffic_limit"] / 1024 / 1024
+        valid_until = "Отсутствует"
+        if token_dict["valid_until"]:
+            valid_until = token_dict["valid_until"]
         bot.send_message(
             user_id,
             f'Данные по выбранному ключу:\n'
             f'ID: {token_dict["id"]}\n'
+            f'Имя ключа: {token_dict["name"]}\n'
             f'Server: {token_dict["server"]}\n'
             f'Тариф: {token_dict["tariff"]}\n'
             f'Outline_id: {token_dict["outline_id"]}\n'
             f'ID предыдущей записи: {token_dict["previous_vpn_token_id"]}\n'
-            f'Срок действия: {token_dict["valid_until"]}\n'
-            f'Лимит трафика, мб: {token_dict["traffic_limit"] / 1024 / 1024}\n'
+            f'Срок действия: {valid_until}\n'
+            f'Лимит трафика, мб: {traffic_limit}\n'
             f'Активность: {"Активен" if token_dict["is_active"] else "Неактивен"}\n'
             f'Демо ключ: {"Да" if token_dict["is_demo"] else "Нет"}\n'
             f'Ключ доступа = {token_dict["vpn_key"]}\n',
@@ -238,7 +251,7 @@ def select_action_with_token_step_3(bot: TeleBot, message: Message, token_dict: 
     elif 'Изменить срок действия' in user_answer:
         bot.send_message(
             user_id,
-            'Введите НОВЫЙ срок действия в днях.\n'
+            'Введите НОВЫЙ срок действия в днях.\n При вводе 0 срок действия будет убран'
             'ВНИМАНИЕ!! Новый срок действия будет с сегодняшнего дня, а не прибавлен к текущему',
             reply_markup=back_keyboard()
         )
@@ -253,7 +266,7 @@ def select_action_with_token_step_3(bot: TeleBot, message: Message, token_dict: 
         bot.send_message(user_id, 'Вы действительно хотите удалить ключ?', reply_markup=yes_no_keyboard())
         bot.register_next_step_handler(message, token_delete_step_1, bot, token_dict)
     elif 'Выбрать другой VPN ключ' in user_answer:
-        select_action_with_token_step_1(bot, message)
+        select_action_with_token_step_1(message, bot)
     else:
         bot.send_message(
             user_id,
@@ -273,10 +286,10 @@ def select_action_response_handler(response: Response, bot: TeleBot, token_dict:
         new_token_dict['tariff'] = token_dict['tariff']
         bot.send_message(user_id, data['details'], reply_markup=token_actions_keyboard(new_token_dict))
         bot.register_next_step_handler(message, select_action_with_token_step_3, bot, new_token_dict)
-    elif status_code in [404, 403, 503]:
+    elif status_code != 500:
         bot.send_message(
             user_id,
-            f'Ошибка {response.json()["details"]!r}',
+            f'Ошибка {response!r}, {response.json()!r}, {response.json()["details"]!r}',
             reply_markup=token_actions_keyboard(token_dict)
         )
         bot.register_next_step_handler(message, select_action_with_token_step_3, bot, token_dict)
@@ -288,7 +301,7 @@ def select_action_response_handler(response: Response, bot: TeleBot, token_dict:
         )
 
 
-def token_renew_step_1(bot: TeleBot, token_dict: dict, message: Message):
+def token_renew_step_1(message: Message, bot: TeleBot, token_dict: dict):
     user_id = message.from_user.id
     user_answer = message.text
     if user_answer in ['Нет']:
@@ -296,12 +309,12 @@ def token_renew_step_1(bot: TeleBot, token_dict: dict, message: Message):
         bot.register_next_step_handler(message, select_action_with_token_step_3, bot, token_dict)
     elif 'Да' in user_answer:
         to_send = {
-            'token_id': token_dict['id']
+            'token_id': token_dict['id'],
         }
-        response = requests.delete(
+        response = requests.post(
             f'{API_URL}{API_URIS["renew_exist_token"]}',
             headers=get_auth_api_headers(bot=bot),
-            data=to_send,
+            json=to_send,
             allow_redirects=True,
         )
         select_action_response_handler(response, bot, token_dict, message)
@@ -315,13 +328,13 @@ def token_traffic_limit_delete(bot: TeleBot, token_dict: dict, message: Message)
     response = requests.patch(
         f'{API_URL}{API_URIS["update_token"]}',
         headers=get_auth_api_headers(bot=bot),
-        data=to_send,
+        json=to_send,
         allow_redirects=True,
     )
     select_action_response_handler(response, bot, token_dict, message)
 
 
-def token_traffic_limit_update_step_1(bot: TeleBot, message: Message, token_dict: dict):
+def token_traffic_limit_update_step_1(message: Message, bot: TeleBot, token_dict: dict):
     user_id = message.from_user.id
     user_answer = message.text
     if user_answer in ['Назад']:
@@ -331,12 +344,12 @@ def token_traffic_limit_update_step_1(bot: TeleBot, message: Message, token_dict
         if check_int(user_answer):
             to_send = {
                 "token_id": token_dict['id'],
-                "limit_in_bytes": user_answer * 1024 * 1024,
+                "traffic_limit": str(user_answer),
             }
             response = requests.patch(
                 f'{API_URL}{API_URIS["update_token"]}',
                 headers=get_auth_api_headers(bot=bot),
-                data=to_send,
+                json=to_send,
                 allow_redirects=True,
             )
             select_action_response_handler(response, bot, token_dict, message)
@@ -345,7 +358,7 @@ def token_traffic_limit_update_step_1(bot: TeleBot, message: Message, token_dict
             bot.register_next_step_handler(message, token_traffic_limit_update_step_1, bot, token_dict)
 
 
-def token_valid_until_update_step_1(bot: TeleBot, message: Message, token_dict: dict):
+def token_valid_until_update_step_1(message: Message, bot: TeleBot, token_dict: dict):
     user_id = message.from_user.id
     user_answer = message.text
     if user_answer in ['Назад']:
@@ -355,12 +368,12 @@ def token_valid_until_update_step_1(bot: TeleBot, message: Message, token_dict: 
         if check_int(user_answer):
             to_send = {
                 "token_id": token_dict['id'],
-                "valid_until": user_answer,
+                "valid_until": str(user_answer),
             }
             response = requests.patch(
                 f'{API_URL}{API_URIS["update_token"]}',
                 headers=get_auth_api_headers(bot=bot),
-                data=to_send,
+                json=to_send,
                 allow_redirects=True,
             )
             select_action_response_handler(response, bot, token_dict, message)
@@ -369,7 +382,7 @@ def token_valid_until_update_step_1(bot: TeleBot, message: Message, token_dict: 
             bot.register_next_step_handler(message, token_valid_until_update_step_1, bot, token_dict)
 
 
-def token_delete_step_1(bot: TeleBot, message: Message, token_dict: dict):
+def token_delete_step_1(message: Message, bot: TeleBot, token_dict: dict):
     user_id = message.from_user.id
     user_answer = message.text
     if user_answer in ['Нет']:
@@ -380,7 +393,7 @@ def token_delete_step_1(bot: TeleBot, message: Message, token_dict: dict):
         response = requests.delete(
             f'{API_URL}{API_URIS["delete_token"]}',
             headers=get_auth_api_headers(bot=bot),
-            data=to_send,
+            json=to_send,
             allow_redirects=True,
         )
         select_action_response_handler(response, bot, token_dict, message)
@@ -389,7 +402,7 @@ def token_delete_step_1(bot: TeleBot, message: Message, token_dict: dict):
         bot.register_next_step_handler(message, token_delete_step_1, bot, token_dict)
 
 
-def select_action_with_user_step_1(bot: TeleBot, message: Message):
+def select_action_with_user_step_1(message: Message, bot: TeleBot):
     transports = get_transports(bot=bot)
     list_for_kb = []
     for item in transports:
@@ -403,7 +416,7 @@ def select_action_with_user_step_1(bot: TeleBot, message: Message):
     bot.register_next_step_handler(message, select_action_with_user_step_2, bot, list_for_kb)
 
 
-def select_action_with_user_step_2(bot: TeleBot, message: Message, list_for_kb: list):
+def select_action_with_user_step_2(message: Message, bot: TeleBot, list_for_kb: list):
     user_id = message.from_user.id
     user_answer = message.text
     if 'В основное меню' in user_answer:
@@ -425,10 +438,12 @@ def select_action_with_user_step_2(bot: TeleBot, message: Message, list_for_kb: 
         bot.register_next_step_handler(message, select_action_with_user_step_2, bot, list_for_kb)
 
 
-def select_action_with_user_step_3(bot: TeleBot, message: Message, to_send: dict):
+def select_action_with_user_step_3(message: Message, bot: TeleBot, to_send: dict):
     user_id = message.from_user.id
     user_answer = message.text
-    if check_int(user_answer):
+    if 'В основное меню' in user_answer:
+        bot.send_message(user_id, 'Возврат в основное меню', reply_markup=main_keyboard())
+    elif check_int(user_answer):
         to_send['messenger_id'] = user_answer
 
         response = requests.get(
@@ -439,14 +454,21 @@ def select_action_with_user_step_3(bot: TeleBot, message: Message, to_send: dict
         status_code = response.status_code
         if status_code == 200:
             user_info = response.json()['user_info']
-            text = f'Выбранный пользователь:\n' \
-                   f'{user_info}'
-            bot.send_message(user_id, text, reply_markup=client_actions_keyboard())
-            bot.register_next_step_handler(message, select_action_with_user_step_4, bot, to_send, user_info)
-        elif status_code == 404:
             bot.send_message(
                 user_id,
-                f'Ошибка {response.json()["details"]!r}',
+                f'Данные по выбранному ключу:\n'
+                f'Клиент: {user_info["user"]["full_name"]}\n'
+                f'Бот для связи: {to_send["transport_name"]}\n'
+                f'TG ID: {user_info["contact"]["credentials"]["id"]}\n'
+                f'uid: {user_info["contact"]["uid"]}\n'
+                f'Телефон: {user_info["contact"]["phone_number"]}\n',
+                reply_markup=client_actions_keyboard()
+            )
+            bot.register_next_step_handler(message, select_action_with_user_step_4, bot, to_send, user_info)
+        elif status_code != 500:
+            bot.send_message(
+                user_id,
+                f'Ошибка {response!r}, {response.json()!r}, {response.json()["details"]!r}',
                 reply_markup=main_keyboard()
             )
         else:
@@ -460,7 +482,7 @@ def select_action_with_user_step_3(bot: TeleBot, message: Message, to_send: dict
         bot.register_next_step_handler(message, select_action_with_user_step_3, bot, to_send)
 
 
-def select_action_with_user_step_4(bot: TeleBot, message: Message, to_send: dict, user_info: dict):
+def select_action_with_user_step_4(message: Message, bot: TeleBot, to_send: dict, user_info: dict):
     user_id = message.from_user.id
     user_answer = message.text
     if 'В основное меню' in user_answer:
@@ -471,22 +493,22 @@ def select_action_with_user_step_4(bot: TeleBot, message: Message, to_send: dict
             f'Данные по выбранному ключу:\n'
             f'Клиент: {user_info["user"]["full_name"]}\n'
             f'Бот для связи: {to_send["transport_name"]}\n'
-            f'TG ID: {user_info["contact"]["credentials"]["id"]}'
+            f'TG ID: {user_info["contact"]["credentials"]["id"]}\n'
             f'uid: {user_info["contact"]["uid"]}\n'
             f'Телефон: {user_info["contact"]["phone_number"]}\n',
             reply_markup=client_actions_keyboard(),
         )
         bot.register_next_step_handler(message, select_action_with_user_step_4, bot, to_send, user_info)
     elif 'Список ВСЕХ ключей пользователя' in user_answer:
-        get_vpn_keys_step_1(bot, message, to_send, user_info)
+        get_vpn_keys_step_1(message, bot, to_send, user_info)
     elif 'Сменить пользователя и/или бота' in user_answer:
-        select_action_with_user_step_1(bot, message)
+        select_action_with_user_step_1(message, bot)
     else:
         bot.send_message(user_id, 'Такой команды не существует, повторите выбор', reply_markup=client_actions_keyboard())
         bot.register_next_step_handler(message, select_action_with_user_step_4, bot, to_send, user_info)
 
 
-def get_vpn_keys_step_1(bot: TeleBot, message: Message, to_send: dict, user_info: dict):
+def get_vpn_keys_step_1(message: Message, bot: TeleBot, to_send: dict, user_info: dict):
     user_id = message.from_user.id
     response = requests.get(
         f'{API_URL}{API_URIS["get_client_tokens"].format(**to_send)}',
@@ -494,7 +516,7 @@ def get_vpn_keys_step_1(bot: TeleBot, message: Message, to_send: dict, user_info
         allow_redirects=True,
     )
     status_code = response.status_code
-    if status_code in [200]:
+    if status_code == 200:
         tokens = response.json()['tokens']
         msg = []
         for token_dict in tokens:
@@ -503,10 +525,10 @@ def get_vpn_keys_step_1(bot: TeleBot, message: Message, to_send: dict, user_info
                        f"Ключ - {token_dict['vpn_key']}\n")
         bot.send_message(user_id, ''.join(msg) if msg else 'Ключи отсутствуют', reply_markup=client_actions_keyboard())
         bot.register_next_step_handler(message, select_action_with_user_step_4, bot, to_send, user_info)
-    elif status_code in [404]:
+    elif status_code != 500:
         bot.send_message(
             user_id,
-            f'Ошибка {response.json()["details"]!r}',
+            f'Ошибка {response!r}, {response.json()!r}, {response.json()["details"]!r}',
             reply_markup=client_actions_keyboard(),
         )
         bot.register_next_step_handler(message, select_action_with_user_step_4, bot,  to_send, user_info)
@@ -518,7 +540,7 @@ def get_vpn_keys_step_1(bot: TeleBot, message: Message, to_send: dict, user_info
         )
 
 
-def new_token_step_1(bot: TeleBot, message: Message):
+def new_token_step_1(message: Message, bot: TeleBot):
     servers = get_vpn_servers(bot=bot)
     list_for_kb = []
     for server in servers:
@@ -527,7 +549,7 @@ def new_token_step_1(bot: TeleBot, message: Message):
     bot.register_next_step_handler(message, new_token_step_2, bot, servers, list_for_kb)
 
 
-def new_token_step_2(bot: TeleBot, message: Message, servers: list[dict], list_for_kb: list):
+def new_token_step_2(message: Message, bot: TeleBot, servers: list[dict], list_for_kb: list):
     user_id = message.from_user.id
     user_answer = message.text
     if 'В основное меню' in user_answer:
@@ -555,7 +577,7 @@ def new_token_step_2(bot: TeleBot, message: Message, servers: list[dict], list_f
         bot.register_next_step_handler(message, new_token_step_2, bot, list_for_kb)
 
 
-def new_token_step_3(bot: TeleBot, message: Message, list_for_kb: list, to_send: dict):
+def new_token_step_3(message: Message, bot: TeleBot, list_for_kb: list, to_send: dict):
     user_id = message.from_user.id
     user_answer = message.text
     if 'В основное меню' in user_answer:
@@ -577,13 +599,13 @@ def new_token_step_3(bot: TeleBot, message: Message, list_for_kb: list, to_send:
                    f'Новый ключ:\n' \
                    f'id: {data["tokens"][0]["id"]}\n' \
                    f'Срок действия: {data["tokens"][0]["valid_until"]}\n' \
-                   f'Ключ: {data["tokens"][0]["key"]}'
+                   f'Ключ: {data["tokens"][0]["vpn_key"]}'
             bot.send_message(user_id, text, reply_markup=main_keyboard())
 
-        elif status_code in [404, 403]:
+        elif status_code != 500:
             bot.send_message(
                 user_id,
-                f'Ошибка {response.json()["details"]!r}',
+                f'Ошибка {response!r}, {response.json()!r}, {response.json()["details"]!r}',
                 reply_markup=main_keyboard(),
             )
         else:
@@ -601,7 +623,7 @@ def new_token_step_3(bot: TeleBot, message: Message, list_for_kb: list, to_send:
         bot.register_next_step_handler(message, new_token_step_3, bot, list_for_kb, to_send)
 
 
-def select_message_send_type_step_1(bot: TeleBot, message: Message):
+def select_message_send_type_step_1(message: Message, bot: TeleBot):
     transports = get_transports(bot=bot)
     list_for_kb = []
     for item in transports:
@@ -615,7 +637,7 @@ def select_message_send_type_step_1(bot: TeleBot, message: Message):
     bot.register_next_step_handler(message, select_message_send_type_step_2, bot, list_for_kb)
 
 
-def select_message_send_type_step_2(bot: TeleBot, message: Message, list_for_kb: list):
+def select_message_send_type_step_2(message: Message, bot: TeleBot, list_for_kb: list):
     user_id = message.from_user.id
     user_answer = message.text
     if 'В основное меню' in user_answer:
@@ -624,7 +646,7 @@ def select_message_send_type_step_2(bot: TeleBot, message: Message, list_for_kb:
         to_send = {
             'transport_name': user_answer,
             'text': str,
-            'messenger_id': int,
+            'messenger_id': None,
         }
         bot.send_message(user_id, 'Введите текст сообщения', reply_markup=back_to_main_menu_keyboard())
         bot.register_next_step_handler(message, select_message_send_type_step_3, bot, to_send)
@@ -638,7 +660,7 @@ def select_message_send_type_step_2(bot: TeleBot, message: Message, list_for_kb:
         bot.register_next_step_handler(message, select_message_send_type_step_2, bot, list_for_kb)
 
 
-def select_message_send_type_step_3(bot: TeleBot, message: Message, to_send: dict):
+def select_message_send_type_step_3(message: Message, bot: TeleBot, to_send: dict):
     user_id = message.from_user.id
     user_answer = message.text
     if 'В основное меню' in user_answer:
@@ -653,7 +675,7 @@ def select_message_send_type_step_3(bot: TeleBot, message: Message, to_send: dic
         bot.register_next_step_handler(message, select_message_send_type_step_4, bot, to_send)
 
 
-def select_message_send_type_step_4(bot: TeleBot, message: Message, to_send: dict):
+def select_message_send_type_step_4(message: Message, bot: TeleBot, to_send: dict):
     user_id = message.from_user.id
     user_answer = message.text
     if 'Нет' in user_answer:
@@ -661,7 +683,7 @@ def select_message_send_type_step_4(bot: TeleBot, message: Message, to_send: dic
         bot.register_next_step_handler(message, select_message_send_type_step_3, to_send)
     elif 'Да' in user_answer:
         bot.send_message(message.chat.id, 'Выберите вариант отправки сообщения', reply_markup=message_keyboard())
-        bot.register_next_step_handler(message, select_message_send_type_step_5, bot)
+        bot.register_next_step_handler(message, select_message_send_type_step_5, bot, to_send)
     else:
         bot.send_message(
             user_id,
@@ -681,12 +703,13 @@ def message_response_handler(response: Response, bot: TeleBot, message: Message)
             f'{data["details"]}\n'
             f'Статистика:\n'
             f'Успешно отправлено: {data["info"]["success"]}\n'
-            f'Ошибка отправки: {data["info"]["error"]}'
+            f'Ошибка отправки: {data["info"]["error"]}',
+            reply_markup=main_keyboard(),
         )
-    elif status_code in [404, 503]:
+    elif status_code != 500:
         bot.send_message(
             user_id,
-            f'Ошибка {response.json()["details"]!r}',
+            f'Ошибка {response!r}, {response.json()!r}, {response.json()["details"]!r} возврат в основное меню',
             reply_markup=main_keyboard(),
         )
     else:
@@ -697,7 +720,7 @@ def message_response_handler(response: Response, bot: TeleBot, message: Message)
         )
 
 
-def select_message_send_type_step_5(bot: TeleBot, message: Message, to_send: dict):
+def select_message_send_type_step_5(message: Message, bot: TeleBot, to_send: dict):
     user_id = message.from_user.id
     user_answer = message.text
     if 'В основное меню' in user_answer:
@@ -724,14 +747,17 @@ def select_message_send_type_step_5(bot: TeleBot, message: Message, to_send: dic
         bot.register_next_step_handler(message, select_message_send_type_step_5, bot, to_send)
 
 
-def select_message_send_type_step_6(bot: TeleBot, message: Message, to_send: dict):
+def select_message_send_type_step_6(message: Message, bot: TeleBot, to_send: dict):
     user_id = message.from_user.id
     user_answer = message.text
-    if check_int(user_answer):
+    if 'В основное меню' in user_answer:
+        bot.send_message(user_id, 'Возврат в основное меню', reply_markup=main_keyboard())
+    elif check_int(user_answer):
         to_send['messenger_id'] = user_answer
-        response = requests.get(
-            f'{API_URL}{API_URIS["get_contact"].format(**to_send)}',
+        response = requests.post(
+            f'{API_URL}{API_URIS["telegram_message_send"]}',
             headers=get_auth_api_headers(bot=bot),
+            json=to_send,
             allow_redirects=True,
         )
         message_response_handler(response, bot, message)

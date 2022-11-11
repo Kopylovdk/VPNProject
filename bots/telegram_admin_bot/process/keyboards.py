@@ -6,12 +6,10 @@ def main_keyboard() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
     to_add_btn = [
         KeyboardButton(text='Новый ключ'),
-            # KeyboardButton(text='Доступные тарифы'),
-            # KeyboardButton(text='Доступные сервера'),
         KeyboardButton(text='Действия с пользователем'),
         KeyboardButton(text='Действия с VPN ключом'),
         KeyboardButton(text='Отправка сообщений'),
-            # KeyboardButton(text='Доступные боты'),
+        KeyboardButton(text="Регистрация", request_contact=True),
         KeyboardButton(text='Инструкция'),
     ]
 
@@ -102,23 +100,3 @@ def message_keyboard() -> ReplyKeyboardMarkup:
         KeyboardButton(text='В основное меню'),
     )
     return kb
-#
-
-#
-#
-# def one_time_keyboard_send_edit() -> ReplyKeyboardMarkup:
-#     """
-#     Вспомогательная клавиатура (клавиатура отправки сообщений)
-#     Params: None
-#     Returns:
-#         ReplyKeyboardMarkup
-#     Exceptions: None
-#     """
-#     kb = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-#     kb.add(
-#         KeyboardButton(text='Отправить'),
-#         KeyboardButton(text='Редактировать'),
-#         KeyboardButton(text='Назад'),
-#     )
-#     return kb
-

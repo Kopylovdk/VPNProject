@@ -75,7 +75,7 @@ class Migration(migrations.Migration):
             name='Transport',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=254, verbose_name='Название бота', editable=False)),
+                ('name', models.CharField(max_length=254, verbose_name='Название бота')),
                 ('uid_format', models.CharField(help_text='Наименование уникального идентификатора в credentials. {поле_уникального_идентификатора}', max_length=254, verbose_name='Формат уникального идентификатора бота')),
                 ('full_name_format', models.CharField(default='', help_text='Наименование полей в credentials для формирования имени клиента. {Поле_1} {Поле_2} и т.д.', max_length=254, verbose_name='Формат имени клиента')),
                 ('credentials', models.JSONField(verbose_name='Реквизиты бота')),

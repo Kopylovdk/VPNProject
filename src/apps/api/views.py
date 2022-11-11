@@ -52,7 +52,7 @@ class ContactCreateOrUpdate(BaseAPIView):
         except exceptions.TransportDoesNotExist as err:
             msg = str(err.message)
             log.error(msg)
-            return Response({"details": msg}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
             log.debug(f'{response}')
             if 'Created' in response["details"]:
@@ -68,7 +68,7 @@ class ContactCreateOrUpdate(BaseAPIView):
         ) as err:
             msg = str(err.message)
             log.error(msg)
-            return Response({"details": msg}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_200_OK)
@@ -77,10 +77,11 @@ class ContactCreateOrUpdate(BaseAPIView):
 class VPNTokenNew(BaseAPIView):
     def post(self, request):
         data = request.data
+        data_keys = data.keys()
         try:
             response = token_new(
-                transport_name=data['transport_name'] if 'transport_name' in data.keys else None,
-                credentials=data['credentials'] if 'credentials' in data.keys else None,
+                transport_name=data['transport_name'] if 'transport_name' in data_keys else None,
+                credentials=data['credentials'] if 'credentials' in data_keys else None,
                 server_name=data['server_name'],
                 tariff_name=data['tariff_name'],
             )
@@ -90,7 +91,7 @@ class VPNTokenNew(BaseAPIView):
         ) as err:
             msg = str(err.message)
             log.error(msg)
-            return Response({"details": msg}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"details": f'{msg}'}, status=status.HTTP_403_FORBIDDEN)
         except (
             exceptions.TransportDoesNotExist,
             exceptions.UserDoesNotExist,
@@ -99,7 +100,7 @@ class VPNTokenNew(BaseAPIView):
         ) as err:
             msg = str(err.message)
             log.error(msg)
-            return Response({"details": msg}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_201_CREATED)
@@ -108,11 +109,11 @@ class VPNTokenNew(BaseAPIView):
 class VPNTokenRenew(BaseAPIView):
     def post(self, request):
         data = request.data
-        log.info(f"{data=!r}")
+        data_keys = data.keys()
         try:
             response = token_renew(
-                transport_name=data['transport_name'] if 'transport_name' in data.keys else None,
-                credentials=data['credentials'] if 'credentials' in data.keys else None,
+                transport_name=data['transport_name'] if 'transport_name' in data_keys else None,
+                credentials=data['credentials'] if 'credentials' in data_keys else None,
                 token_id=data['token_id'],
             )
         except (
@@ -121,7 +122,7 @@ class VPNTokenRenew(BaseAPIView):
         ) as err:
             msg = str(err.message)
             log.error(msg)
-            return Response({"details": msg}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         except (
             exceptions.BelongToAnotherUser,
             exceptions.DemoKeyExist,
@@ -129,7 +130,7 @@ class VPNTokenRenew(BaseAPIView):
         ) as err:
             msg = str(err.message)
             log.error(msg)
-            return Response({"details": msg}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"details": f'{msg}'}, status=status.HTTP_403_FORBIDDEN)
         else:
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_201_CREATED)
@@ -148,7 +149,7 @@ class VPNTokens(BaseAPIView):
         ) as err:
             msg = str(err.message)
             log.error(msg)
-            return Response({"details": msg}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_200_OK)
@@ -162,31 +163,32 @@ class VPNToken(BaseAPIView):
         except exceptions.VPNTokenDoesNotExist as err:
             msg = str(err.message)
             log.error(msg)
-            return Response({'details': msg}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_200_OK)
 
     def patch(self, request):
         data = request.data
-        data_keys = data.keys
-        if "limit_in_bytes" in data_keys:
+        data_keys = data.keys()
+        if "traffic_limit" in data_keys:
+            log.error(f'{data=!r}')
             try:
                 response = add_traffic_limit(
                     token_id=data['token_id'],
-                    limit_in_bytes=data['limit_in_bytes'],
+                    traffic_limit=int(data['traffic_limit']),
                 )
             except exceptions.VPNServerResponseError as err:
                 msg = str(err.message)
                 log.error(msg)
-                return Response({'details': msg}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             except (
                 exceptions.VPNServerDoesNotExist,
                 exceptions.VPNTokenDoesNotExist,
             ) as err:
                 msg = str(err.message)
                 log.error(msg)
-                return Response({'details': msg}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
             else:
                 log.debug(f'{response}')
                 return Response(response, status=status.HTTP_200_OK)
@@ -194,12 +196,12 @@ class VPNToken(BaseAPIView):
             try:
                 response = update_token_valid_until(
                     token_id=data['token_id'],
-                    valid_until=data['valid_until'],
+                    valid_until=int(data['valid_until']),
                 )
             except exceptions.VPNTokenDoesNotExist as err:
                 msg = str(err.message)
                 log.error(msg)
-                return Response({'details': msg}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
             else:
                 log.debug(f'{response}')
                 return Response(response, status=status.HTTP_200_OK)
@@ -211,14 +213,14 @@ class VPNToken(BaseAPIView):
             except exceptions.VPNServerResponseError as err:
                 msg = str(err.message)
                 log.error(msg)
-                return Response({'details': msg}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             except (
                 exceptions.VPNServerDoesNotExist,
                 exceptions.VPNTokenDoesNotExist,
             ) as err:
                 msg = str(err.message)
                 log.error(msg)
-                return Response({'details': msg}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
             else:
                 log.debug(f'{response}')
                 return Response(response, status=status.HTTP_200_OK)
@@ -229,14 +231,14 @@ class VPNToken(BaseAPIView):
         except exceptions.VPNServerResponseError as err:
             msg = str(err.message)
             log.error(msg)
-            return Response({'details': msg}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except (
             exceptions.VPNServerDoesNotExist,
             exceptions.VPNTokenDoesNotExist,
         ) as err:
             msg = str(err.message)
             log.error(msg)
-            return Response({'details': msg}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_200_OK)
@@ -259,13 +261,13 @@ class TelegramMessageSend(BaseAPIView):
         except exceptions.TransportMessageSendError as err:
             msg = str(err.message)
             log.error(msg)
-            return Response({'details': msg}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except (
                 exceptions.TransportDoesNotExist,
         ) as err:
             msg = str(err.message)
             log.error(msg)
-            return Response({"details": msg}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_200_OK)

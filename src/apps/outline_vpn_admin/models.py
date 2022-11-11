@@ -39,7 +39,7 @@ class Client(models.Model, DictRepresentationMixin):
         return f"<{self.__class__.__name__} id={self.id!r} name={self.full_name!r}>"
 
     def __str__(self):
-        return self.full_name
+        return f'{self.id}_{self.full_name if self.full_name else ""}'
 
 
 class Transport(models.Model, DictRepresentationMixin):
@@ -48,7 +48,7 @@ class Transport(models.Model, DictRepresentationMixin):
         verbose_name = 'Transport'
         verbose_name_plural = 'Transports'
 
-    name = models.CharField(verbose_name='Название бота', max_length=254, editable=False)
+    name = models.CharField(verbose_name='Название бота', max_length=254)
 
     uid_format = models.CharField(
         verbose_name='Формат уникального идентификатора бота',
