@@ -13,7 +13,7 @@ bot:
       "get_transports": "api/transports/",
 
       "get_client_tokens": "api/token/{transport_name}/{messenger_id}",
-      "get_token_info": "",
+      "get_token_info": "api/token/{token_id}",
       "get_contact": "api/contact/{transport_name}/{messenger_id}",
 
       "creat_or_update_contact": "api/contact/",
