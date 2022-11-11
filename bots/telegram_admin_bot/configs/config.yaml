@@ -1,7 +1,6 @@
 bot:
   name: "test_admin_telegram_bot"
-  admins: [480629416]
-  managers: []
+  admin_tech: [480629416]
   api:
     url: "http://proxy:80/"
     uris: {
@@ -22,5 +21,4 @@ bot:
       "update_token": "api/token/",
       "delete_token": "api/token/delete/",
       "telegram_message_send": "api/message/telegram/send/",
-
       }

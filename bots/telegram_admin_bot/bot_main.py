@@ -15,9 +15,9 @@ from process.bot_processes import (
     select_action_with_user_step_1,
     new_token_step_1,
     select_message_send_type_step_1,
+    TECH_ADMIN
 )
 from process.keyboards import main_keyboard, register_keyboard
-from process.config_loader import CONFIG
 
 
 log = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ bot = TeleBot(os.environ.get("TELEGRAM_TOKEN"))
 @bot.message_handler(commands=['start'])
 def start(message: Message):
     """Обработчик команды Start"""
-    if message.from_user.id in CONFIG['admins']:
+    if message.from_user.id in TECH_ADMIN:
         bot.send_message(
             message.chat.id,
             text='Добро пожаловать в VPN Project!',
@@ -46,7 +46,7 @@ def contact_handler(message: Message):
 def handle_text(message: Message):
     """Обработчик текстовых команд клавиатуры от пользователя"""
     tg_user = message.from_user
-    if tg_user.id not in CONFIG['admins']:
+    if tg_user.id not in TECH_ADMIN:
         bot.send_message(message.chat.id, text='Доступ запрещен')
     else:
         user_answer = message.text

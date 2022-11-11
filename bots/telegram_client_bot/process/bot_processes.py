@@ -50,7 +50,6 @@ def get_auth_api_headers(bot: TeleBot) -> dict:
         },
         allow_redirects=True,
     )
-    log.info(f'{API_CREDS_USERNAME=}, {API_CREDS_PASSWORD=}')
     if response.status_code == 200:
         log.info('get_auth_api_headers executed')
         return {'Authorization': f'Token  {response.json()["token"]}'}

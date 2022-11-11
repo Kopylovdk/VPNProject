@@ -260,7 +260,6 @@ def get_tariff() -> dict:
         tariff_dict['price'] = str(tariff_dict['price'])
         tariff_dict['currency'] = currency_dict
         response["tariffs"].append(tariff_dict)
-    log.debug(f'{response}')
     return response
 
 
