@@ -145,6 +145,11 @@ STATIC_ROOT = BASE_DIR + STATIC_URL
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8080',
     'http://127.0.0.1:8080',
+    'http://62.113.111.75:8080',
+    'https://62.113.111.75:8080',
+    'https://62.113.111.75',
+    'http://localhost:8080/',
+    'http://127.0.0.1:8080/',
     'http://62.113.111.75:8080/',
     'https://62.113.111.75:8080/',
     'https://62.113.111.75/',
