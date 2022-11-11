@@ -254,7 +254,7 @@ def get_tariff() -> dict:
         "tariffs": [],
     }
     for tariff in Tariff.objects.select_related('currency').filter(is_active=True):
-        currency_dict = tariff.currency.as_dict(exclude=['is_active', 'id'])
+        currency_dict = tariff.currency.as_dict(exclude=['is_active'])
         currency_dict['exchange_rate'] = str(currency_dict['exchange_rate'])
         tariff_dict = tariff.as_dict(exclude=['is_active', 'id', 'valid_until'])
         tariff_dict['price'] = str(tariff_dict['price'])
@@ -270,7 +270,7 @@ def get_vpn_servers() -> dict:
         "vpn_servers": [],
     }
     for vpn_server in VPNServer.objects.filter(is_active=True):
-        add_to_dict = vpn_server.as_dict(exclude=['is_active', 'id', 'uri', 'is_default'])
+        add_to_dict = vpn_server.as_dict(exclude=['is_active', 'uri', 'is_default'])
         response["vpn_servers"].append(add_to_dict)
     return response
 
@@ -278,10 +278,10 @@ def get_vpn_servers() -> dict:
 def get_transports() -> dict:
     response = {
         "details": "get_bots",
-        "bots": [],
+        "transports": [],
     }
     for transport in Transport.objects.all():
-        response["bots"].append(transport.as_dict(exclude=['credentials']))
+        response["transports"].append(transport.as_dict(exclude=['credentials']))
     return response
 
 
@@ -384,3 +384,37 @@ def telegram_message_sender(
             else:
                 response['info']['success'] += 1
     return response
+
+
+def update_token_valid_until(token_id: int, valid_until: int) -> dict:
+    response = {
+        'details': "Token valid_until updated",
+        'tokens': []
+    }
+    token = get_token(token_id)
+    token.valid_until = datetime.datetime.now() + datetime.timedelta(days=valid_until)
+    token.save()
+    response['tokens'].append(token.as_dict())
+    return response
+
+
+def get_statistic_info(server_name: str):
+    # TODO
+    client = get_outline_client(server_name)
+    response = client.get_keys()
+    to_excel = {
+        'key_id': [],
+        'name': [],
+        'used_bytes': [],
+    }
+    for key in response:
+        to_excel['key_id'].append(key.key_id)
+        to_excel['name'].append(key.name)
+        to_excel['used_bytes'].append(key.used_bytes)
+
+    # from pandas import DataFrame
+
+    # OutlineKey(key_id='7', name="OUTLINE_VPN_id:'7', uid: 'test_client_telegram_bot@480629416'",
+    #            password='t8YdfB1IrVZj', port=37877, method='chacha20-ietf-poly1305',
+    #            access_url='ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTp0OFlkZkIxSXJWWmo@62.113.111.75:37877/?outline=1',
+    #            used_bytes=None)

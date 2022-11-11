@@ -16,6 +16,7 @@ from apps.outline_vpn_admin.processes import (
     add_traffic_limit,
     del_traffic_limit,
     del_outline_vpn_key,
+    update_token_valid_until,
     telegram_message_sender,
     get_token_info,
 )
@@ -78,8 +79,8 @@ class VPNTokenNew(BaseAPIView):
         data = request.data
         try:
             response = token_new(
-                transport_name=data['transport_name'],
-                credentials=data['credentials'],
+                transport_name=data['transport_name'] if 'transport_name' in data.keys else None,
+                credentials=data['credentials'] if 'credentials' in data.keys else None,
                 server_name=data['server_name'],
                 tariff_name=data['tariff_name'],
             )
@@ -110,8 +111,8 @@ class VPNTokenRenew(BaseAPIView):
         log.info(f"{data=!r}")
         try:
             response = token_renew(
-                transport_name=data['transport_name'],
-                credentials=data['credentials'],
+                transport_name=data['transport_name'] if 'transport_name' in data.keys else None,
+                credentials=data['credentials'] if 'credentials' in data.keys else None,
                 token_id=data['token_id'],
             )
         except (
@@ -168,7 +169,8 @@ class VPNToken(BaseAPIView):
 
     def patch(self, request):
         data = request.data
-        if "limit_in_bytes" in data.keys:
+        data_keys = data.keys
+        if "limit_in_bytes" in data_keys:
             try:
                 response = add_traffic_limit(
                     token_id=data['token_id'],
@@ -182,6 +184,19 @@ class VPNToken(BaseAPIView):
                 exceptions.VPNServerDoesNotExist,
                 exceptions.VPNTokenDoesNotExist,
             ) as err:
+                msg = str(err.message)
+                log.error(msg)
+                return Response({'details': msg}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                log.debug(f'{response}')
+                return Response(response, status=status.HTTP_200_OK)
+        elif "valid_until" in data_keys:
+            try:
+                response = update_token_valid_until(
+                    token_id=data['token_id'],
+                    valid_until=data['valid_until'],
+                )
+            except exceptions.VPNTokenDoesNotExist as err:
                 msg = str(err.message)
                 log.error(msg)
                 return Response({'details': msg}, status=status.HTTP_404_NOT_FOUND)
@@ -210,7 +225,7 @@ class VPNToken(BaseAPIView):
 
     def delete(self, request):
         try:
-            response = del_traffic_limit(request.data['token_id'])
+            response = del_outline_vpn_key(request.data['token_id'])
         except exceptions.VPNServerResponseError as err:
             msg = str(err.message)
             log.error(msg)

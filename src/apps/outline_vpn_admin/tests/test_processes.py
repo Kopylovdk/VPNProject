@@ -506,3 +506,8 @@ class TokenAdminNewTestCase(TestCase):
 class TokenAdminRenewTestCase(TestCase):
     def test_token_admin_renew_ok(self):
         pass
+
+
+class UpdateTokenValidUntilTestCase(TestCase):
+    def test_update_token_valid_until_ok(self):
+        pass
