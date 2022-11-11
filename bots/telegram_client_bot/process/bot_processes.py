@@ -115,6 +115,11 @@ def get_client(bot: TeleBot, messenger_id: int) -> dict:
 
 def send_alert_to_admins(bot: TeleBot, response: Response, user: User = None) -> None:
     """Функция отправки сообщений всем администратора"""
+    status_code = response.status_code
+    if status_code != 500:
+        err = f'Ошибка {response!r}, {response.json()!r}, {response.json()["details"]!r} возврат в основное меню'
+    else:
+        err = f'Ошибка {response!r}, возврат в основное меню'
     if user:
         text = f'ОШИБКА У КЛИЕНТА:\n' \
                f'Пользователь:\n' \
@@ -122,12 +127,11 @@ def send_alert_to_admins(bot: TeleBot, response: Response, user: User = None) ->
                f'Логин - {user.username!r}\n' \
                f'ФИО - {user.full_name!r}\n' \
                f'Произошла ошибка:\n' \
-               f'Status_code = {response.status_code!r}\n' \
-               f'Response = {response.json()}'
-        log.error(f'{response.json()=!r}, {text!r}')
+               f'Response = {err}'
+        log.error(f'{err!r}, {text!r}')
     else:
         text = f'ОШИБКА ПОДКЛЮЧЕНИЯ К БЭКУ:' \
-               f' Status_code = {response.status_code!r},' \
+               f' Response = {err!r},' \
                f' url = {response.url!r},' \
                f' headers = {response.headers}'
         log.error(f'{text!r}')
@@ -152,7 +156,6 @@ def send_msg_to_managers(bot: TeleBot, text: str, message: Message) -> None:
             )
         except ApiTelegramException:
             continue
-        # bot.forward_message(manager_id, message.chat.id, message.message_id)
 
 
 def add_or_update_user(bot: TeleBot, message: Message) -> None:
