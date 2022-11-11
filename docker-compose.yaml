@@ -8,6 +8,7 @@ networks:
 
 services:
   db:
+    container_name: 'PostgresSQL'
     platform: linux/x86_64
     image: postgres:15-alpine
     environment:
