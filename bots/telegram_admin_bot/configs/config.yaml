@@ -1,6 +1,6 @@
 bot:
   name: "test_admin_telegram_bot"
-  admin_tech: [480629416]
+  admin_tech: [480629416, 1416920102]
   api:
     url: "http://proxy:80/"
     uris: {
