@@ -13,7 +13,7 @@ from apps.outline_vpn_admin.models import (
 from apps.outline_vpn_admin.outline_api import get_outline_client
 from django.db import transaction
 from vpnservice import settings
-
+#TODO: create tests
 
 log = logging.getLogger(__name__)
 EXPIRED_VPN_TOKEN_SCRIPT_NAME = 'expired_vpn_token_key'
