@@ -6,7 +6,7 @@ from apps.outline_vpn_admin.models import Transport, VPNServer, Tariff, Currency
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('outline_vpn_admin', 'create_superuser'),
+        ('outline_vpn_admin', '0001_tokenprocess'),
     ]
 
     def fill_default_db_data(*args, **kwargs):

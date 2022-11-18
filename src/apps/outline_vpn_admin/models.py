@@ -111,6 +111,9 @@ class Contact(models.Model, DictRepresentationMixin):
             self.uid = self.transport.make_contact_credentials_uid(self.credentials)
         super().save(**kwargs)
 
+    def __str__(self):
+        return self.phone_number
+
 
 class VPNServer(models.Model, DictRepresentationMixin):
     class Meta:
@@ -175,6 +178,9 @@ class Tariff(models.Model, DictRepresentationMixin):
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id!r} name={self.name!r}>"
 
+    def __str__(self):
+        return self.name
+
 
 class VPNToken(models.Model, DictRepresentationMixin):
     class Meta:
@@ -198,6 +204,29 @@ class VPNToken(models.Model, DictRepresentationMixin):
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id!r} outline_id={self.outline_id!r}>"
+
+
+class TokenProcess(models.Model, DictRepresentationMixin):
+    class Meta:
+        db_table = 'TokenProcess'
+        verbose_name = 'TokenProcess'
+        verbose_name_plural = 'TokenProcesses'
+
+    vpn_token = models.ForeignKey(VPNToken, on_delete=models.RESTRICT, verbose_name='VPN токен')
+    transport = models.ForeignKey(Transport, on_delete=models.RESTRICT, verbose_name='Канал связи')
+    contact = models.ForeignKey(Contact, on_delete=models.RESTRICT, verbose_name='Контакт пользователя')
+    vpn_server = models.ForeignKey(VPNServer, on_delete=models.RESTRICT, verbose_name='VPN сервер')
+    script_name = models.CharField(verbose_name='Имя скрипта, добавившего запись', max_length=254)
+    text = models.TextField(verbose_name='Текст сообщения')
+    is_executed = models.BooleanField(verbose_name='Выполнено', default=False)
+    executed_at = models.DateField(verbose_name='Дата создания записи', null=True, blank=True)
+    created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} id={self.id!r}>"
+
+    def __str__(self):
+        return f"id={self.id!r}, script_name={self.script_name!r}"
 
 
 # TODO: Сделать миграции, тесты и дополнить модель полями при подключении оплат
