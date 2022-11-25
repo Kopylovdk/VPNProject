@@ -102,7 +102,7 @@ def create_vpn_token(client: Client, vpn_server: VPNServer, tariff: Tariff, cnt:
 
 def create_tariff(currency: Currency, cnt: int = 1) -> list[Tariff]:
     """
-    Функция создания записей в таблице Tariffication
+    Функция создания записей в таблице Tariff
     """
     result = []
     for obj_cnt in range(1000, cnt + 1000):
@@ -133,3 +133,19 @@ def create_currency() -> list[Currency]:
         new_obj.save()
         result.append(new_obj)
     return result
+
+# if needed - uncomment and modify
+# def create_token_process(cnt: int = 1) -> list[TokenProcess]:
+#     result = []
+#     for obj_cnt in range(cnt):
+#         new_obj = TokenProcess(
+#             vpn_token=,
+#             transport=,
+#             contact=,
+#             vpn_server=,
+#             script_name=,
+#             text=,
+#         )
+#         new_obj.save()
+#         result.append(new_obj)
+#     return result

@@ -1,93 +1,122 @@
-# import datetime
-# import apps.outline_vpn_admin.tests.helpers as helpers
-# from unittest.mock import patch
-# from django.test import TestCase
-# from apps.outline_vpn_admin.models import OutlineVPNKeys
-# from apps.outline_vpn_admin.scripts_vpnkeys import (
-#     collect_expired_vpn_keys,
-#     expire_vpn_key,
-#     collect_expired_soon_vpn_keys,
-# )
-# from apps.outline_vpn_admin.tests.test_processes import MockResponseStatusCode204
-#
-#
-# class MockResponseSendMessage:
-#     def __init__(self):
-#         self.status_code = 200
-#
-#
-# class BaseSetUp(TestCase):
-#     def setUp(self) -> None:
-#         self.date_today = datetime.datetime.now()
-#         self.user = helpers.create_telegram_users()[0]
-#         self.vpn_keys = helpers.create_vpn_keys(cnt=6)
-#         for vpn_key in self.vpn_keys:
-#             if vpn_key.outline_key_id == 1000:
-#                 vpn_key.outline_key_valid_until = None
-#                 vpn_key.outline_key_active = True
-#             elif vpn_key.outline_key_id in [1001, 1002]:
-#                 date = self.date_today - datetime.timedelta(days=1)
-#                 vpn_key.outline_key_valid_until = date
-#                 vpn_key.outline_key_active = True
-#             elif vpn_key.outline_key_id == 1003:
-#                 vpn_key.outline_key_valid_until = self.date_today + datetime.timedelta(days=7)
-#                 vpn_key.outline_key_active = True
-#             elif vpn_key.outline_key_id == 1004:
-#                 vpn_key.outline_key_valid_until = self.date_today
-#                 vpn_key.outline_key_active = True
-#             vpn_key.telegram_user_record = self.user
-#             vpn_key.save()
-#         self.expired_keys_id = [1001, 1002]
-#
-#
-# class ScriptVPNKeysExpiredTestCase(BaseSetUp):
-#
-#     def test_collect_expired_vpn_keys(self):
-#         select_from_db = collect_expired_vpn_keys()
-#         self.assertEqual(2, len(select_from_db))
-#
-#     # TODO: Mock для бота
-#     @patch("requests.put", return_value=MockResponseStatusCode204())
-#     @patch('urllib3.connectionpool', return_value=MockResponseSendMessage())
-#     def test_expire_vpn_key(self, mock, mock_2):
-#         # print(self.vpn_keys[0].outline_key_id,
-#         #       self.vpn_keys[1].outline_key_id,
-#         #       self.vpn_keys[2].outline_key_id,
-#         #       self.vpn_keys[3].outline_key_id,
-#         #       self.vpn_keys[4].outline_key_id,
-#         #       self.vpn_keys[5].outline_key_id,
-#         #       )
-#         for vpn_key in self.vpn_keys:
-#             key_id = vpn_key.outline_key_id
-#             if key_id in [1000, 1001, 1002, 1003, 1004]:
-#                 self.assertTrue(vpn_key.outline_key_active)
-#                 if key_id == 1000:
-#                     self.assertIsNone(vpn_key.outline_key_valid_until)
-#                 else:
-#                     self.assertIsNotNone(vpn_key.outline_key_valid_until)
-#                     self.assertIsInstance(vpn_key.outline_key_valid_until, datetime.datetime)
-#             else:
-#                 # print(key_id)
-#                 self.assertFalse(vpn_key.outline_key_active)
-#
-#         expire_vpn_key()
-#
-#         vpn_keys = OutlineVPNKeys.objects.all()
-#         for vpn_key in vpn_keys:
-#             if vpn_key.outline_key_id in self.expired_keys_id:
-#                 self.assertFalse(vpn_key.outline_key_active)
-#                 self.assertEqual(vpn_key.outline_key_traffic_limit, 1024)
-#
-#
-# class ScriptVPNKeysExpiredSoonTestCase(BaseSetUp):
-#
-#     def test_collect_expired_soon_vpn_keys(self):
-#         days_before_expire = 7
-#         select_from_db = collect_expired_soon_vpn_keys(days_before_expire)
-#         self.assertEqual(1, len(select_from_db))
-#         expected_date = self.date_today + datetime.timedelta(days=days_before_expire)
-#         self.assertEqual(
-#             select_from_db[0].outline_key_valid_until.strftime("%d-%m-%Y"),
-#             expected_date.strftime("%d-%m-%Y")
-#         )
-#
+from apps.outline_vpn_admin import scripts
+import apps.outline_vpn_admin.tests.mocks as mocks
+import datetime
+import apps.outline_vpn_admin.tests.helpers as helpers
+from unittest.mock import patch
+from django.test import TestCase
+
+from apps.outline_vpn_admin.models import TokenProcess, Transport, Tariff
+
+
+class BaseSetUp(TestCase):
+    def setUp(self) -> None:
+        self.date_now = datetime.datetime.now()
+        self.clients = helpers.create_client(2)
+        self.transports = []
+        for i in range(1, 3):
+            self.transports.append(helpers.create_transport(transport_name=f'test_{i}')[0])
+        self.tariff = helpers.create_tariff(currency=helpers.create_currency()[0])[0]
+        self.vpn_server_name = 'test_scripts'
+        self.vpn_server = helpers.create_vpn_server(server_name=self.vpn_server_name)[0]
+        self.contacts = []
+        self.count = 6
+        self.vpn_keys = []
+        for cnt in range(self.count):
+            if cnt < 3:
+                creds = {"id": 3333, "first_name": "first_name_3", "last_name": "last_name_3", "phone_number": '333'}
+                client = self.clients[0]
+                transport = self.transports[0]
+            else:
+                creds = {"id": 6666, "first_name": "first_name_6", "last_name": "last_name_6", "phone_number": '666'}
+                client = self.clients[1]
+                transport = self.transports[1]
+
+            if cnt in [0, 3]:
+                contact = helpers.create_contact(
+                    client=client,
+                    transport=transport,
+                    credentials=creds,
+                )[0]
+                self.contacts.append(contact)
+
+            vpn_key = helpers.create_vpn_token(
+                vpn_server=self.vpn_server,
+                tariff=self.tariff,
+                client=client
+            )[0]
+
+            if cnt in [0, 5]:
+                valid_date = self.date_now + datetime.timedelta(days=2)
+            elif cnt in [1, 4]:
+                valid_date = self.date_now - datetime.timedelta(days=2)
+            elif cnt in [2]:
+                valid_date = self.date_now
+            else:
+                valid_date = self.date_now + datetime.timedelta(days=7)
+            vpn_key.valid_until = valid_date
+            vpn_key.outline_id = cnt + 1
+            vpn_key.save()
+            self.vpn_keys.append(vpn_key)
+
+
+class CollectExpiredVPNTokenTestCase(BaseSetUp):
+    def test_collect_expired_vpn_token(self):
+        scripts.collect_expired_vpn_token()
+        token_process = TokenProcess.objects.filter(
+            is_executed=False,
+            script_name=scripts.EXPIRED_VPN_TOKEN_SCRIPT_NAME,
+        )
+        self.assertEqual(2, len(token_process))
+        self.assertFalse(token_process[0].executed_at)
+        self.assertFalse(token_process[1].executed_at)
+
+
+class ProcessExpiredVPNTokensTGTestCase(BaseSetUp):
+    def test_process_expired_vpn_tokens_tg(self):
+        pass
+
+
+class TaskUpdateTestCase(BaseSetUp):
+    def test_task_update(self):
+        to_update = TokenProcess(
+            vpn_token=self.vpn_keys[1],
+            transport=self.transports[0],
+            contact=self.contacts[0],
+            vpn_server=self.vpn_server,
+            script_name='test_task_update',
+            text='test_task_update_text',
+        )
+        to_update.save()
+        self.assertFalse(to_update.executed_at)
+        self.assertFalse(to_update.is_executed)
+
+        self.assertTrue(scripts.task_update(to_update))
+
+        self.assertTrue(to_update.executed_at)
+        self.assertTrue(to_update.is_executed)
+
+
+class VPNTokenDeactivateTestCase(BaseSetUp):
+    def test_vpn_token_deactivate(self):
+        self.assertTrue(self.vpn_keys[1].is_active)
+
+        self.assertTrue(scripts.vpn_token_deactivate(self.vpn_keys[1]))
+
+        self.assertFalse(self.vpn_keys[1].is_active)
+        self.assertIn('Deleted by script.', self.vpn_keys[1].name)
+
+
+class OutlineTokenDeleteTestCase(BaseSetUp):
+    @patch("requests.delete", return_value=mocks.MockResponseStatusCode204())
+    def test_outline_token_delete_ok(self, mocked_delete):
+        self.assertTrue(scripts.outline_token_delete(self.vpn_keys[0], self.vpn_server))
+
+    @patch('requests.delete', return_value=mocks.MockResponseStatusCode404())
+    def test_outline_token_delete_false(self, mocked_delete):
+        self.assertFalse(scripts.outline_token_delete(self.vpn_keys[0], self.vpn_server))
+
+
+class SendTelegramMessageTestCase(BaseSetUp):
+    @patch('telebot.TeleBot.send_message', return_value=mocks.MockResponseStatusCode200())
+    def test_send_telegram_message(self, mock):
+        scripts.send_telegram_message(self.transports[0], 'text', self.contacts[0])

@@ -24,3 +24,7 @@ class MockResponseStatusCode404:
     def __init__(self):
         self.status_code = 404
 
+
+class MockResponseStatusCode200:
+    def __init__(self):
+        self.status_code = 200
