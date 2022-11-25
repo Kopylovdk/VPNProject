@@ -27,7 +27,7 @@ services:
     volumes:
       - database-data:/var/lib/postgresql/data/
 
-  vpn_service:
+  back_api_admin:
     platform: linux/x86_64
     build: .
     ports:
@@ -47,6 +47,15 @@ services:
       - backnet
       - frontnet
 
+  back_background_tasks:
+    platform: linux/x86_64
+    command: sh -c -m "./sh_scripts/start_scheduler.sh"
+    depends_on:
+      - db
+    restart: always
+    networks:
+      - backnet
+      -
   proxy:
     build: ./nginx_conf
     ports:
@@ -56,7 +65,7 @@ services:
 
     restart: always
     depends_on:
-      - vpn_service
+      - back_api_admin
     networks:
       - frontnet
       - backnet
