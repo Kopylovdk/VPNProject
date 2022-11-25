@@ -13,7 +13,7 @@ from apps.outline_vpn_admin.models import (
 from apps.outline_vpn_admin.outline_api import get_outline_client
 from django.db import transaction
 from vpnservice import settings
-#TODO: create tests
+
 
 log = logging.getLogger(__name__)
 EXPIRED_VPN_TOKEN_SCRIPT_NAME = 'expired_vpn_token_key'
@@ -25,28 +25,40 @@ scheduler.add_jobstore(DjangoJobStore(), 'expired_vpn_tokens')
 
 @scheduler.scheduled_job(
     trigger='cron',
-    day_of_week='mon-fri',
+    day_of_week='1-6',
+    hour=1,
+    minute=0,
+    second=0,
     jobstore='expired_vpn_tokens',
     id='collect_expired_vpn_token',
 )
 def collect_expired_vpn_token():
     transports = Transport.objects.all()
-    active_tokens = VPNToken.objects.select_related('tariff', 'server', 'client').filter(is_active=True)
-    for transport in transports:
-        to_deactivate = active_tokens.filter(transport=transport, valid_until__gte=datetime.datetime.now())
-        for vpn_token in to_deactivate:
-            contact = vpn_token.client.contact_set.get(transport=transport)
-            text = f'Срок действия VPN ключа с ID={vpn_token.id} по тарифу {vpn_token.tariff.name} истек.\n' \
-                   f'Спасибо, что воспользовались нашим VPN.\n'
-            process = TokenProcess.objects.create(
-                vpn_token=vpn_token,
-                transport=transport,
-                script_name=EXPIRED_VPN_TOKEN_SCRIPT_NAME,
-                contact=contact,
-                vpn_server=vpn_token.server,
-                text=text,
-            )
-            process.save()
+    active_tokens = VPNToken.objects.select_related('tariff', 'server', 'client').filter(
+        is_active=True,
+        valid_until__lte=datetime.datetime.now(),
+    )
+    for vpn_token in active_tokens:
+        for transport in transports:
+            try:
+                contact = vpn_token.client.contact_set.get(transport=transport)
+            except Contact.DoesNotExist:
+                log.info(f"VPN Token: {vpn_token.as_dict()},"
+                         f" client {vpn_token.client.as_dict()!r}"
+                         f" don't have contact with transport {transport.as_dict()!r}")
+                continue
+            else:
+                text = f'Срок действия VPN ключа с ID={vpn_token.id} по тарифу {vpn_token.tariff.name} истек.\n' \
+                       f'Спасибо, что воспользовались нашим VPN.\n'
+                process = TokenProcess.objects.create(
+                    vpn_token=vpn_token,
+                    transport=transport,
+                    script_name=EXPIRED_VPN_TOKEN_SCRIPT_NAME,
+                    contact=contact,
+                    vpn_server=vpn_token.server,
+                    text=text,
+                )
+                process.save()
 
 
 @scheduler.scheduled_job(
