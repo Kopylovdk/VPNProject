@@ -1,6 +1,24 @@
 django:
   debug: True
   date_string_format: '%d-%m-%Y'
+  allowed_hosts: [
+    'http://127.0.0.1:8080',
+    'http://localhost:8080',
+    'http://localhost:8000',
+    '*'
+  ]
+  csrf_trusted_origins: [
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
+    'http://62.113.111.75:8080',
+    'https://62.113.111.75:8080',
+    'https://62.113.111.75',
+    'http://localhost:8080/',
+    'http://127.0.0.1:8080/',
+    'http://62.113.111.75:8080/',
+    'https://62.113.111.75:8080/',
+    'https://62.113.111.75/',
+  ]
 
 db:
   host: db

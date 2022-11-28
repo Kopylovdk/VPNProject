@@ -31,7 +31,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = EXTERNAL_CFG['django']['debug']
 
-ALLOWED_HOSTS = ['http://127.0.0.1:8080', 'http://localhost:8080', 'http://localhost:8000', '*']
+ALLOWED_HOSTS = EXTERNAL_CFG['django']['allowed_hosts']
+CSRF_TRUSTED_ORIGINS = EXTERNAL_CFG['django']['csrf_trusted_origins']
 
 with open(f'{BASE_DIR}/logs/config/log_config.yaml', 'r', encoding='utf8') as stream:
     EXTERNAL_LOG_CFG = yaml.safe_load(stream)
@@ -41,7 +42,6 @@ LOGGING = logging_config_update(
     log_path=BASE_DIR)
 
 DATE_STRING_FORMAT = EXTERNAL_CFG['django']['date_string_format']
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -88,9 +88,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'vpnservice.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/2.2/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -134,30 +131,12 @@ USE_L10N = True
 
 USE_TZ = False
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/2.2/howto/static-files/
-
-
 STATIC_URL = '/static/'
 
 STATIC_ROOT = BASE_DIR + STATIC_URL
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8080',
-    'http://127.0.0.1:8080',
-    'http://62.113.111.75:8080',
-    'https://62.113.111.75:8080',
-    'https://62.113.111.75',
-    'http://localhost:8080/',
-    'http://127.0.0.1:8080/',
-    'http://62.113.111.75:8080/',
-    'https://62.113.111.75:8080/',
-    'https://62.113.111.75/',
-]
-
 APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
 APSCHEDULER_RUN_NOW_TIMEOUT = 25
-
 
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'apps.api.exceptions.core_exception_handler',

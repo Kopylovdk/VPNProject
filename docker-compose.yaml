@@ -28,16 +28,19 @@ services:
       - database-data:/var/lib/postgresql/data/
 
   back_api_admin:
+    container_name: 'BackApiAdmin'
     platform: linux/x86_64
-    build: .
+    build:
+      context: .
+      dockerfile: Docker/back-api-admin/Dockerfile
     ports:
       - "8000:8000"
     env_file: .env
     environment:
       - SECRET_KEY=${SECRET_KEY}
     command:
-      sh -c -m "./sh_scripts/migrate.sh && ./sh_scripts/start.sh"
-#      sh -c -m "./sh_scripts/makemigrations.sh && ./sh_scripts/migrate.sh && ./sh_scripts/start.sh"
+      sh -c -m "./sh_scripts/migrate.sh && ./sh_scripts/start_gunicorn.sh"
+#      sh -c -m "./sh_scripts/makemigrations.sh && ./sh_scripts/migrate.sh && ./sh_scripts/start_gunicorn.sh"
     volumes:
       - static:/usr/src/static
     depends_on:
@@ -47,17 +50,22 @@ services:
       - backnet
       - frontnet
 
-  back_background_tasks:
+  background_tasks:
+    container_name: 'BackgroundTasks'
     platform: linux/x86_64
+    build:
+      context: .
+      dockerfile: Docker/background-tasks/Dockerfile
     command: sh -c -m "./sh_scripts/start_scheduler.sh"
     depends_on:
       - db
     restart: always
     networks:
       - backnet
-      -
+
   proxy:
-    build: ./nginx_conf
+    container_name: 'Nginx'
+    build: ./Docker/nginx_conf
     ports:
       - "8080:80"
     volumes:
@@ -70,34 +78,36 @@ services:
       - frontnet
       - backnet
 
-  bot_tg_client:
-    build: ./bots/telegram_client_bot
-    restart: always
-    env_file: .env
-    environment:
-      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN_CLIENT}
-      - USERNAME=${USERNAME_CLIENT}
-      - PASSWORD=${PASSWORD_CLIENT}
-    command:
-      sh -c -m "./start_bot.sh"
-    depends_on:
-      - proxy
-    networks:
-      - frontnet
-      - backnet
-
-  bot_tg_admin:
-    build: ./bots/telegram_admin_bot
-    restart: always
-    env_file: .env
-    environment:
-      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN_ADMIN}
-      - USERNAME=${USERNAME_ADMIN}
-      - PASSWORD=${PASSWORD_ADMIN}
-    command:
-      sh -c -m "./start_bot.sh"
-    depends_on:
-      - proxy
-    networks:
-      - frontnet
-      - backnet
+#  bot_tg_client:
+#    container_name: 'TelegramClientBot'
+#    build: ./bots/telegram_client_bot
+#    restart: always
+#    env_file: .env
+#    environment:
+#      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN_CLIENT}
+#      - USERNAME=${USERNAME_CLIENT}
+#      - PASSWORD=${PASSWORD_CLIENT}
+#    command:
+#      sh -c -m "./start_bot.sh"
+#    depends_on:
+#      - proxy
+#    networks:
+#      - frontnet
+#      - backnet
+#
+#  bot_tg_admin:
+#    container_name: 'TelegramAdminBot'
+#    build: ./bots/telegram_admin_bot
+#    restart: always
+#    env_file: .env
+#    environment:
+#      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN_ADMIN}
+#      - USERNAME=${USERNAME_ADMIN}
+#      - PASSWORD=${PASSWORD_ADMIN}
+#    command:
+#      sh -c -m "./start_bot.sh"
+#    depends_on:
+#      - proxy
+#    networks:
+#      - frontnet
+#      - backnet
