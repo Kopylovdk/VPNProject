@@ -48,7 +48,7 @@ class Transport(models.Model, DictRepresentationMixin):
         verbose_name = 'Transport'
         verbose_name_plural = 'Transports'
 
-    name = models.CharField(verbose_name='Название бота', max_length=254)
+    name = models.CharField(verbose_name='Название бота', max_length=254, unique=True)
 
     uid_format = models.CharField(
         verbose_name='Формат уникального идентификатора бота',
@@ -95,7 +95,8 @@ class Contact(models.Model, DictRepresentationMixin):
     uid = models.CharField(
         verbose_name='Идентификатор контакта',
         max_length=254,
-        help_text='<Transport.name>@<Transport.uid_format>'
+        help_text='UID контакта. Присваивается при сохранении в формате: <Transport.name>@<Transport.uid_format>',
+        unique=True,
     )
     name = models.CharField(verbose_name='Название контакта', max_length=254, null=True, blank=True)
     phone_number = models.CharField(verbose_name='Номер телефона', max_length=20, null=True, blank=True)
@@ -121,8 +122,8 @@ class VPNServer(models.Model, DictRepresentationMixin):
         verbose_name = 'VPNServer'
         verbose_name_plural = 'VPNServers'
 
-    name = models.CharField(verbose_name='Внутреннее имя VPN сервера', max_length=254)
-    external_name = models.CharField(verbose_name='Внешнее имя VPN сервера', max_length=254)
+    name = models.CharField(verbose_name='Внутреннее имя VPN сервера', max_length=254, unique=True)
+    external_name = models.CharField(verbose_name='Внешнее имя VPN сервера', max_length=254, unique=True)
     uri = models.CharField(verbose_name='URI для создания ключей OutLine', max_length=254)
     is_default = models.BooleanField(verbose_name='Сервер по умолчанию', default=False)
     is_active = models.BooleanField(verbose_name='Активность', default=True)
@@ -142,7 +143,7 @@ class Currency(models.Model, DictRepresentationMixin):
         verbose_name = 'Currency'
         verbose_name_plural = 'Currencies'
 
-    name = models.CharField(verbose_name='Буквенный код валюты по ISO 4217', max_length=3)
+    name = models.CharField(verbose_name='Буквенный код валюты по ISO 4217', max_length=3, unique=True)
     name_iso = models.IntegerField(verbose_name='Цифровой код валюты по ISO 4217', validators=[MaxValueValidator(999)])
     is_main = models.BooleanField(verbose_name='Основная валюта', default=False)
     exchange_rate = models.DecimalField(verbose_name='Курс к основной валюте', max_digits=5, decimal_places=2)
@@ -163,11 +164,11 @@ class Tariff(models.Model, DictRepresentationMixin):
         verbose_name = 'Tariff'
         verbose_name_plural = 'Tariffs'
 
-    name = models.CharField(verbose_name='Имя тарифа', max_length=254)
-    prolong_period = models.IntegerField(verbose_name='Срок продления в днях')
+    name = models.CharField(verbose_name='Имя тарифа', max_length=254, unique=True)
+    prolong_period = models.IntegerField(verbose_name='Срок продления в днях', null=True, blank=True)
     price = models.DecimalField(verbose_name='Стоимость', max_digits=10, decimal_places=2)
     currency = models.ForeignKey(Currency, on_delete=models.RESTRICT, verbose_name='Валюта')
-    traffic_limit = models.IntegerField(verbose_name='Ограничение трафика в байтах')
+    traffic_limit = models.IntegerField(verbose_name='Ограничение трафика в байтах', null=True, blank=True)
     valid_until = models.DateField(verbose_name='Срок активности тарифа', null=True, blank=True)
     is_demo = models.BooleanField(verbose_name='Демо тариф', default=False)
     is_tech = models.BooleanField(verbose_name='Технический тариф', default=False)
@@ -188,7 +189,7 @@ class VPNToken(models.Model, DictRepresentationMixin):
         verbose_name = 'VPNToken'
         verbose_name_plural = 'VPNTokens'
 
-    client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Владелец ключа')
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Владелец ключа', blank=True, null=True)
     server = models.ForeignKey(VPNServer, on_delete=models.RESTRICT, verbose_name='VPN сервер')
     tariff = models.ForeignKey(Tariff, on_delete=models.RESTRICT, verbose_name='Тариф')
     outline_id = models.BigIntegerField(verbose_name='VPN Token ID on VPN Server', null=True, blank=True)
@@ -197,13 +198,17 @@ class VPNToken(models.Model, DictRepresentationMixin):
     vpn_key = models.TextField(verbose_name='VPN ключ', null=True, blank=True)
     valid_until = models.DateField(verbose_name='Дата окончания подписки', null=True, blank=True)
     is_active = models.BooleanField(verbose_name='Активность VPN ключа', default=True)
-    is_demo = models.BooleanField(verbose_name='Демо', default=False)
+    is_demo = models.BooleanField(verbose_name='Демо ключ', default=False)
+    is_tech = models.BooleanField(verbose_name='Технический ключ', default=False)
     traffic_limit = models.BigIntegerField(verbose_name='Лимит трафика', null=True, blank=True)
     created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
     updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id!r} outline_id={self.outline_id!r}>"
+
+    # def __str__(self):
+    #     return self.name
 
 
 class TokenProcess(models.Model, DictRepresentationMixin):

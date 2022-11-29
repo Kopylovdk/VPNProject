@@ -6,7 +6,7 @@ from apps.outline_vpn_admin.models import Transport, VPNServer, Tariff, Currency
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('outline_vpn_admin', '0001_tokenprocess'),
+        ('outline_vpn_admin', 'create_superuser'),
     ]
 
     def fill_default_db_data(*args, **kwargs):
@@ -64,9 +64,9 @@ class Migration(migrations.Migration):
                 name = f'{months[i]} {months_names[i]}'
             Tariff.objects.create(
                 name=name,
-                prolong_period=prolong_periods[i],
+                prolong_period=prolong_periods[i] if traffic_limits[i] else None,
                 price=prices[i],
-                traffic_limit=traffic_limits[i],
+                traffic_limit=traffic_limits[i] if traffic_limits[i] else None,
                 currency=currency,
                 is_demo=True if name in "Demo" else False,
                 is_tech=True if name in "Tech" else False,

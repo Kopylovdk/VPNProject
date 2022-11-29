@@ -181,6 +181,8 @@ def token_new(
         )
         if tariff.is_demo:
             new_token.is_demo = True
+        if tariff.is_tech:
+            new_token.is_tech = True
         new_token.save()
         token_dict = new_token.as_dict()
         if token_dict['valid_until']:
@@ -298,7 +300,7 @@ def get_token_info(token_id: int) -> dict:
     return {'details': 'get_token_info', 'tokens': [vpn_token_dict]}
 
 
-def add_traffic_limit(token_id: int, traffic_limit: int) -> dict:
+def add_traffic_limit(token_id: int, traffic_limit: int = 1024) -> dict:
     vpn_token = get_token(token_id)
     outline_client = get_outline_client(vpn_token.server.name)
     limit_in_bytes = traffic_limit * 1024 * 1024
@@ -307,12 +309,7 @@ def add_traffic_limit(token_id: int, traffic_limit: int) -> dict:
         msg = 'Outline client error occurred due traffic limit add'
         log.error(msg)
         raise exceptions.VPNServerResponseError(message=msg)
-    vpn_token.traffic_limit = limit_in_bytes
-    vpn_token.save()
-    vpn_token_dict = vpn_token.as_dict()
-    if vpn_token_dict['valid_until']:
-        vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
-
+    vpn_token_dict = change_vpn_token_traffic_limit(vpn_token, limit_in_bytes)
     return {'details': 'Traffic limit updated', 'tokens': [vpn_token_dict]}
 
 
@@ -324,12 +321,20 @@ def del_traffic_limit(token_id: int) -> dict:
         msg = 'Outline client error occurred due traffic limit delete'
         log.error(msg)
         raise exceptions.VPNServerResponseError(message=msg)
-    vpn_token.traffic_limit = None
+    vpn_token_dict = change_vpn_token_traffic_limit(vpn_token)
+    return {'details': 'Traffic limit removed', 'tokens': [vpn_token_dict]}
+
+
+def change_vpn_token_traffic_limit(vpn_token: VPNToken, limit_in_bytes: int = None) -> dict:
+    if limit_in_bytes:
+        vpn_token.traffic_limit = limit_in_bytes
+    else:
+        vpn_token.traffic_limit = None
     vpn_token.save()
     vpn_token_dict = vpn_token.as_dict()
     if vpn_token_dict['valid_until']:
         vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
-    return {'details': 'Traffic limit removed', 'tokens': [vpn_token_dict]}
+    return vpn_token_dict
 
 
 def del_outline_vpn_key(token_id: int) -> dict:
@@ -340,13 +345,19 @@ def del_outline_vpn_key(token_id: int) -> dict:
         msg = 'Outline client error occurred due key delete'
         log.error(msg)
         raise exceptions.VPNServerResponseError(message=msg)
-    vpn_token.is_active = False
-    vpn_token.name = f'Deleted {vpn_token.name}'
-    vpn_token.save()
+    vpn_token_dict = change_vpn_token_active_state(vpn_token)
+    return {'details': 'VPN Token deleted', 'tokens': [vpn_token_dict]}
+
+
+def change_vpn_token_active_state(vpn_token: VPNToken) -> dict:
+    if vpn_token.is_active:
+        vpn_token.is_active = False
+        vpn_token.name = f'Deleted {vpn_token.name}'
+        vpn_token.save()
     vpn_token_dict = vpn_token.as_dict()
     if vpn_token_dict['valid_until']:
         vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
-    return {'details': 'VPN Token deleted', 'tokens': [vpn_token_dict]}
+    return vpn_token_dict
 
 
 def telegram_message_sender(
@@ -411,19 +422,19 @@ def update_token_valid_until(token_id: int, valid_until: int) -> dict:
     return {'details': "Token valid_until updated", 'tokens': [vpn_token_dict]}
 
 
-def get_statistic_info(server_name: str):
-    # TODO
-    client = get_outline_client(server_name)
-    response = client.get_keys()
-    to_excel = {
-        'key_id': [],
-        'name': [],
-        'used_bytes': [],
-    }
-    for key in response:
-        to_excel['key_id'].append(key.key_id)
-        to_excel['name'].append(key.name)
-        to_excel['used_bytes'].append(key.used_bytes)
+# def get_statistic_info(server_name: str):
+#     # TODO
+#     client = get_outline_client(server_name)
+#     response = client.get_keys()
+#     to_excel = {
+#         'key_id': [],
+#         'name': [],
+#         'used_bytes': [],
+#     }
+#     for key in response:
+#         to_excel['key_id'].append(key.key_id)
+#         to_excel['name'].append(key.name)
+#         to_excel['used_bytes'].append(key.used_bytes)
 
     # from pandas import DataFrame
 
