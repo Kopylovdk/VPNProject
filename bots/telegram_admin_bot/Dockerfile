@@ -1,4 +1,4 @@
-FROM python:latest
+FROM python:3.11-alpine
 
 WORKDIR /usr/telegram_admin_bot
 
