@@ -41,24 +41,13 @@ def health_check() -> Response:
     return response
 
 
-def send_alert_to_admins(bot: TeleBot, response: Response, user: User = None) -> None:
+def send_alert_to_admins(bot: TeleBot, response: Response) -> None:
     """Функция отправки сообщений всем администратора"""
-    if user:
-        text = f'ОШИБКА У КЛИЕНТА:\n' \
-               f'Пользователь:\n' \
-               f'ID - {user.id!r}\n' \
-               f'Логин - {user.username!r}\n' \
-               f'ФИО - {user.full_name!r}\n' \
-               f'Произошла ошибка:\n' \
-               f'Status_code = {response.status_code!r}\n' \
-               f'Response = {response.json()}'
-        log.error(f'{response.json()=!r}, {text!r}')
-    else:
-        text = f'ОШИБКА ПОДКЛЮЧЕНИЯ К БЭКУ:' \
-               f' Status_code = {response.status_code!r},' \
-               f' url = {response.url!r},' \
-               f' headers = {response.headers}'
-        log.error(f'{text!r}')
+    text = f'ОШИБКА ПОДКЛЮЧЕНИЯ К БЭКУ:' \
+           f' Status_code = {response.status_code!r},' \
+           f' url = {response.url!r},' \
+           f' headers = {response.headers}'
+    log.error(f'{text!r}')
 
     for admin_id in TECH_ADMIN:
         bot.send_message(admin_id, text=text)
