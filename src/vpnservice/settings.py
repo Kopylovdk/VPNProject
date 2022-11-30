@@ -33,7 +33,7 @@ DEBUG = EXTERNAL_CFG['django']['debug']
 
 ALLOWED_HOSTS = EXTERNAL_CFG['django']['allowed_hosts']
 CSRF_TRUSTED_ORIGINS = EXTERNAL_CFG['django']['csrf_trusted_origins']
-SESSION_COOKIE_SECURE = True
+# SESSION_COOKIE_SECURE = True
 
 with open(f'{BASE_DIR}/logs/config/log_config.yaml', 'r', encoding='utf8') as stream:
     EXTERNAL_LOG_CFG = yaml.safe_load(stream)
@@ -63,7 +63,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
