@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
         ('outline_vpn_admin', 'create_superuser'),
     ]
 
-    def fill_default_db_data(*args, **kwargs):
+    def fill_test_db_data(*args, **kwargs):
         test_bots_name = [
             'test_client_telegram_bot',
             'test_admin_telegram_bot',
@@ -73,5 +73,5 @@ class Migration(migrations.Migration):
             ).save()
 
     operations = [
-        migrations.RunPython(fill_default_db_data),
+        migrations.RunPython(fill_test_db_data),
     ]
