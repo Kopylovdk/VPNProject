@@ -2,12 +2,20 @@ django:
   debug: True
   date_string_format: '%d-%m-%Y'
   allowed_hosts: [
+    'http://admin.tematika.org',
+    'https://admin.tematika.org',
+    'www.admin.tematika.org',
+    'admin.tematika.org',
     'http://127.0.0.1:8080',
     'http://localhost:8080',
     'http://localhost:8000',
-    '*'
+    '*',
   ]
   csrf_trusted_origins: [
+    'http://admin.tematika.org',
+    'https://admin.tematika.org',
+    'www.admin.tematika.org',
+    'admin.tematika.org',
     'http://localhost:8080',
     'http://127.0.0.1:8080',
     'http://62.113.111.75:8080',
