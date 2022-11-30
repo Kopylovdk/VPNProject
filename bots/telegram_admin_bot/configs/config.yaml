@@ -4,7 +4,7 @@ bot:
   api:
     url: "http://admin.tematika.org:8080/"
     uris: {
-      "health": "health-check/",
+      "health": "health/check/",
       "get_auth_token": "api/api-token-auth/",
 
       "get_tariffs": "api/tariff/",
