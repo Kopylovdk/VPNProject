@@ -12,6 +12,8 @@ django:
     '*',
   ]
   csrf_trusted_origins: [
+    'http://admin.tematika.org:8080',
+    'https://admin.tematika.org:8080',
     'http://admin.tematika.org',
     'https://admin.tematika.org',
     'http://localhost:8080',
