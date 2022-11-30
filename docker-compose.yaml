@@ -1,7 +1,6 @@
 version: '3.3'
 volumes:
   static: {}
-  database-data:
 
 networks:
   backnet:
@@ -25,7 +24,7 @@ services:
     networks:
       - backnet
     volumes:
-      - database-data:/var/lib/postgresql/data/
+      - /home/database-data/:/var/lib/postgresql/data/
 
   back_api_admin:
     container_name: 'BackApiAdmin'
