@@ -1,6 +1,7 @@
 from django.urls import path
 import apps.api.views as api_views
 from rest_framework.authtoken import views
+from django.views.decorators.csrf import csrf_exempt
 app_name = 'api'
 
 urlpatterns = [
@@ -13,7 +14,7 @@ urlpatterns = [
     path('token/<int:token_id>', api_views.VPNToken.as_view(), name='get_token_info'),
 
     # post
-    path('api-token-auth/', views.obtain_auth_token, name='get_auth_token'),
+    path('api-token-auth/', csrf_exempt(views.obtain_auth_token), name='get_auth_token'),
     path('contact/', api_views.ContactCreateOrUpdate.as_view(), name='creat_or_update_contact'),
     path('token/renew/', api_views.VPNTokenRenew.as_view(), name='renew_exist_token'),
     path('token/new/', api_views.VPNTokenNew.as_view(), name='create_new_token'),
