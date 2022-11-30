@@ -115,11 +115,13 @@ def get_client(bot: TeleBot, messenger_id: int) -> dict:
 
 def send_alert_to_admins(bot: TeleBot, response: Response, user: User = None) -> None:
     """Функция отправки сообщений всем администратора"""
-    status_code = response.status_code
-    if status_code >= 500:
-        err = f'Ошибка {response!r}, возврат в основное меню'
-    else:
-        err = f'Ошибка {response!r}, {response.json()!r}, {response.json()["details"]!r} возврат в основное меню'
+    err = f'Ошибка {response!r}, возврат в основное меню'
+    try:
+        json_data = response.json()
+        err = f'Ошибка {response!r}, {json_data!r}, {json_data!r} возврат в основное меню'
+    except requests.exceptions.JSONDecodeError:
+        pass
+
     if user:
         text = f'ОШИБКА У КЛИЕНТА:\n' \
                f'Пользователь:\n' \
