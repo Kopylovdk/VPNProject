@@ -33,6 +33,7 @@ DEBUG = EXTERNAL_CFG['django']['debug']
 
 ALLOWED_HOSTS = EXTERNAL_CFG['django']['allowed_hosts']
 CSRF_TRUSTED_ORIGINS = EXTERNAL_CFG['django']['csrf_trusted_origins']
+SESSION_COOKIE_SECURE = True
 
 with open(f'{BASE_DIR}/logs/config/log_config.yaml', 'r', encoding='utf8') as stream:
     EXTERNAL_LOG_CFG = yaml.safe_load(stream)
