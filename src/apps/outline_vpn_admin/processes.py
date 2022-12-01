@@ -314,7 +314,7 @@ def add_traffic_limit(token_id: int, traffic_limit: int = 1024) -> dict:
         msg = 'Outline client error occurred due traffic limit add'
         log.error(msg)
         raise exceptions.VPNServerResponseError(message=msg)
-    vpn_token_dict = change_vpn_token_traffic_limit(vpn_token, limit_in_bytes)
+    vpn_token_dict = change_vpn_token_traffic_limit(vpn_token, traffic_limit)
     return {'details': 'Traffic limit updated', 'tokens': [vpn_token_dict]}
 
 
@@ -330,8 +330,9 @@ def del_traffic_limit(token_id: int) -> dict:
     return {'details': 'Traffic limit removed', 'tokens': [vpn_token_dict]}
 
 
-def change_vpn_token_traffic_limit(vpn_token: VPNToken, limit_in_bytes: int = None) -> dict:
-    if limit_in_bytes:
+def change_vpn_token_traffic_limit(vpn_token: VPNToken, traffic_limit: int = None) -> dict:
+    if traffic_limit:
+        limit_in_bytes = traffic_limit * 1024 * 1024
         vpn_token.traffic_limit = limit_in_bytes
     else:
         vpn_token.traffic_limit = None
