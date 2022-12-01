@@ -15,6 +15,6 @@ def get_outline_client(vpn_server_name: str = None) -> OutlineVPN:
     try:
         outline_client.get_server_information()
     except Exception as err:
-        raise VPNServerDoesNotResponse(message=f'{err!r}')
+        raise VPNServerDoesNotResponse(message=f'Сервер {vpn_server_name} не отвечает. {err=!r}')
     else:
         return outline_client
