@@ -12,11 +12,17 @@ from apps.outline_vpn_admin.forms import VPNTokenAdminCreateForm
 log = logging.getLogger(__name__)
 
 
-admin.site.unregister(Group)
+class MyAdminSite(admin.AdminSite):
+    site_header = 'VPN Admin'
+
+
+admin_site = MyAdminSite(name='admin')
+
+admin_site.unregister(Group)
 admin.ModelAdmin.save_on_top = True
 
 
-@admin.register(vpn_models.Currency)
+@admin_site.register(vpn_models.Currency)
 class Currency(admin.ModelAdmin):
     list_display = (
         'name',
@@ -30,7 +36,7 @@ class Currency(admin.ModelAdmin):
     )
 
 
-@admin.register(vpn_models.VPNServer)
+@admin_site.register(vpn_models.VPNServer)
 class VPNServer(admin.ModelAdmin):
     list_display = (
         'name',
@@ -49,7 +55,7 @@ class VPNServer(admin.ModelAdmin):
     )
 
 
-@admin.register(vpn_models.Tariff)
+@admin_site.register(vpn_models.Tariff)
 class Tariff(admin.ModelAdmin):
     list_display = (
         'name',
@@ -73,7 +79,7 @@ class Tariff(admin.ModelAdmin):
     )
 
 
-@admin.register(vpn_models.Transport)
+@admin_site.register(vpn_models.Transport)
 class Transport(admin.ModelAdmin):
     list_display = (
         'name',
@@ -86,7 +92,7 @@ class Transport(admin.ModelAdmin):
     )
 
 
-@admin.register(vpn_models.Client)
+@admin_site.register(vpn_models.Client)
 class Client(admin.ModelAdmin):
     list_display = (
         'full_name',
@@ -97,7 +103,7 @@ class Client(admin.ModelAdmin):
     )
 
 
-@admin.register(vpn_models.Contact)
+@admin_site.register(vpn_models.Contact)
 class Contact(admin.ModelAdmin):
     list_display = (
         'client',
@@ -119,7 +125,7 @@ class Contact(admin.ModelAdmin):
     )
 
 
-@admin.register(vpn_models.VPNToken)
+@admin_site.register(vpn_models.VPNToken)
 class VPNToken(admin.ModelAdmin):
     list_display = (
         'name',
