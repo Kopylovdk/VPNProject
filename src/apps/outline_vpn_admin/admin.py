@@ -244,9 +244,8 @@ class TokenProcess(admin.ModelAdmin):
     )
 
     list_filter = (
+        'script_name',
         'vpn_token',
-        'transport',
-        'contact',
         'vpn_server',
         'is_executed',
     )
