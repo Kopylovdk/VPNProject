@@ -123,12 +123,23 @@ def token_new(
     transport_name: str = None,
     credentials: dict = None,
 ) -> dict:
+
+    try:
+        vpn_server = VPNServer.objects.get(name=server_name)
+
+    except VPNServer.DoesNotExist as err:
+        log.error(f'Error token_new {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
+        raise exceptions.VPNServerDoesNotExist(message=f'VPN Server {server_name!r} does not exist')
+
+    outline_client = get_outline_client(vpn_server)
+
     try:
         tariff = Tariff.objects.get(name=tariff_name)
     except Tariff.DoesNotExist as err:
         log.error(
             f'Error token_new {tariff_name=!r}, {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
         raise exceptions.TariffDoesNotExist(message=f'Tariff {tariff_name!r} does not exist')
+
     response = {}
     if transport_name and credentials:
         transport, contact = get_transport_contact_by_(transport_name=transport_name, credentials=credentials)
@@ -154,41 +165,35 @@ def token_new(
             "user": client.as_dict(),
             "contact": '',
         }
-    try:
-        vpn_server = VPNServer.objects.get(name=server_name)
-    except VPNServer.DoesNotExist as err:
-        log.debug(f'Error token_new {transport_name=!r}, {credentials=!r}, {server_name=!r}, {err=!r}')
-        raise exceptions.VPNServerDoesNotExist(message=f'VPN Server {server_name!r} does not exist')
-    else:
-        outline_client = get_outline_client(vpn_server.name)
-        outline_key = outline_client.create_key()
-        outline_key_name = f"OUTLINE_VPN_id:{outline_key.key_id!r}, client_id: {client.id!r}"
-        outline_client.rename_key(outline_key.key_id, outline_key_name)
-        outline_client.add_data_limit(outline_key.key_id, tariff.traffic_limit)
 
-        valid_until = None
-        if tariff.prolong_period:
-            valid_until = datetime.datetime.now() + datetime.timedelta(days=tariff.prolong_period)
-        new_token = VPNToken(
-            client=client,
-            server=vpn_server,
-            outline_id=outline_key.key_id,
-            vpn_key=outline_key.access_url,
-            name=outline_key_name,
-            tariff=tariff,
-            traffic_limit=tariff.traffic_limit,
-            valid_until=valid_until,
-        )
-        if tariff.is_demo:
-            new_token.is_demo = True
-        if tariff.is_tech:
-            new_token.is_tech = True
-        new_token.save()
-        token_dict = new_token.as_dict()
-        if token_dict['valid_until']:
-            token_dict['valid_until'] = token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
-        response["tokens"] = [token_dict]
-        return response
+    outline_key = outline_client.create_key()
+    outline_key_name = f"OUTLINE_VPN_id:{outline_key.key_id!r}, client_id: {client.id!r}"
+    outline_client.rename_key(outline_key.key_id, outline_key_name)
+    outline_client.add_data_limit(outline_key.key_id, tariff.traffic_limit)
+
+    valid_until = None
+    if tariff.prolong_period:
+        valid_until = datetime.datetime.now() + datetime.timedelta(days=tariff.prolong_period)
+    new_token = VPNToken(
+        client=client,
+        server=vpn_server,
+        outline_id=outline_key.key_id,
+        vpn_key=outline_key.access_url,
+        name=outline_key_name,
+        tariff=tariff,
+        traffic_limit=tariff.traffic_limit,
+        valid_until=valid_until,
+    )
+    if tariff.is_demo:
+        new_token.is_demo = True
+    if tariff.is_tech:
+        new_token.is_tech = True
+    new_token.save()
+    token_dict = new_token.as_dict()
+    if token_dict['valid_until']:
+        token_dict['valid_until'] = token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+    response["tokens"] = [token_dict]
+    return response
 
 
 def token_renew(
@@ -225,7 +230,7 @@ def token_renew(
         log.error(err)
         raise exceptions.DemoKeyNotAllowed(message=err)
 
-    outline_client = get_outline_client(old_token.server.name)
+    outline_client = get_outline_client(old_token.server)
     new_outline_key = outline_client.create_key()
     outline_key_name = f"OUTLINE_VPN_id:{new_outline_key.key_id!r}, client_id: {old_token.client.id!r}"
     outline_client.rename_key(new_outline_key.key_id, outline_key_name)
@@ -302,7 +307,7 @@ def get_token_info(token_id: int) -> dict:
 
 def add_traffic_limit(token_id: int, traffic_limit: int = 1024) -> dict:
     vpn_token = get_token(token_id)
-    outline_client = get_outline_client(vpn_token.server.name)
+    outline_client = get_outline_client(vpn_token.server)
     limit_in_bytes = traffic_limit * 1024 * 1024
     response = outline_client.add_data_limit(vpn_token.outline_id, limit_in_bytes)
     if not response:
@@ -315,7 +320,7 @@ def add_traffic_limit(token_id: int, traffic_limit: int = 1024) -> dict:
 
 def del_traffic_limit(token_id: int) -> dict:
     vpn_token = get_token(token_id)
-    outline_client = get_outline_client(vpn_token.server.name)
+    outline_client = get_outline_client(vpn_token.server)
     response = outline_client.delete_data_limit(vpn_token.outline_id)
     if not response:
         msg = 'Outline client error occurred due traffic limit delete'
@@ -339,7 +344,7 @@ def change_vpn_token_traffic_limit(vpn_token: VPNToken, limit_in_bytes: int = No
 
 def del_outline_vpn_key(token_id: int) -> dict:
     vpn_token = get_token(token_id)
-    outline_client = get_outline_client(vpn_token.server.name)
+    outline_client = get_outline_client(vpn_token.server)
     response = outline_client.delete_key(vpn_token.outline_id)
     if not response:
         msg = 'Outline client error occurred due key delete'

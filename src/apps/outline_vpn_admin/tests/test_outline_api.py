@@ -1,5 +1,4 @@
 from django.test import TestCase
-
 from apps.outline_vpn_admin import exceptions
 from apps.outline_vpn_admin.outline_api import get_outline_client
 from outline_vpn.outline_vpn import OutlineVPN
@@ -21,13 +20,8 @@ class GetOutlineServerResponseTestCase(TestCase):
         self.assertIsInstance(client, OutlineVPN)
 
     def test_get_outline_client_by_name(self):
-        client = get_outline_client(self.server_name)
+        client = get_outline_client(vpn_server=self.servers[0])
         self.assertIsInstance(client, OutlineVPN)
-
-    def test_get_outline_client_server_does_not_exist(self):
-        with self.assertRaises(exceptions.VPNServerDoesNotExist) as err:
-            get_outline_client(self.server_error_name)
-        self.assertIn(f'VPN Server {self.server_error_name} does not exist', err.exception.message)
 
     def test_get_outline_client_server_does_not_response(self):
         pass

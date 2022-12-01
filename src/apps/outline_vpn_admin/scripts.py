@@ -103,7 +103,7 @@ def vpn_token_deactivate(token: VPNToken):
 
 
 def outline_token_delete(token: VPNToken, server: VPNServer) -> bool:
-    outline_client = get_outline_client(server.name)
+    outline_client = get_outline_client(server)
     if not outline_client.delete_key(token.outline_id):
         log.error('Outline client error occurred due outline_token_delete')
         return False
