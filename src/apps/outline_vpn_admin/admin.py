@@ -1,6 +1,6 @@
 import logging
 from django.contrib import admin
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group
 from django.utils.translation import ngettext
 from django.contrib import messages
 from apps.outline_vpn_admin import models as vpn_models
@@ -12,17 +12,12 @@ from apps.outline_vpn_admin.forms import VPNTokenAdminCreateForm
 log = logging.getLogger(__name__)
 
 
-class MyAdminSite(admin.AdminSite):
-    site_header = 'VPN Admin'
-
-
-admin_site = MyAdminSite(name='admin')
-
-admin_site.register(User)
+admin.AdminSite.site_header = 'Tematika administration'
+admin.AdminSite.site_title = 'Tematika VPN Admin'
+admin.site.unregister(Group)
 admin.ModelAdmin.save_on_top = True
 
-
-@admin_site.register(vpn_models.Currency)
+@admin.register(vpn_models.Currency)
 class Currency(admin.ModelAdmin):
     list_display = (
         'name',
@@ -36,7 +31,7 @@ class Currency(admin.ModelAdmin):
     )
 
 
-@admin_site.register(vpn_models.VPNServer)
+@admin.register(vpn_models.VPNServer)
 class VPNServer(admin.ModelAdmin):
     list_display = (
         'name',
@@ -55,7 +50,7 @@ class VPNServer(admin.ModelAdmin):
     )
 
 
-@admin_site.register(vpn_models.Tariff)
+@admin.register(vpn_models.Tariff)
 class Tariff(admin.ModelAdmin):
     list_display = (
         'name',
@@ -79,7 +74,7 @@ class Tariff(admin.ModelAdmin):
     )
 
 
-@admin_site.register(vpn_models.Transport)
+@admin.register(vpn_models.Transport)
 class Transport(admin.ModelAdmin):
     list_display = (
         'name',
@@ -92,7 +87,7 @@ class Transport(admin.ModelAdmin):
     )
 
 
-@admin_site.register(vpn_models.Client)
+@admin.register(vpn_models.Client)
 class Client(admin.ModelAdmin):
     list_display = (
         'full_name',
@@ -103,7 +98,7 @@ class Client(admin.ModelAdmin):
     )
 
 
-@admin_site.register(vpn_models.Contact)
+@admin.register(vpn_models.Contact)
 class Contact(admin.ModelAdmin):
     list_display = (
         'client',
@@ -125,7 +120,7 @@ class Contact(admin.ModelAdmin):
     )
 
 
-@admin_site.register(vpn_models.VPNToken)
+@admin.register(vpn_models.VPNToken)
 class VPNToken(admin.ModelAdmin):
     list_display = (
         'name',
