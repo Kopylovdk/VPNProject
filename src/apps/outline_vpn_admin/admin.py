@@ -228,3 +228,25 @@ class VPNToken(admin.ModelAdmin):
                 server_name=obj.server.name,
                 tariff_name=obj.tariff.name,
             )
+
+
+@admin.register(vpn_models.TokenProcess)
+class TokenProcess(admin.ModelAdmin):
+    list_display = (
+        'script_name',
+        'created_at',
+        'is_executed',
+        'executed_at',
+    )
+
+    search_fields = (
+        'script_name',
+    )
+
+    list_filter = (
+        'vpn_token',
+        'transport',
+        'contact',
+        'vpn_server',
+        'is_executed',
+    )
