@@ -1,6 +1,6 @@
 import logging
 from django.contrib import admin
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import User
 from django.utils.translation import ngettext
 from django.contrib import messages
 from apps.outline_vpn_admin import models as vpn_models
@@ -18,7 +18,7 @@ class MyAdminSite(admin.AdminSite):
 
 admin_site = MyAdminSite(name='admin')
 
-admin_site.unregister(Group)
+admin_site.register(User)
 admin.ModelAdmin.save_on_top = True
 
 
