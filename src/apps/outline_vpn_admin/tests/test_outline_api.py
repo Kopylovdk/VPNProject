@@ -28,3 +28,6 @@ class GetOutlineServerResponseTestCase(TestCase):
         with self.assertRaises(exceptions.VPNServerDoesNotExist) as err:
             get_outline_client(self.server_error_name)
         self.assertIn(f'VPN Server {self.server_error_name} does not exist', err.exception.message)
+
+    def test_get_outline_client_server_does_not_response(self):
+        pass

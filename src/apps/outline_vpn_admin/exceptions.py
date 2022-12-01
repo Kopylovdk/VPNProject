@@ -18,6 +18,10 @@ class VPNServerDoesNotExist(ProcessException):
     """VPNServer does not exist"""
 
 
+class VPNServerDoesNotResponse(ProcessException):
+    """VPNServer does not response on get request"""
+
+
 class TariffDoesNotExist(ProcessException):
     """Tariff does not exist"""
 

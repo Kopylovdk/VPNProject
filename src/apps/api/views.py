@@ -96,6 +96,7 @@ class VPNTokenNew(BaseAPIView):
             exceptions.TransportDoesNotExist,
             exceptions.UserDoesNotExist,
             exceptions.VPNServerDoesNotExist,
+            exceptions.VPNServerDoesNotResponse,
             exceptions.TariffDoesNotExist,
         ) as err:
             msg = str(err.message)
@@ -184,6 +185,7 @@ class VPNToken(BaseAPIView):
                 return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             except (
                 exceptions.VPNServerDoesNotExist,
+                exceptions.VPNServerDoesNotResponse,
                 exceptions.VPNTokenDoesNotExist,
             ) as err:
                 msg = str(err.message)
@@ -217,6 +219,7 @@ class VPNToken(BaseAPIView):
             except (
                 exceptions.VPNServerDoesNotExist,
                 exceptions.VPNTokenDoesNotExist,
+                exceptions.VPNServerDoesNotResponse,
             ) as err:
                 msg = str(err.message)
                 log.error(msg)
@@ -234,6 +237,7 @@ class VPNToken(BaseAPIView):
             return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except (
             exceptions.VPNServerDoesNotExist,
+            exceptions.VPNServerDoesNotResponse,
             exceptions.VPNTokenDoesNotExist,
         ) as err:
             msg = str(err.message)
