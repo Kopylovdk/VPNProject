@@ -11,8 +11,8 @@ services:
     container_name: 'PostgresSQL'
     platform: linux/x86_64
     image: postgres:15-alpine
-#    environment:
-#      POSTGRES_PASSWORD: postgres
+    environment:
+      POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     restart: always
