@@ -13,8 +13,8 @@ django:
     'www.admin.tematika.org',
     'admin.tematika.org',
 
-    'http://62.113.111.75',
-    '62.113.111.75',
+#    'http://62.113.111.75',
+#    '62.113.111.75',
 #    'http://127.0.0.1:8080',
 #    'http://localhost:8080',
 #    'http://localhost:8000',
