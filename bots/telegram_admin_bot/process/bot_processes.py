@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 API_CREDS_USERNAME = os.environ.get('USERNAME')
 API_CREDS_PASSWORD = os.environ.get('PASSWORD')
 API_URL = CONFIG['bot']['api']['url']
+API_URL_HEALTH = CONFIG['bot']['api']['url_health']
 API_URIS = CONFIG['bot']['api']['uris']
 BOT_NAME = CONFIG['bot']['name']
 TECH_ADMIN = CONFIG['bot']['admin_tech']
@@ -36,7 +37,7 @@ def check_int(data: str) -> int or str:
 
 
 def health_check() -> Response:
-    url = f'{API_URL}{API_URIS["health"]}'
+    url = f'{API_URL_HEALTH}'
     response = requests.get(url, allow_redirects=True)
     return response
 

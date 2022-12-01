@@ -14,8 +14,10 @@ log = logging.getLogger(__name__)
 
 admin.AdminSite.site_header = 'Tematika administration'
 admin.AdminSite.site_title = 'Tematika VPN Admin'
+admin.AdminSite.site_url
 admin.site.unregister(Group)
 admin.ModelAdmin.save_on_top = True
+
 
 @admin.register(vpn_models.Currency)
 class Currency(admin.ModelAdmin):

@@ -3,8 +3,8 @@ bot:
   admin_tech: [480629416, 1416920102]
   api:
     url: "http://api.tematika.org:8080/"
+    url_health: "http://admin.tematika.org:8080/health/check/"
     uris: {
-      "health": "health/check/",
       "get_auth_token": "api-token-auth/",
 
       "get_tariffs": "tariff/",
