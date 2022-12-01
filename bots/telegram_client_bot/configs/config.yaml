@@ -3,15 +3,15 @@ bot:
   tech_admin: [480629416]
   managers: [480629416, 1416920102]
   api:
-    url: "http://admin.tematika.org:8080/"
+    url: "http://api.tematika.org:8080/"
     uris: {
       "health": "health/check/",
-      "get_auth_token": "api/api-token-auth/",
-      "get_tariffs": "api/tariff/",
-      "get_contact": "api/contact/{transport_name}/{messenger_id}",
-      "get_client_tokens": "api/token/{transport_name}/{messenger_id}",
-      "creat_or_update_contact": "api/contact/",
-      "renew_exist_token": "api/token/renew/",
-      "create_new_token": "api/token/new/",
-      "get_vpn_servers": "api/vpn-servers/",
+      "get_auth_token": "api-token-auth/",
+      "get_tariffs": "tariff/",
+      "get_contact": "contact/{transport_name}/{messenger_id}",
+      "get_client_tokens": "token/{transport_name}/{messenger_id}",
+      "creat_or_update_contact": "contact/",
+      "renew_exist_token": "token/renew/",
+      "create_new_token": "token/new/",
+      "get_vpn_servers": "vpn-servers/",
       }

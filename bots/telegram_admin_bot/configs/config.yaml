@@ -2,23 +2,23 @@ bot:
   name: "test_admin_telegram_bot"
   admin_tech: [480629416, 1416920102]
   api:
-    url: "http://admin.tematika.org:8080/"
+    url: "http://api.tematika.org:8080/"
     uris: {
       "health": "health/check/",
-      "get_auth_token": "api/api-token-auth/",
+      "get_auth_token": "api-token-auth/",
 
-      "get_tariffs": "api/tariff/",
-      "get_vpn_servers": "api/vpn-servers/",
-      "get_transports": "api/transports/",
+      "get_tariffs": "tariff/",
+      "get_vpn_servers": "vpn-servers/",
+      "get_transports": "transports/",
 
-      "get_client_tokens": "api/token/{transport_name}/{messenger_id}",
-      "get_token_info": "api/token/{token_id}",
-      "get_contact": "api/contact/{transport_name}/{messenger_id}",
+      "get_client_tokens": "token/{transport_name}/{messenger_id}",
+      "get_token_info": "token/{token_id}",
+      "get_contact": "contact/{transport_name}/{messenger_id}",
 
-      "creat_or_update_contact": "api/contact/",
-      "renew_exist_token": "api/token/renew/",
-      "create_new_token": "api/token/new/",
-      "update_token": "api/token/",
-      "delete_token": "api/token/delete/",
-      "telegram_message_send": "api/message/telegram/send/",
+      "creat_or_update_contact": "contact/",
+      "renew_exist_token": "token/renew/",
+      "create_new_token": "token/new/",
+      "update_token": "token/",
+      "delete_token": "token/delete/",
+      "telegram_message_send": "message/telegram/send/",
       }
