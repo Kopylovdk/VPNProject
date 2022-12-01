@@ -23,7 +23,7 @@ API_URL = CONFIG['bot']['api']['url']
 API_URL_HEALTH = CONFIG['bot']['api']['url_health']
 API_URIS = CONFIG['bot']['api']['uris']
 BOT_NAME = CONFIG['bot']['name']
-TECH_ADMIN = CONFIG['bot']['tech_admin']
+ADMIN_ALERT = CONFIG['bot']['admin_alert']
 MANAGERS = CONFIG['bot']['managers']
 
 
@@ -139,7 +139,7 @@ def send_alert_to_admins(bot: TeleBot, response: Response, user: User = None) ->
                f' headers = {response.headers}'
         log.error(f'{text!r}')
 
-    for admin_id in TECH_ADMIN:
+    for admin_id in ADMIN_ALERT:
         bot.send_message(admin_id, text=text)
 
 

@@ -1,6 +1,6 @@
 bot:
   name: "test_client_telegram_bot"
-  tech_admin: [480629416]
+  admin_alert: [480629416]
   managers: [480629416, 1416920102]
   api:
     url: "http://api.tematika.org:8080/"

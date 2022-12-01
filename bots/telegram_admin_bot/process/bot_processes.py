@@ -4,7 +4,7 @@ import os
 from requests import Response
 from telebot import TeleBot, types
 from process.config_loader import CONFIG
-from telebot.types import Message, User
+from telebot.types import Message
 from functools import lru_cache
 from process.keyboards import (
     main_keyboard,
@@ -25,7 +25,8 @@ API_URL = CONFIG['bot']['api']['url']
 API_URL_HEALTH = CONFIG['bot']['api']['url_health']
 API_URIS = CONFIG['bot']['api']['uris']
 BOT_NAME = CONFIG['bot']['name']
-TECH_ADMIN = CONFIG['bot']['admin_tech']
+ADMIN_ACCESS = CONFIG['bot']['admin_access']
+ADMIN_ALERT = CONFIG['bot']['admin_alert']
 
 
 def check_int(data: str) -> int or str:
@@ -50,7 +51,7 @@ def send_alert_to_admins(bot: TeleBot, response: Response) -> None:
            f' headers = {response.headers}'
     log.error(f'{text!r}')
 
-    for admin_id in TECH_ADMIN:
+    for admin_id in ADMIN_ALERT:
         bot.send_message(admin_id, text=text)
 
 
@@ -277,7 +278,7 @@ def select_action_response_handler(response: Response, bot: TeleBot, token_dict:
         new_token_dict['tariff'] = token_dict['tariff']
         bot.send_message(user_id, data['details'], reply_markup=token_actions_keyboard(new_token_dict))
         bot.register_next_step_handler(message, select_action_with_token_step_3, bot, new_token_dict)
-    elif status_code != 500:
+    elif status_code < 500:
         bot.send_message(
             user_id,
             f'Ошибка {response!r}, {response.json()!r}, {response.json()["details"]!r}',
@@ -464,7 +465,7 @@ def select_action_with_user_step_3(message: Message, bot: TeleBot, to_send: dict
                 reply_markup=client_actions_keyboard()
             )
             bot.register_next_step_handler(message, select_action_with_user_step_4, bot, to_send, user_info)
-        elif status_code != 500:
+        elif status_code < 500:
             bot.send_message(
                 user_id,
                 f'Ошибка {response!r}, {response.json()!r}, {response.json()["details"]!r}',
@@ -529,7 +530,7 @@ def get_vpn_keys_step_1(message: Message, bot: TeleBot, to_send: dict, user_info
                        f"Ключ - {token_dict['vpn_key']}\n")
         bot.send_message(user_id, ''.join(msg) if msg else 'Ключи отсутствуют', reply_markup=client_actions_keyboard())
         bot.register_next_step_handler(message, select_action_with_user_step_4, bot, to_send, user_info)
-    elif status_code != 500:
+    elif status_code < 500:
         bot.send_message(
             user_id,
             f'Ошибка {response!r}, {response.json()!r}, {response.json()["details"]!r}',
@@ -610,7 +611,7 @@ def new_token_step_3(message: Message, bot: TeleBot, list_for_kb: list, to_send:
                    f'Ключ: {data["tokens"][0]["vpn_key"]}'
             bot.send_message(user_id, text, reply_markup=main_keyboard())
 
-        elif status_code != 500:
+        elif status_code < 500:
             bot.send_message(
                 user_id,
                 f'Ошибка {response!r}, {response.json()!r}, {response.json()["details"]!r}',
@@ -716,7 +717,7 @@ def message_response_handler(response: Response, bot: TeleBot, message: Message)
             f'Ошибка отправки: {data["info"]["error"]}',
             reply_markup=main_keyboard(),
         )
-    elif status_code != 500:
+    elif status_code < 500:
         bot.send_message(
             user_id,
             f'Ошибка {response!r}, {response.json()!r}, {response.json()["details"]!r} возврат в основное меню',

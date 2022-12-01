@@ -39,6 +39,7 @@ class VPNServer(admin.ModelAdmin):
         'name',
         'uri',
         'is_default',
+        'is_active',
         'created_at',
         'updated_at',
     )
