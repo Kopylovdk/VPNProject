@@ -1,16 +1,20 @@
 django:
-  debug: True
+#  debug: True
+  debug: False
   date_string_format: '%d-%m-%Y'
   allowed_hosts: [
-    '*.tematika.org',
+    'api.tematika.org',
+    'www.api.tematika.org',
+    'http://api.tematika.org',
+    'https://api.tematika.org',
+
+    'http://admin.tematika.org',
+    'https://admin.tematika.org',
+    'www.admin.tematika.org',
+    'admin.tematika.org',
+
+    'http://62.113.111.75',
     '62.113.111.75',
-#    'https://admin.tematika.org',
-#    'www.admin.tematika.org',
-#    'admin.tematika.org',
-#    'http://api.tematika.org',
-#    'https://api.tematika.org',
-#    'api.tematika.org',
-#    'www.api.tematika.org',
 #    'http://127.0.0.1:8080',
 #    'http://localhost:8080',
 #    'http://localhost:8000',
