@@ -30,8 +30,8 @@ services:
     build:
       context: .
       dockerfile: Docker/back-api-admin/Dockerfile
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     env_file: .env
     environment:
       - SECRET_KEY=${SECRET_KEY}
@@ -64,7 +64,7 @@ services:
     container_name: 'Nginx'
     build: ./Docker/nginx_conf
     ports:
-      - "8080:80"
+      - "8080:8000"
     volumes:
       - static:/usr/src/static
     restart: always
