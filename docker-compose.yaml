@@ -64,7 +64,7 @@ services:
     container_name: 'Nginx'
     build: ./Docker/nginx_conf
     ports:
-      - "8080:8000"
+      - "8080:80"
     volumes:
       - static:/usr/src/static
     restart: always
