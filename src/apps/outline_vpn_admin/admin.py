@@ -6,7 +6,7 @@ from django.contrib import messages
 from apps.outline_vpn_admin import models as vpn_models
 from apps.outline_vpn_admin import exceptions
 from apps.outline_vpn_admin import processes as processes
-from apps.outline_vpn_admin.forms import VPNTokenAdminCreateForm
+from apps.outline_vpn_admin.forms import VPNTokenAdminCreateForm, VPNTokenAdminChangeForm
 
 
 log = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 admin.AdminSite.site_header = 'Tematika administration'
 admin.AdminSite.site_title = 'Tematika VPN Admin'
-admin.AdminSite.site_url
+# admin.AdminSite.site_url
 admin.site.unregister(Group)
 admin.ModelAdmin.save_on_top = True
 
@@ -162,7 +162,9 @@ class VPNToken(admin.ModelAdmin):
     def get_form(self, request, obj=None, change=True, **kwargs):
         if 'add' in request.META.get('PATH_INFO'):
             return VPNTokenAdminCreateForm
-        return super().get_form(request, obj=None, change=True, **kwargs)
+        else:
+            return VPNTokenAdminChangeForm
+        # return super().get_form(request, obj=None, change=True, **kwargs)
 
     def has_delete_permission(self, request, obj=None):
         return False

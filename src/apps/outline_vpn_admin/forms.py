@@ -20,3 +20,41 @@ class VPNTokenAdminCreateForm(forms.ModelForm):
             raise forms.ValidationError("Выберите Сервер")
         if self.cleaned_data['tariff'].is_demo:
             raise forms.ValidationError("Создание VPN Token с тарифом DEMO из админки не возможно")
+
+
+class VPNTokenAdminChangeForm(forms.ModelForm):
+    not_editable_fields = [
+        'outline_id',
+        'previous_vpn_token_id',
+        'vpn_key',
+        'is_demo',
+        'is_tech',
+        'is_active',
+        'created_at',
+        'updated_at',
+    ]
+
+    class Meta:
+        model = VPNToken
+        fields = [
+            'client',
+            'server',
+            'tariff',
+            'name',
+            'valid_until',
+            'traffic_limit',
+            'outline_id',
+            'previous_vpn_token_id',
+            'vpn_key',
+            'is_active',
+            'is_demo',
+            'is_tech',
+            'created_at',
+            'updated_at',
+        ]
+
+    def __init__(self, *arg, **kwargs):
+        super().__init__(*arg, **kwargs)
+        for field_name, field in self.fields.items():
+            if field_name in self.not_editable_fields:
+                field.disabled = True
