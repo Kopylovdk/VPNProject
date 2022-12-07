@@ -31,8 +31,8 @@ services:
       context: .
       dockerfile: Docker/back-api-admin/Dockerfile
     ports:
-#      - "8000:8000"
-      - "443:443"
+      - "8000:8000"
+#      - "443:443"
     env_file: .env
     environment:
       - SECRET_KEY=${SECRET_KEY}
