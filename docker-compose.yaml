@@ -31,8 +31,7 @@ services:
       context: .
       dockerfile: Docker/back-api-admin/Dockerfile
     ports:
-      - "8000:8000"
-#      - "443:443"
+      - "8000"
     env_file: .env
     environment:
       - SECRET_KEY=${SECRET_KEY}
@@ -46,7 +45,7 @@ services:
     restart: always
     networks:
       - backnet
-      - frontnet
+#      - frontnet
 
   background_tasks:
     container_name: 'BackgroundTasks'
@@ -65,12 +64,9 @@ services:
     container_name: 'Nginx'
     build: ./Docker/nginx_conf
     ports:
-#      - "8080:80"
       - "443:443"
     volumes:
       - /etc/letsencrypt/:/etc/letsencrypt/
-#      - /etc/letsencrypt/live/tematika.org/:/etc/letsencrypt/live/tematika.org/
-
       - static:/usr/src/static
     restart: always
     depends_on:
