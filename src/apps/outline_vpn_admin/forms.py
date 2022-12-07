@@ -55,5 +55,5 @@ class VPNTokenAdminChangeForm(forms.ModelForm):
             if field_name in self.not_editable_fields:
                 field.disabled = True
             if field_name == 'traffic_limit':
-                field.help_text = 'Указывайте новое значение в Мб.\n' \
-                                  'При сохранении система автоматически пересчитывает в байты'
+                field.help_text = 'Указывайте новое значение в Мб.' \
+                                  'При сохранении система автоматически пересчитывает в байты.'

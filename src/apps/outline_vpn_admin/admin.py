@@ -156,6 +156,12 @@ class VPNToken(admin.ModelAdmin):
         'delete_vpn_record',
     ]
 
+    def get_queryset(self, request):
+        data = super().get_queryset(request)
+        for obj in data:
+            obj.traffic_limit = obj.traffic_limit / 1024 / 1024
+        return data
+
     def add_view(self, request, form_url='', extra_context=None):
         extra_context = extra_context or {}
         extra_context['show_save_and_continue'] = False
