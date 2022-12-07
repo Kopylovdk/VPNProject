@@ -163,7 +163,9 @@ class VPNToken(admin.ModelAdmin):
         if 'add' in request.META.get('PATH_INFO'):
             return VPNTokenAdminCreateForm
         else:
-            return VPNTokenAdminChangeForm
+            form = VPNTokenAdminChangeForm
+            form.base_fields['name'].widget.attrs['style'] = 'width: 100em;'
+            return form
         # return super().get_form(request, obj=None, change=True, **kwargs)
 
     def has_delete_permission(self, request, obj=None):
