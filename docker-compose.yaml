@@ -31,7 +31,8 @@ services:
       context: .
       dockerfile: Docker/back-api-admin/Dockerfile
     ports:
-      - "8000:8000"
+#      - "8000:8000"
+      - "443:443"
     env_file: .env
     environment:
       - SECRET_KEY=${SECRET_KEY}
@@ -64,8 +65,11 @@ services:
     container_name: 'Nginx'
     build: ./Docker/nginx_conf
     ports:
-      - "8080:80"
+#      - "8080:80"
+      - "443:443"
     volumes:
+      - /etc/letsencrypt/live/tematika.org/:/etc/letsencrypt/live/tematika.org/
+#      - /etc/letsencrypt/:/etc/letsencrypt/
       - static:/usr/src/static
     restart: always
     depends_on:
