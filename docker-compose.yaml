@@ -68,8 +68,9 @@ services:
 #      - "8080:80"
       - "443:443"
     volumes:
-      - /etc/letsencrypt/live/tematika.org/:/etc/letsencrypt/live/tematika.org/
-#      - /etc/letsencrypt/:/etc/letsencrypt/
+      - /etc/letsencrypt/:/etc/letsencrypt/
+#      - /etc/letsencrypt/live/tematika.org/:/etc/letsencrypt/live/tematika.org/
+
       - static:/usr/src/static
     restart: always
     depends_on:
