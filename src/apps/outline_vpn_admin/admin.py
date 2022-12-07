@@ -7,7 +7,9 @@ from apps.outline_vpn_admin import models as vpn_models
 from apps.outline_vpn_admin import exceptions
 from apps.outline_vpn_admin import processes as processes
 from apps.outline_vpn_admin.forms import VPNTokenAdminCreateForm, VPNTokenAdminChangeForm
+from django.conf.locale.es import formats as es_formats
 
+es_formats.DATETIME_FORMAT = "d M Y"
 
 log = logging.getLogger(__name__)
 
