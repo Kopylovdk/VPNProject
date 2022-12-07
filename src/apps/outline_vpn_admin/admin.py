@@ -164,7 +164,7 @@ class VPNToken(admin.ModelAdmin):
             return VPNTokenAdminCreateForm
         else:
             form = VPNTokenAdminChangeForm
-            form.base_fields['name'].widget.attrs['style'] = 'width: 100em;'
+            form.base_fields['name'].widget.attrs['style'] = 'width: 30em;'
             return form
 
     def has_delete_permission(self, request, obj=None):
