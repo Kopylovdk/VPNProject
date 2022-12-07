@@ -30,8 +30,6 @@ class VPNTokenAdminChangeForm(forms.ModelForm):
         'is_demo',
         'is_tech',
         'is_active',
-        'created_at',
-        'updated_at',
     ]
 
     class Meta:
@@ -49,8 +47,6 @@ class VPNTokenAdminChangeForm(forms.ModelForm):
             'is_active',
             'is_demo',
             'is_tech',
-            'created_at',
-            'updated_at',
         ]
 
     def __init__(self, *arg, **kwargs):
