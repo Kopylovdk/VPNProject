@@ -93,8 +93,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': EXTERNAL_CFG['db']['name'],
-        'USER': EXTERNAL_CFG['db']['user'],
-        'PASSWORD': EXTERNAL_CFG['db']['password'],
+        'USER': os.environ.get('POSTGRES_USER'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
         'HOST': EXTERNAL_CFG['db']['host'],
         'PORT': EXTERNAL_CFG['db']['port'],
     }
