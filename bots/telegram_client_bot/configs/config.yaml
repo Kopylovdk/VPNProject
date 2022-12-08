@@ -1,7 +1,7 @@
 bot:
   name: "test_client_telegram_bot"
   admin_alert: [480629416]
-  managers: [480629416, 1416920102]
+  managers: [290253477, 1416920102]
   api:
     url: "https://api.tematika.org/"
     url_health: "https://admin.tematika.org/health/check/"
