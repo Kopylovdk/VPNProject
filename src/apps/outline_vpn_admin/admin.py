@@ -109,18 +109,15 @@ class Contact(admin.ModelAdmin):
         'client',
         'transport',
         'name',
-        'uid',
-        'created_at',
+        'phone_number',
     )
 
     search_fields = (
         'name',
-        'client',
-        'transport',
+        'phone_number',
     )
 
     list_filter = (
-        'client',
         'transport',
     )
 
