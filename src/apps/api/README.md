@@ -2,25 +2,25 @@
 ### Таблица с методами и описаниями:
 |                                                                URL | Метод  |  Обязательный<br/>параметр<br/>command в теле запроса  | Описание                                                                                          |
 |-------------------------------------------------------------------:|:------:|:------------------------------------------------------:|:--------------------------------------------------------------------------------------------------|
-|                                                          api/user/ |  post  |                                                        | [Создание или обновление пользователя](#Создание или обновление пользователя)                     |
-|                                             api/user/<int: tg_id>/ |  get   |                                                        | [Получение данных о пользователе](#Получение данных о пользователе)                               |
-|                    api/user/<int: tg_id>/vpn_keys/<str: srv_name>/ |  get   |                                                        | [Получение всех ключей конкретного пользователя](#Получение всех ключей конкретного пользователя) |
-|                        api/vpn_token/<int: tg_id>/<str: srv_name>/ |  post  |         ```{"command": "create_demo_token"}```         | [Создание демо ключа](#Создание демо ключа)                                                       |
-|             api/vpn_token/<int: token_id>/refresh/<str: srv_name>/ |  post  |           ```{"command": "refresh_token"}```           | [Получение ключа взамен существующего](#Получение ключа взамен существующего)                     |
-|                                     api/vpn_token/<str: srv_name>/ |  post  |         ```{"command": "create_new_token"}```          | [Создание нового ключа](#Создание нового ключа)                                                   |
-|   api/vpn_token/<int: token_id>/user/<int: tg_id>/<str: srv_name>/ | patch  |         ```{"command": "add_user_to_token"}```         | [Привязка ключа к пользователю](#Привязка ключа к пользователю)                                   |
-|                     api/vpn_token/<int: token_id>/<str: srv_name>/ | patch  |         ```{"command": "token_valid_date"}```          | [Изменение срока окончания действия ключа](#Изменение срока окончания действия ключа)             |
-|                     api/vpn_token/<int: token_id>/<str: srv_name>/ | patch  |          ```{"command": "token_is_active"}```          | [Изменение имени ключа](#Изменение имени ключа)                                                   |
-|                     api/vpn_token/<int: token_id>/<str: srv_name>/ | patch  |            ```{"command": "token_name"}```             | [Изменение статуса ключа](#Изменение статуса ключа)                                               |
-|                     api/vpn_token/<int: token_id>/<str: srv_name>/ | patch  |        ```{"command": "token_traffic_limit"}```        | [Изменение лимита траффика ключа](#Изменение лимита траффика ключа)                               |
-|                     api/vpn_token/<int: token_id>/<str: srv_name>/ | delete |                                                        | [Удаление ключа](#Удаление ключа)                                                                 |
+|                                                              user/ |  post  |                                                        | [Создание или обновление пользователя](#Создание или обновление пользователя)                     |
+|                                                 user/<int: tg_id>/ |  get   |                                                        | [Получение данных о пользователе](#Получение данных о пользователе)                               |
+|                        user/<int: tg_id>/vpn_keys/<str: srv_name>/ |  get   |                                                        | [Получение всех ключей конкретного пользователя](#Получение всех ключей конкретного пользователя) |
+|                            vpn_token/<int: tg_id>/<str: srv_name>/ |  post  |         ```{"command": "create_demo_token"}```         | [Создание демо ключа](#Создание демо ключа)                                                       |
+|                 vpn_token/<int: token_id>/refresh/<str: srv_name>/ |  post  |           ```{"command": "refresh_token"}```           | [Получение ключа взамен существующего](#Получение ключа взамен существующего)                     |
+|                                         vpn_token/<str: srv_name>/ |  post  |         ```{"command": "create_new_token"}```          | [Создание нового ключа](#Создание нового ключа)                                                   |
+|       vpn_token/<int: token_id>/user/<int: tg_id>/<str: srv_name>/ | patch  |         ```{"command": "add_user_to_token"}```         | [Привязка ключа к пользователю](#Привязка ключа к пользователю)                                   |
+|                         vpn_token/<int: token_id>/<str: srv_name>/ | patch  |         ```{"command": "token_valid_date"}```          | [Изменение срока окончания действия ключа](#Изменение срока окончания действия ключа)             |
+|                         vpn_token/<int: token_id>/<str: srv_name>/ | patch  |          ```{"command": "token_is_active"}```          | [Изменение имени ключа](#Изменение имени ключа)                                                   |
+|                         vpn_token/<int: token_id>/<str: srv_name>/ | patch  |            ```{"command": "token_name"}```             | [Изменение статуса ключа](#Изменение статуса ключа)                                               |
+|                         vpn_token/<int: token_id>/<str: srv_name>/ | patch  |        ```{"command": "token_traffic_limit"}```        | [Изменение лимита траффика ключа](#Изменение лимита траффика ключа)                               |
+|                         vpn_token/<int: token_id>/<str: srv_name>/ | delete |                                                        | [Удаление ключа](#Удаление ключа)                                                                 |
 
 
 ## Описание работы API:
 
 ### Создание или обновление пользователя
 
-URL: api/user/
+URL: user/
 METHOD: POST
 BODY:
 ```json
@@ -42,7 +42,7 @@ RESPONSE: 200
 ```
 
 ### Получение данных о пользователе
-URL: api/user/<int: tg_id>/
+URL: user/<int: tg_id>/
 METHOD: GET
 
 RESPONSE: 200
@@ -58,7 +58,7 @@ RESPONSE: 200
 ```
 
 ### Создание демо ключа
-URL: api/vpn_token/<int: tg_id>/<str: srv_name>/
+URL: vpn_token/<int: tg_id>/<str: srv_name>/
 METHOD: POST
 
 BODY:
@@ -84,7 +84,7 @@ RESPONSE: 201
 ```
 
 ### Получение всех ключей конкретного пользователя
-URL: api/user/<int: tg_id>/vpn_keys/<str: srv_name>/
+URL: user/<int: tg_id>/vpn_keys/<str: srv_name>/
 METHOD: GET
 
 RESPONSE: 200
@@ -106,7 +106,7 @@ RESPONSE: 200
 
 
 ### Получение ключа взамен существующего
-URL: api/vpn_token/<int: token_id>/refresh/<str: srv_name>/
+URL: vpn_token/<int: token_id>/refresh/<str: srv_name>/
 METHOD: POST
 BODY:
 ```json
