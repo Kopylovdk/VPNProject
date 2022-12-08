@@ -1,91 +1,277 @@
 from rest_framework import views
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from apps.api.renderers import BaseJSONRenderer
-from apps.api.serializers import TelegramUsersSerializer, OutlineVPNKeysSerializer
-from apps.outline_vpn_admin.models import TelegramUsers, OutlineVPNKeys
 from rest_framework import status
 from rest_framework.response import Response
-from apps.outline_vpn_admin.processes import add_new_tg_user, create_new_key, add_traffic_limit
+from apps.outline_vpn_admin import exceptions
+from apps.outline_vpn_admin.processes import (
+    get_tariff,
+    create_or_update_contact,
+    token_renew,
+    get_client_tokens,
+    get_client,
+    token_new,
+    get_vpn_servers,
+    get_transports,
+    add_traffic_limit,
+    del_traffic_limit,
+    del_outline_vpn_key,
+    update_token_valid_until,
+    telegram_message_sender,
+    get_token_info,
+)
 import logging
+
+
 log = logging.getLogger(__name__)
 
 
-def response_unknown_command(command: str) -> Response:
-    return Response({'detail': f'Unknown command {command!r}'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
-class BaseModelView(views.APIView):
+class BaseAPIView(views.APIView):
     permission_classes = (IsAuthenticated,)
     renderer_classes = (BaseJSONRenderer,)
 
 
-class TelegramUsersModelView(BaseModelView):
-    allow_post_commands = [
-        'create_or_update_user',
-    ]
-    serializer_class = TelegramUsersSerializer
+class Tariff(BaseAPIView):
+    def get(self, request):
+        return Response(get_tariff(), status=status.HTTP_200_OK)
 
-    def get(self, request, tg_id=None):
-        tg_user = get_object_or_404(TelegramUsers, telegram_id=tg_id)
-        serializer = self.serializer_class(tg_user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
+class VPNServer(BaseAPIView):
+    def get(self, request):
+        return Response(get_vpn_servers(), status=status.HTTP_200_OK)
+
+
+class ContactCreateOrUpdate(BaseAPIView):
     def post(self, request):
-        command = request.data['command']
-        if command in self.allow_post_commands:
-            if command == 'create_or_update_user':
-                tg_user = request.data.get('tg_user')
-                serializer = self.serializer_class(data=tg_user)
-                serializer.is_valid(raise_exception=True)
-                add_new_tg_user(tg_user)
-                return Response({'create_or_update_user': status.HTTP_200_OK}, status=status.HTTP_200_OK)
-            else:
-                return response_unknown_command(command)
+        data = request.data
+        try:
+            response = create_or_update_contact(
+                transport_name=data['transport_name'],
+                credentials=data['credentials'],
+            )
+        except exceptions.TransportDoesNotExist as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
-            return response_unknown_command(command)
+            log.debug(f'{response}')
+            if 'Created' in response["details"]:
+                return Response(response, status=status.HTTP_201_CREATED)
+            return Response(response, status=status.HTTP_200_OK)
 
-
-class OutlineVPNKeysModelView(BaseModelView):
-    allow_post_commands = [
-        'create_demo_token',
-        'create_new_token',
-        'refresh_token',
-    ]
-    allow_patch_commands = [
-        'add_user_to_token',
-        'token_valid_date',
-        'token_is_active',
-        'token_name',
-        'token_traffic_limit',
-    ]
-    allow_delete_commands = [
-        'token_delete',
-    ]
-    serializer_class = OutlineVPNKeysSerializer
-
-    def post(self, request, tg_id=None, vpn_key_id=None, srv_name=None):
-        command = request.data['command']
-        if command in self.allow_post_commands:
-            if command == 'new_key':
-                api_server_name = request.data.get(srv_name)
-                api_key = create_new_key(api_server_name)
-                serializer = self.serializer_class(api_key)
-                return Response({'vpn_keys': serializer.data}, status=status.HTTP_201_CREATED)
-            elif command == 'demo_key':
-                api_server_name = request.data.get(srv_name)
-                api_demo_key = create_new_key(api_server_name)
-                api_demo_key.add_tg_user(tg_id)
-                api_demo_key.change_active_status()
-                api_demo_key.change_valid_until(7)
-                add_traffic_limit(srv_name, api_demo_key, 1024 * 1024 * 1024)
-                serializer = self.serializer_class(api_demo_key)
-                return Response({'vpn_keys': serializer.data}, status=status.HTTP_201_CREATED)
-            else:
-                return response_unknown_command(command)
+    def get(self, request, transport_name, messenger_id):
+        try:
+            response = get_client(transport_name=transport_name, messenger_id=messenger_id)
+        except (
+            exceptions.TransportDoesNotExist,
+            exceptions.UserDoesNotExist,
+        ) as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
-            return response_unknown_command(command)
+            log.debug(f'{response}')
+            return Response(response, status=status.HTTP_200_OK)
 
-    # def get(self, request):
-    #     pass
+
+class VPNTokenNew(BaseAPIView):
+    def post(self, request):
+        data = request.data
+        data_keys = data.keys()
+        try:
+            response = token_new(
+                transport_name=data['transport_name'] if 'transport_name' in data_keys else None,
+                credentials=data['credentials'] if 'credentials' in data_keys else None,
+                server_name=data['server_name'],
+                tariff_name=data['tariff_name'],
+            )
+        except (
+            exceptions.DemoKeyExist,
+            exceptions.DemoKeyNotAllowed,
+        ) as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({"details": f'{msg}'}, status=status.HTTP_403_FORBIDDEN)
+        except (
+            exceptions.TransportDoesNotExist,
+            exceptions.UserDoesNotExist,
+            exceptions.VPNServerDoesNotExist,
+            exceptions.VPNServerDoesNotResponse,
+            exceptions.TariffDoesNotExist,
+        ) as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            log.debug(f'{response}')
+            return Response(response, status=status.HTTP_201_CREATED)
+
+
+class VPNTokenRenew(BaseAPIView):
+    def post(self, request):
+        data = request.data
+        data_keys = data.keys()
+        try:
+            response = token_renew(
+                transport_name=data['transport_name'] if 'transport_name' in data_keys else None,
+                credentials=data['credentials'] if 'credentials' in data_keys else None,
+                token_id=data['token_id'],
+            )
+        except (
+            exceptions.TransportDoesNotExist,
+            exceptions.UserDoesNotExist,
+        ) as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
+        except (
+            exceptions.BelongToAnotherUser,
+            exceptions.DemoKeyExist,
+            exceptions.DemoKeyNotAllowed
+        ) as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({"details": f'{msg}'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            log.debug(f'{response}')
+            return Response(response, status=status.HTTP_201_CREATED)
+
+
+class VPNTokens(BaseAPIView):
+    def get(self, request, transport_name, messenger_id):
+        try:
+            response = get_client_tokens(
+                transport_name=transport_name,
+                messenger_id=messenger_id,
+            )
+        except (
+            exceptions.TransportDoesNotExist,
+            exceptions.UserDoesNotExist,
+        ) as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            log.debug(f'{response}')
+            return Response(response, status=status.HTTP_200_OK)
+
+
+# TODO: Tests needed
+class VPNToken(BaseAPIView):
+    def get(self, request, token_id):
+        try:
+            response = get_token_info(token_id)
+        except exceptions.VPNTokenDoesNotExist as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            log.debug(f'{response}')
+            return Response(response, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        data = request.data
+        data_keys = data.keys()
+        if "traffic_limit" in data_keys:
+            log.error(f'{data=!r}')
+            try:
+                response = add_traffic_limit(
+                    token_id=data['token_id'],
+                    traffic_limit=int(data['traffic_limit']),
+                )
+            except exceptions.VPNServerResponseError as err:
+                msg = str(err.message)
+                log.error(msg)
+                return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            except (
+                exceptions.VPNServerDoesNotExist,
+                exceptions.VPNServerDoesNotResponse,
+                exceptions.VPNTokenDoesNotExist,
+            ) as err:
+                msg = str(err.message)
+                log.error(msg)
+                return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                log.debug(f'{response}')
+                return Response(response, status=status.HTTP_200_OK)
+        elif "valid_until" in data_keys:
+            try:
+                response = update_token_valid_until(
+                    token_id=data['token_id'],
+                    valid_until=int(data['valid_until']),
+                )
+            except exceptions.VPNTokenDoesNotExist as err:
+                msg = str(err.message)
+                log.error(msg)
+                return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                log.debug(f'{response}')
+                return Response(response, status=status.HTTP_200_OK)
+        else:
+            try:
+                response = del_traffic_limit(
+                    token_id=data['token_id'],
+                )
+            except exceptions.VPNServerResponseError as err:
+                msg = str(err.message)
+                log.error(msg)
+                return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            except (
+                exceptions.VPNServerDoesNotExist,
+                exceptions.VPNTokenDoesNotExist,
+                exceptions.VPNServerDoesNotResponse,
+            ) as err:
+                msg = str(err.message)
+                log.error(msg)
+                return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                log.debug(f'{response}')
+                return Response(response, status=status.HTTP_200_OK)
+
+    def delete(self, request):
+        try:
+            response = del_outline_vpn_key(request.data['token_id'])
+        except exceptions.VPNServerResponseError as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except (
+            exceptions.VPNServerDoesNotExist,
+            exceptions.VPNServerDoesNotResponse,
+            exceptions.VPNTokenDoesNotExist,
+        ) as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            log.debug(f'{response}')
+            return Response(response, status=status.HTTP_200_OK)
+
+
+class Transport(BaseAPIView):
+    def get(self, request):
+        return Response(get_transports(), status=status.HTTP_200_OK)
+
+
+class TelegramMessageSend(BaseAPIView):
+    def post(self, request):
+        data = request.data
+        try:
+            response = telegram_message_sender(
+                transport_name=data['transport_name'],
+                text=data['text'],
+                messenger_id=data['messenger_id'],
+            )
+        except exceptions.TransportMessageSendError as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except (
+                exceptions.TransportDoesNotExist,
+        ) as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            log.debug(f'{response}')
+            return Response(response, status=status.HTTP_200_OK)

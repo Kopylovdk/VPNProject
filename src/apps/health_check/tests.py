@@ -1,8 +1,9 @@
-from django.test import TestCase
+from django.urls import reverse
+from rest_framework.test import APITestCase
 
 
-class HealthCheckTestCase(TestCase):
-
+class HealthCheckTestCase(APITestCase):
     def test_health_check(self):
-        response = self.client.get('health-check/', follow=True)
-        self.assertEqual(response.status_code, 200)
+        url = reverse('health_check:check')
+        response = self.client.get(url, format='json')
+        self.assertEqual(200, response.status_code)

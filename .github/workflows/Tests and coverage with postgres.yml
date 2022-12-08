@@ -1,0 +1,86 @@
+name: Tests and coverage with postgres
+on:
+  push:
+    branches:
+      - 'refactoring'
+jobs:
+  container-job:
+    runs-on: ubuntu-latest
+    container:
+      image:  python:3.11
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+        - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        architecture: 'x64'
+    - name: Upgrade pip
+      run: pip3 install --upgrade pip
+    - name: Install requirements
+      run: pip3 install -r requirements.txt
+    - name: Install code coverage
+      run: pip3 install coverage
+    - name: Run tests
+      env:
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
+        SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
+      run: python3 ./src/manage.py test
+    - name: Run coverage
+      env:
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
+        SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
+      run: coverage run --source=apps src/manage.py test --settings=vpnservice.settings
+    - name: Tests report
+      run: coverage report
+
+  vm-job:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+        - 5432/tcp
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+      - name: Upgrade pip
+        run: pip install --upgrade pip
+      - name: Install requirements
+        run: pip install -r requirements.txt
+      - name: Install code coverage
+        run: pip install coverage
+      - name: Run tests
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
+          SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
+        run: python ./src/manage.py test
+      - name: Run coverage
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
+          SECRET_KEY: 'dcb3aa8c7f5bb9b8b5aecf91c384deb034c45669ea56492bae'
+        run: coverage run --source=apps src/manage.py test --settings=vpnservice.settings
+      - name: Tests report
+        run: coverage report

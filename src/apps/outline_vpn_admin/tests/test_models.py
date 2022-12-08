@@ -1,67 +1,193 @@
-import datetime
+from decimal import Decimal
+from django.contrib.auth.models import User
 from django.test import TestCase
+from rest_framework.authtoken.models import Token
 from apps.outline_vpn_admin.tests import helpers
-from apps.outline_vpn_admin.models import TelegramUsers, OutlineVPNKeys
-from django.db.utils import IntegrityError
+from apps.outline_vpn_admin.models import (
+    Client,
+    Contact,
+    Transport,
+    VPNToken,
+    VPNServer,
+    Tariff,
+    Currency,
+)
 
 
-class TelegramUsersTestCase(TestCase):
-    def test_create_telegram_users(self):
-        users_to_create = 100
-        self.assertEqual(users_to_create, len(helpers.create_telegram_users(users_to_create)))
-        self.assertEqual(users_to_create, len(TelegramUsers.objects.all()))
-
-    def test_uniq_constraint(self):
-        helpers.create_telegram_users()
-        with self.assertRaises(IntegrityError) as err:
-            helpers.create_telegram_users()
-        self.assertIn('unique_telegram_id', str(err.exception))
-
-    def test_change_is_admin(self):
-        tg_user = helpers.create_telegram_users()[0]
-        self.assertFalse(tg_user.is_admin)
-        tg_user.change_is_admin()
-        self.assertTrue(tg_user.is_admin)
-        tg_user.change_is_admin()
-        self.assertFalse(tg_user.is_admin)
+class BaseTestCase(TestCase):
+    def setUp(self) -> None:
+        self.cnt = 100
+        self.test_str_value = 'test'
+        self.cred = {'id': 9999, 'first_name': 'fill_details', 'last_name': 'fill_details'}
+        self.name = 'test_make'
 
 
-class OutlineVPNKeysTestCase(TestCase):
-    def test_create_vpn_keys(self):
-        keys_to_create = 100
-        self.assertEqual(keys_to_create, len(helpers.create_vpn_keys(keys_to_create)))
-        self.assertEqual(keys_to_create, len(OutlineVPNKeys.objects.all()))
+class ClientTestCase(BaseTestCase):
+    def test_create_clients(self):
+        self.assertEqual(self.cnt, len(helpers.create_client(self.cnt)))
+        self.assertEqual(self.cnt, Client.objects.all().count())
+        client = Client.objects.first()
+        self.assertIn(self.test_str_value, client.full_name)
+        self.assertIsNotNone(client.created_at)
+        self.assertIsNotNone(client.updated_at)
 
-    def test_add_tg_user(self):
-        vpn_key = helpers.create_vpn_keys()[0]
-        tg_user = helpers.create_telegram_users()[0]
-        self.assertIsNone(vpn_key.telegram_user_record)
-        vpn_key.add_tg_user(tg_user)
-        self.assertIsNotNone(vpn_key.telegram_user_record)
-        self.assertEqual(tg_user, vpn_key.telegram_user_record)
+    def test_is_has_demo_false(self):
+        client = helpers.create_client()[0]
+        self.assertFalse(client.is_has_demo())
+        token = helpers.create_vpn_token(
+            client=client,
+            vpn_server=helpers.create_vpn_server()[0],
+            tariff=helpers.create_tariff(
+                currency=helpers.create_currency()[0]
+            )[0]
+        )[0]
+        token.is_demo = True
+        token.save()
+        self.assertTrue(client.is_has_demo())
 
-    def test_change_active_status(self):
-        vpn_key = helpers.create_vpn_keys()[0]
-        self.assertFalse(vpn_key.outline_key_active)
-        vpn_key.change_active_status()
-        self.assertTrue(vpn_key.outline_key_active)
-        vpn_key.change_active_status()
-        self.assertFalse(vpn_key.outline_key_active)
+    def test_is_token_owner(self):
+        client = helpers.create_client()[0]
+        self.assertFalse(client.is_token_owner(999))
+        token = helpers.create_vpn_token(
+            client=client,
+            vpn_server=helpers.create_vpn_server()[0],
+            tariff=helpers.create_tariff(
+                currency=helpers.create_currency()[0]
+            )[0]
+        )[0]
+        self.assertTrue(client.is_token_owner(token_id=token.id))
 
-    def test_change_valid_until(self):
-        vpn_key = helpers.create_vpn_keys()[0]
-        self.assertIsNotNone(vpn_key.outline_key_valid_until)
-        vpn_key.change_valid_until(0)
-        self.assertIsNone(vpn_key.outline_key_valid_until)
-        vpn_key.change_valid_until(10)
-        self.assertIsNotNone(vpn_key.outline_key_valid_until)
-        from_method = vpn_key.change_valid_until(50)
-        self.assertIsInstance(from_method, datetime.datetime)
-        from_method = vpn_key.change_valid_until(0)
-        self.assertIsNone(from_method)
 
-    def test_uniq_constraint_vpn(self):
-        helpers.create_vpn_keys()
-        with self.assertRaises(IntegrityError) as err:
-            helpers.create_vpn_keys()
-        self.assertIn('unique_outline_key_id', str(err.exception))
+class TransportTestCase(BaseTestCase):
+    def test_create_transports(self):
+        exist = Transport.objects.all().count()
+        self.assertEqual(self.cnt, len(helpers.create_transport(self.cnt)))
+        self.assertEqual(self.cnt, Transport.objects.all().count() - exist)
+        transport = Transport.objects.last()
+        self.assertIn(self.test_str_value, transport.name)
+        self.assertEqual(helpers.TRANSPORT_CREDENTIALS, transport.credentials)
+        self.assertIsNotNone(transport.created_at)
+        self.assertIsNotNone(transport.updated_at)
+
+    def test_make_contact_credentials_uid(self):
+        transport = helpers.create_transport()[0]
+        transport.name = self.name
+        transport.save()
+        self.assertEqual(transport.make_contact_credentials_uid(self.cred), f'{self.name}@{self.cred["id"]}')
+
+    def test_make_contact_messenger_id_uid(self):
+        transport = helpers.create_transport()[0]
+        transport.name = self.name
+        transport.save()
+        self.assertEqual(transport.make_contact_messenger_id_uid(self.cred["id"]), f'{self.name}@{self.cred["id"]}')
+
+    def test_fill_client_details(self):
+        client = helpers.create_client()[0]
+        transport = helpers.create_transport()[0]
+        self.assertEqual(
+            transport.fill_client_details(client, self.cred).full_name,
+            f'{self.cred["first_name"]} {self.cred["last_name"]}'
+        )
+
+
+class ContactTestCase(BaseTestCase):
+    def test_create_contacts(self):
+        self.assertEqual(
+            self.cnt,
+            len(helpers.create_contact(
+                cnt=self.cnt,
+                client=helpers.create_client()[0],
+                transport=helpers.create_transport()[0]
+            )
+            )
+        )
+        self.assertEqual(self.cnt, Contact.objects.all().count())
+        contact = Contact.objects.first()
+        self.assertIsInstance(contact.client, Client)
+        self.assertIsInstance(contact.transport, Transport)
+        self.assertEqual(helpers.CONTACT_CREDENTIALS, contact.credentials)
+        self.assertIsNotNone(contact.created_at)
+        self.assertIsNotNone(contact.updated_at)
+
+
+class VPNTokenTestCase(BaseTestCase):
+    def test_create_vpn_tokens(self):
+        self.assertEqual(
+            self.cnt,
+            len(helpers.create_vpn_token(
+                cnt=self.cnt,
+                vpn_server=helpers.create_vpn_server()[0],
+                client=helpers.create_client()[0],
+                tariff=helpers.create_tariff(
+                    currency=helpers.create_currency()[0]
+                )[0]
+            )
+            )
+        )
+        self.assertEqual(self.cnt, VPNToken.objects.all().count())
+        token = VPNToken.objects.first()
+        self.assertIn(self.test_str_value, token.name)
+        self.assertIn(self.test_str_value, token.vpn_key)
+        self.assertIsInstance(token.client, Client)
+        self.assertIsInstance(token.server, VPNServer)
+        self.assertIsInstance(token.outline_id, int)
+        self.assertIsNone(token.traffic_limit)
+        self.assertIsNone(token.valid_until)
+        self.assertTrue(token.is_active)
+        self.assertIsNotNone(token.created_at)
+        self.assertIsNotNone(token.updated_at)
+
+
+class VPNServerTestCase(BaseTestCase):
+    def test_create_vpn_server(self):
+        exist = VPNServer.objects.all().count()
+        self.assertEqual(self.cnt, len(helpers.create_vpn_server(self.cnt)))
+        self.assertEqual(self.cnt, VPNServer.objects.all().count() - exist)
+        obj = VPNServer.objects.last()
+        self.assertIn(self.test_str_value, obj.name)
+        self.assertIn(self.test_str_value, obj.uri)
+        self.assertFalse(obj.is_default)
+        self.assertIsNotNone(obj.created_at)
+        self.assertIsNotNone(obj.updated_at)
+
+
+class TarifficationTestCase(BaseTestCase):
+    def test_create_tariffications(self):
+        exist = Tariff.objects.all().count()
+        self.assertEqual(
+            self.cnt,
+            len(helpers.create_tariff(
+                currency=helpers.create_currency()[0],
+                cnt=self.cnt
+            )
+            )
+        )
+        self.assertEqual(self.cnt, Tariff.objects.all().count() - exist)
+        tariff = Tariff.objects.last()
+        self.assertIn(self.test_str_value, tariff.name)
+        self.assertTrue(tariff.is_active)
+        self.assertIsInstance(tariff.prolong_period, int)
+        self.assertIsInstance(tariff.price, Decimal)
+        self.assertIsNotNone(tariff.valid_until)
+        self.assertIsNotNone(tariff.created_at)
+        self.assertIsNotNone(tariff.updated_at)
+
+
+class CurrencyTestCase(BaseTestCase):
+    def test_create_currencies(self):
+        self.assertEqual(3, len(helpers.create_currency()))
+        obj = Currency.objects.first()
+        self.assertTrue(obj.is_main)
+        self.assertIsNotNone(obj.created_at)
+        self.assertIsNotNone(obj.updated_at)
+
+
+class UserTokensTestCase(TestCase):
+    def test_create_user_w_token(self):
+        exist = Token.objects.all().count()
+        User.objects.create(
+            username='test',
+            password='test',
+            email='test@test.ru',
+        ).save()
+        self.assertEqual(1, Token.objects.all().count() - exist)

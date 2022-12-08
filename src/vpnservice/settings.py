@@ -9,14 +9,13 @@ https://docs.djangoproject.com/en/2.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.2/ref/settings/
 """
-
 import os
 
 import yaml
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 
-from log import logging_config_update
+from logs.config.logging_config_update import logging_config_update
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -27,18 +26,23 @@ with open(f'{BASE_DIR}/config.yaml', 'r', encoding='utf8') as stream:
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = EXTERNAL_CFG['django']['secret_key']
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = EXTERNAL_CFG['django']['debug']
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = EXTERNAL_CFG['django']['allowed_hosts']
+CSRF_TRUSTED_ORIGINS = EXTERNAL_CFG['django']['csrf_trusted_origins']
+# SESSION_COOKIE_SECURE = True
+
+with open(f'{BASE_DIR}/logs/config/log_config.yaml', 'r', encoding='utf8') as stream:
+    EXTERNAL_LOG_CFG = yaml.safe_load(stream)
 
 LOGGING = logging_config_update(
-    config=EXTERNAL_CFG['logging'],
+    config=EXTERNAL_LOG_CFG['logging'],
     log_path=BASE_DIR)
 
-# Application definition
+DATE_STRING_FORMAT = EXTERNAL_CFG['django']['date_string_format']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -85,14 +89,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'vpnservice.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/2.2/ref/settings/#databases
-
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    # }
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': EXTERNAL_CFG['db']['name'],
@@ -135,19 +132,12 @@ USE_L10N = True
 
 USE_TZ = False
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/2.2/howto/static-files/
-
-
 STATIC_URL = '/static/'
 
 STATIC_ROOT = BASE_DIR + STATIC_URL
 
-CSRF_TRUSTED_ORIGINS = ['http://localhost:8080']
-
 APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
 APSCHEDULER_RUN_NOW_TIMEOUT = 25
-
 
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'apps.api.exceptions.core_exception_handler',

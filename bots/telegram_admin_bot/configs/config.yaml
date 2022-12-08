@@ -1,0 +1,25 @@
+bot:
+  name: "test_admin_telegram_bot"
+  admin_alert: [480629416]
+  admin_access: [480629416, 1416920102, 290253477]
+  api:
+    url: "https://api.tematika.org/"
+    url_health: "https://admin.tematika.org/health/check/"
+    uris: {
+      "get_auth_token": "api-token-auth/",
+
+      "get_tariffs": "tariff/",
+      "get_vpn_servers": "vpn-servers/",
+      "get_transports": "transports/",
+
+      "get_client_tokens": "token/{transport_name}/{messenger_id}",
+      "get_token_info": "token/{token_id}",
+      "get_contact": "contact/{transport_name}/{messenger_id}",
+
+      "creat_or_update_contact": "contact/",
+      "renew_exist_token": "token/renew/",
+      "create_new_token": "token/new/",
+      "update_token": "token/",
+      "delete_token": "token/delete/",
+      "telegram_message_send": "message/telegram/send/",
+      }

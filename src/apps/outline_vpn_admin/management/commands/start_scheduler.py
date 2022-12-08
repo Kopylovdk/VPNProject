@@ -1,7 +1,10 @@
+import threading
 from django.core.management.base import BaseCommand
-from apps.outline_vpn_admin.scheduler import add_tasks_and_start
+from apps.outline_vpn_admin.scripts import start_scheduler
 
 
 class Command(BaseCommand):
+    help = 'Process expired vpn token and send msg to users'
+
     def handle(self, *args, **options):
-        add_tasks_and_start()
+        threading.Thread(start_scheduler(), name='process_expired_keys_thread')

@@ -1,0 +1,26 @@
+logging:
+  disable_existing_loggers: true
+  formatters:
+    default:
+      format: '[%(asctime)s] %(levelname)-8s [%(name)s] [line=%(lineno)s] [msg=%(message)s]'
+  handlers:
+    file:
+      backupCount: 30
+      class: logging.handlers.TimedRotatingFileHandler
+      encoding: utf-8
+      filename: logs/vpn.log
+      formatter: default
+      interval: 1
+      level: DEBUG
+      when: D
+    stdout:
+      class: logging.StreamHandler
+      formatter: default
+      level: DEBUG
+  root:
+    handlers:
+      - file
+      - stdout
+    level: DEBUG
+    propagate: true
+  version: 1

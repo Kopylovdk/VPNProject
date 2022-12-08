@@ -1,92 +1,152 @@
 import logging
 from django.contrib import admin
-from django.http import HttpResponseRedirect
-from django.urls import path
+from django.contrib.auth.models import Group
 from django.utils.translation import ngettext
 from django.contrib import messages
-# from rest_framework.authtoken.models import Token
+from apps.outline_vpn_admin import models as vpn_models
+from apps.outline_vpn_admin import exceptions
+from apps.outline_vpn_admin import processes as processes
+from apps.outline_vpn_admin.forms import VPNTokenAdminCreateForm, VPNTokenAdminChangeForm
+from django.conf.locale.es import formats as es_formats
 
-from apps.outline_vpn_admin.models import TelegramUsers, OutlineVPNKeys
-from apps.outline_vpn_admin.processes import (
-    create_new_key,
-    add_traffic_limit,
-    del_traffic_limit,
-    del_outline_vpn_key,
-)
-
+es_formats.DATETIME_FORMAT = "d M Y"
 
 log = logging.getLogger(__name__)
 
 
-# @admin.register(Token)
-# class BotsTokens(admin.ModelAdmin):
-#     pass
+admin.AdminSite.site_header = 'Tematika administration'
+admin.AdminSite.site_title = 'Tematika VPN Admin'
+# admin.AdminSite.site_url
+admin.site.unregister(Group)
+admin.ModelAdmin.save_on_top = True
 
 
-@admin.register(TelegramUsers)
-class VPNServiceTelegramUsersAdmin(admin.ModelAdmin):
+@admin.register(vpn_models.Currency)
+class Currency(admin.ModelAdmin):
     list_display = (
-        'telegram_id',
-        'telegram_login',
-        'telegram_first_name',
-        'telegram_last_name',
-        'is_admin',
+        'name',
+        'name_iso',
+        'is_main',
+        'exchange_rate',
+        'is_active',
+    )
+    search_fields = (
+        'name',
+    )
+
+
+@admin.register(vpn_models.VPNServer)
+class VPNServer(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'uri',
+        'is_default',
+        'is_active',
+        'created_at',
+        'updated_at',
+    )
+
+    search_fields = (
+        'name',
+    )
+
+    list_filter = (
+        'name',
+    )
+
+
+@admin.register(vpn_models.Tariff)
+class Tariff(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'is_demo',
+        'prolong_period',
+        'traffic_limit',
+        'price',
+        'currency',
+        'is_active',
+    )
+
+    search_fields = (
+        'name',
+    )
+
+    list_filter = (
+        'prolong_period',
+        'price',
+        'is_active',
+        'is_demo',
+    )
+
+
+@admin.register(vpn_models.Transport)
+class Transport(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'uid_format',
+        'full_name_format',
+    )
+
+    search_fields = (
+        'name',
+    )
+
+
+@admin.register(vpn_models.Client)
+class Client(admin.ModelAdmin):
+    list_display = (
+        'full_name',
+    )
+
+    search_fields = (
+        'full_name',
+    )
+
+
+@admin.register(vpn_models.Contact)
+class Contact(admin.ModelAdmin):
+    list_display = (
+        'client',
+        'transport',
+        'name',
+        'uid',
         'created_at',
     )
 
     search_fields = (
-        'telegram_login',
-        'telegram_first_name',
-        'telegram_last_name',
+        'name',
+        'client',
+        'transport',
     )
 
     list_filter = (
-        'telegram_id',
-        'telegram_login',
-        'is_admin',
+        'client',
+        'transport',
     )
-    actions = ['change_admin_status']
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    @admin.action(description='Change admin role')
-    def change_admin_status(self, request, queryset):
-        for obj in queryset:
-            obj.change_is_admin()
-        objects = len(queryset)
-        self.message_user(request, ngettext(
-            '%d role was successfully changed.',
-            '%d roles were successfully changed.',
-            objects,
-        ) % objects, messages.SUCCESS)
 
 
-@admin.register(OutlineVPNKeys)
-class VPNServiceOutlineVPNKeysAdmin(admin.ModelAdmin):
-    change_list_template = 'change_list.html'
-
+@admin.register(vpn_models.VPNToken)
+class VPNToken(admin.ModelAdmin):
     list_display = (
-        'telegram_user_record',
-        'outline_key_id',
-        'outline_key_name',
-        'outline_key_valid_until',
-        'outline_key_traffic_limit',
-        'outline_key_active',
-        'created_at',
+        'name',
+        'outline_id',
+        'valid_until',
+        'traffic_limit',
+        'is_demo',
+        'is_tech',
+        'is_active',
     )
 
     search_fields = (
-        'outline_key_name',
+        'name',
     )
 
     list_filter = (
-        'telegram_user_record',
-        'outline_key_active',
-        'outline_key_valid_until',
+        'server',
+        'valid_until',
+        'is_active',
+        'is_demo',
+        'is_tech',
     )
 
     actions = [
@@ -96,53 +156,44 @@ class VPNServiceOutlineVPNKeysAdmin(admin.ModelAdmin):
         'delete_vpn_record',
     ]
 
-    def has_add_permission(self, request, obj=None):
-        return False
+    def add_view(self, request, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['show_save_and_continue'] = False
+        return super().add_view(request, form_url, extra_context=extra_context)
+
+    def get_form(self, request, obj=None, change=True, **kwargs):
+        if 'add' in request.META.get('PATH_INFO'):
+            return VPNTokenAdminCreateForm
+        else:
+            form = VPNTokenAdminChangeForm
+            form.base_fields['name'].widget.attrs['style'] = 'width: 30em;'
+            return form
 
     def has_delete_permission(self, request, obj=None):
         return False
 
-    def get_urls(self):
-        urls = super().get_urls()
-        my_urls = [
-            path('add_new_vpn_key/', self.add_new_vpn_key)
-        ]
-        return my_urls + urls
-
-    def add_new_vpn_key(self, request):
-        vpn_key = create_new_key('kz')
-        add_traffic_limit('kz', vpn_key)
-        self.message_user(request, "New VPN Key Added with limit 1 kb")
-        return HttpResponseRedirect("../")
-
     @admin.action(description='Delete VPN record')
     def delete_vpn_record(self, request, queryset):
-        objects = len(queryset)
+        objects_qnt = len(queryset)
         for obj in queryset:
-            del_outline_vpn_key('kz', obj)
+            try:
+                processes.del_outline_vpn_key(obj.id)
+            except exceptions.VPNServerResponseError:
+                processes.change_vpn_token_active_state(obj)
 
         self.message_user(request, ngettext(
-            '%d VPN record was successfully deleted.',
-            '%d VPN records were successfully deleted.',
-            objects,
-        ) % objects, messages.SUCCESS)
-
-    @admin.action(description='Change VPN status')
-    def change_vpn_status(self, request, queryset):
-        for obj in queryset:
-            obj.change_active_status()
-
-        objects = len(queryset)
-        self.message_user(request, ngettext(
-            '%d VPN status was successfully changed.',
-            '%d VPN statuses were successfully changed.',
-            objects,
-        ) % objects, messages.SUCCESS)
+            '%d VPN token was successfully deleted.',
+            '%d VPN tokens were successfully deleted.',
+            objects_qnt,
+        ) % objects_qnt, messages.SUCCESS)
 
     @admin.action(description='Delete traffic limit')
     def del_traffic_limit(self, request, queryset):
         for obj in queryset:
-            del_traffic_limit('kz', obj)
+            try:
+                processes.del_traffic_limit(obj.id)
+            except exceptions.VPNServerResponseError:
+                processes.change_vpn_token_traffic_limit(obj)
 
         objects = len(queryset)
         self.message_user(request, ngettext(
@@ -154,7 +205,10 @@ class VPNServiceOutlineVPNKeysAdmin(admin.ModelAdmin):
     @admin.action(description='Add default traffic limit')
     def add_default_traffic_limit(self, request, queryset):
         for obj in queryset:
-            add_traffic_limit('kz', obj)
+            try:
+                processes.add_traffic_limit(obj.id)
+            except exceptions.VPNServerResponseError:
+                processes.change_vpn_token_traffic_limit(obj, 1024)
 
         objects = len(queryset)
         self.message_user(request, ngettext(
@@ -163,10 +217,41 @@ class VPNServiceOutlineVPNKeysAdmin(admin.ModelAdmin):
             objects,
         ) % objects, messages.SUCCESS)
 
-    def response_post_save_change(self, request, obj):
-        if not obj.outline_key_traffic_limit:
-            del_traffic_limit('kz', obj)
+    def save_model(self, request, obj, form, change):
+        if change:
+            if not obj.traffic_limit:
+                try:
+                    processes.del_traffic_limit(obj.id)
+                except exceptions.VPNServerResponseError:
+                    processes.change_vpn_token_traffic_limit(obj)
+            else:
+                try:
+                    processes.add_traffic_limit(obj.id, obj.traffic_limit)
+                except exceptions.VPNServerResponseError:
+                    processes.change_vpn_token_traffic_limit(obj, obj.traffic_limit)
         else:
-            add_traffic_limit('kz', obj, obj.outline_key_traffic_limit)
+            processes.token_new(
+                server_name=obj.server.name,
+                tariff_name=obj.tariff.name,
+            )
 
-        return super().response_post_save_change(request, obj)
+
+@admin.register(vpn_models.TokenProcess)
+class TokenProcess(admin.ModelAdmin):
+    list_display = (
+        'script_name',
+        'created_at',
+        'is_executed',
+        'executed_at',
+    )
+
+    search_fields = (
+        'script_name',
+    )
+
+    list_filter = (
+        'script_name',
+        'vpn_token',
+        'vpn_server',
+        'is_executed',
+    )
