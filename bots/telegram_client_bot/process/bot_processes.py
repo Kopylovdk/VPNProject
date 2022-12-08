@@ -433,15 +433,19 @@ def tariffs_step_1(bot: TeleBot, message: Message):
     msg = ['Доступные тарифы:\n']
     for tariff in tariffs:
         if tariff["traffic_limit"]:
-            limit = f'Лимит трафика - {tariff["traffic_limit"] / 1024 / 1024} мб'
+            limit = f'Лимит трафика: {tariff["traffic_limit"] / 1024 / 1024} мб'
         else:
             limit = 'Без ограничения трафика'
+        if tariff["prolong_period"]:
+            prolong_period = f'срок действия в днях: {tariff["prolong_period"]}'
+        else:
+            prolong_period = 'без ограничения по сроку'
         if tariff["price"]:
             price = f'стоимость - {tariff["price"]} {tariff["currency"]["name"]}'
         else:
             price = 'бесплатный'
         msg.append(f'Наименование: {tariff["name"]}, '
-                   f'срок действия в днях: {tariff["prolong_period"]}\n'
+                   f'{prolong_period}\n'
                    f'{limit}, {price}\n'
                    )
     bot.send_message(user_id, '\n'.join(msg), reply_markup=main_keyboard())
