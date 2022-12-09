@@ -20,6 +20,7 @@ from apps.outline_vpn_admin.processes import (
     telegram_message_sender,
     get_token_info,
 )
+from apps.outline_vpn_admin.cashe_update import get_actual_cache_date
 import logging
 
 
@@ -33,12 +34,16 @@ class BaseAPIView(views.APIView):
 
 class Tariff(BaseAPIView):
     def get(self, request):
-        return Response(get_tariff(), status=status.HTTP_200_OK)
+        response = get_tariff()
+        response['cache_update_date'] = get_actual_cache_date().isoformat()
+        return Response(response, status=status.HTTP_200_OK)
 
 
 class VPNServer(BaseAPIView):
     def get(self, request):
-        return Response(get_vpn_servers(), status=status.HTTP_200_OK)
+        response = get_vpn_servers()
+        response['cache_update_date'] = get_actual_cache_date().isoformat()
+        return Response(response, status=status.HTTP_200_OK)
 
 
 class ContactCreateOrUpdate(BaseAPIView):
@@ -54,6 +59,7 @@ class ContactCreateOrUpdate(BaseAPIView):
             log.error(msg)
             return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
+            response['cache_update_date'] = get_actual_cache_date().isoformat()
             log.debug(f'{response}')
             if 'Created' in response["details"]:
                 return Response(response, status=status.HTTP_201_CREATED)
@@ -70,6 +76,7 @@ class ContactCreateOrUpdate(BaseAPIView):
             log.error(msg)
             return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
+            response['cache_update_date'] = get_actual_cache_date().isoformat()
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_200_OK)
 
@@ -103,6 +110,7 @@ class VPNTokenNew(BaseAPIView):
             log.error(msg)
             return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
+            response['cache_update_date'] = get_actual_cache_date().isoformat()
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_201_CREATED)
 
@@ -133,6 +141,7 @@ class VPNTokenRenew(BaseAPIView):
             log.error(msg)
             return Response({"details": f'{msg}'}, status=status.HTTP_403_FORBIDDEN)
         else:
+            response['cache_update_date'] = get_actual_cache_date().isoformat()
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_201_CREATED)
 
@@ -152,6 +161,7 @@ class VPNTokens(BaseAPIView):
             log.error(msg)
             return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
+            response['cache_update_date'] = get_actual_cache_date().isoformat()
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_200_OK)
 
@@ -166,6 +176,7 @@ class VPNToken(BaseAPIView):
             log.error(msg)
             return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
+            response['cache_update_date'] = get_actual_cache_date().isoformat()
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_200_OK)
 
@@ -192,6 +203,7 @@ class VPNToken(BaseAPIView):
                 log.error(msg)
                 return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
             else:
+                response['cache_update_date'] = get_actual_cache_date().isoformat()
                 log.debug(f'{response}')
                 return Response(response, status=status.HTTP_200_OK)
         elif "valid_until" in data_keys:
@@ -205,6 +217,7 @@ class VPNToken(BaseAPIView):
                 log.error(msg)
                 return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
             else:
+                response['cache_update_date'] = get_actual_cache_date().isoformat()
                 log.debug(f'{response}')
                 return Response(response, status=status.HTTP_200_OK)
         else:
@@ -225,6 +238,7 @@ class VPNToken(BaseAPIView):
                 log.error(msg)
                 return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
             else:
+                response['cache_update_date'] = get_actual_cache_date().isoformat()
                 log.debug(f'{response}')
                 return Response(response, status=status.HTTP_200_OK)
 
@@ -244,13 +258,16 @@ class VPNToken(BaseAPIView):
             log.error(msg)
             return Response({'details': f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
+            response['cache_update_date'] = get_actual_cache_date().isoformat()
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_200_OK)
 
 
 class Transport(BaseAPIView):
     def get(self, request):
-        return Response(get_transports(), status=status.HTTP_200_OK)
+        response = get_transports()
+        response['cache_update_date'] = get_actual_cache_date().isoformat()
+        return Response(response, status=status.HTTP_200_OK)
 
 
 class TelegramMessageSend(BaseAPIView):
@@ -273,5 +290,6 @@ class TelegramMessageSend(BaseAPIView):
             log.error(msg)
             return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         else:
+            response['cache_update_date'] = get_actual_cache_date().isoformat()
             log.debug(f'{response}')
             return Response(response, status=status.HTTP_200_OK)
