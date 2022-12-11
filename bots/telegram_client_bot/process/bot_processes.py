@@ -1,3 +1,5 @@
+import datetime
+
 import requests
 import logging
 import os
@@ -6,7 +8,7 @@ from requests import Response
 from telebot import TeleBot, types
 from telebot.apihelper import ApiTelegramException
 from exceptions.bot_exceptions import SERVER_EXCEPTION
-from process.config_loader import CONFIG
+from configs.config_loader import CONFIG
 from telebot.types import Message, User
 from functools import lru_cache
 from process.keyboards import (
@@ -25,6 +27,22 @@ API_URIS = CONFIG['bot']['api']['uris']
 BOT_NAME = CONFIG['bot']['name']
 ADMIN_ALERT = CONFIG['bot']['admin_alert']
 MANAGERS = CONFIG['bot']['managers']
+_cache_update_date = None
+
+
+def check_cache_date(new_date: datetime.datetime) -> None:
+    global _cache_update_date
+    if _cache_update_date:
+        if _cache_update_date < new_date:
+            _cache_update_date = new_date
+            clear_cache()
+    else:
+        _cache_update_date = new_date
+
+
+def clear_cache():
+    get_vpn_servers.cache_clear()
+    get_tariffs.cache_clear()
 
 
 def check_int(data: str) -> int or str:
@@ -67,7 +85,9 @@ def get_tariffs(bot: TeleBot) -> list:
     )
     if response.status_code == 200:
         log.info(f'get_tariffs executed')
-        tariffs = response.json()["tariffs"]
+        json_data = response.json()
+        check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
+        tariffs = json_data["tariffs"]
         for i, tariff in enumerate(tariffs):
             if tariff['is_tech']:
                 del tariffs[i]
@@ -85,7 +105,9 @@ def get_vpn_servers(bot: TeleBot) -> list:
     )
     if response.status_code == 200:
         log.info('get_vpn_servers executed')
-        return response.json()["vpn_servers"]
+        json_data = response.json()
+        check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
+        return json_data["vpn_servers"]
     else:
         send_alert_to_admins(bot=bot, response=response)
 
@@ -101,10 +123,11 @@ def get_client(bot: TeleBot, messenger_id: int) -> dict:
         allow_redirects=True,
     )
     status_code = response.status_code
-    response_json = response.json()
+    json_data = response.json()
     if status_code == 200:
+        check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
         return response.json()
-    elif status_code in [404] and "User does not exist" in response_json['details']:
+    elif status_code in [404] and "User does not exist" in json_data['details']:
         bot.send_message(
             messenger_id,
             "Вы не зарегистрированы.\nПожалуйста, пройдите регистрацию, нажав на соответствующую кнопку в Меню",
@@ -176,13 +199,14 @@ def add_or_update_user(bot: TeleBot, message: Message) -> None:
         allow_redirects=True,
     )
     if response.status_code in [200, 201]:
-        json_response = response.json()
+        json_data = response.json()
+        check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
         bot.send_message(
             message.chat.id,
             'Вы успешно зарегистрированы. Теперь Вам доступен весь функционал.',
             reply_markup=main_keyboard(),
         )
-        log.info(f'{json_response["details"]}:\n{json_response["user_info"]}')
+        log.info(f'{json_data["details"]}:\n{json_data["user_info"]}')
     else:
         bot.send_message(message.chat.id, SERVER_EXCEPTION, reply_markup=main_keyboard())
         send_alert_to_admins(bot, response, message.from_user)
@@ -202,17 +226,18 @@ def get_vpn_keys(bot: TeleBot, user: User) -> None:
         allow_redirects=True,
     )
     status_code = response.status_code
-    details = response.json()['details']
+    json_data = response.json()
     if status_code in [200]:
+        check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
         log.info(f"{response.json()}")
-        tokens = response.json()['tokens']
+        tokens = json_data['tokens']
         msg = []
         for token_dict in tokens:
             msg.append(f"Token ID - {token_dict['id']}, срок действия - {token_dict['valid_until']}, "
                        f"демо ключ - {'Да' if token_dict['is_demo'] else 'Нет'}\n"
                        f"Ключ - {token_dict['vpn_key']}\n")
         bot.send_message(user_id, ''.join(msg) if msg else 'Ключи отсутствуют', reply_markup=main_keyboard())
-    elif status_code in [404] and "User does not exist" in details:
+    elif status_code in [404] and "User does not exist" in json_data['details']:
         bot.send_message(
             user_id,
             "Вы не зарегистрированы.\nПожалуйста, пройдите регистрацию, нажав на соответствующую кнопку в Меню",
@@ -257,10 +282,12 @@ def renew_token_step_2(message: Message, bot: TeleBot):
                 json=to_send,
                 allow_redirects=True,
             )
+            json_data = response.json()
             status_code = response.status_code
-            details = response.json()['details']
+            details = json_data['details']
             if status_code in [201]:
-                token = response.json()['Tokens'][0]
+                check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
+                token = json_data['Tokens'][0]
                 bot.send_message(
                     user_id,
                     f'Новый ключ создан.\n'
@@ -369,9 +396,10 @@ def subscribes_step_3(
                 json=to_send,
                 allow_redirects=True,
             )
+            json_data = response.json()
             status_code = response.status_code
-            details = response.json()['details']
             if status_code == 201:
+                check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
                 token = response.json()['tokens'][0]
                 bot.send_message(
                     user_id,
@@ -385,7 +413,7 @@ def subscribes_step_3(
                     "У Вас уже есть демо ключ.\nПолучение второго ключа не возможно\nВозврат в основное меню",
                     reply_markup=main_keyboard(),
                 )
-            elif status_code == 404 and "User does not exist" in details:
+            elif status_code == 404 and "User does not exist" in json_data['details']:
                 bot.send_message(
                     user_id,
                     "Вы не зарегистрированы.\nПожалуйста, пройдите регистрацию, нажав на соответствующую кнопку в Меню",
