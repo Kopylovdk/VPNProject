@@ -93,4 +93,4 @@ if __name__ == '__main__':
         get_vpn_servers(bot=bot)
         get_transports(bot=bot)
 
-    bot.polling(non_stop=True, interval=0)
+    bot.infinity_polling(non_stop=True, interval=0)
