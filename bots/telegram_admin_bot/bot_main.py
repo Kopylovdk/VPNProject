@@ -94,4 +94,3 @@ if __name__ == '__main__':
         get_transports(bot=bot)
 
     bot.infinity_polling(non_stop=True, interval=0)
-
