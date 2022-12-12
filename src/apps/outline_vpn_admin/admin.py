@@ -108,12 +108,12 @@ class Contact(admin.ModelAdmin):
     list_display = (
         'client',
         'transport',
-        'name',
+        'uid',
         'phone_number',
     )
 
     search_fields = (
-        'name',
+        'client__full_name',
         'phone_number',
     )
 
