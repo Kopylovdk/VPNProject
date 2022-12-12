@@ -163,7 +163,22 @@ class VPNToken(admin.ModelAdmin):
         if 'add' in request.META.get('PATH_INFO'):
             return VPNTokenAdminCreateForm
         else:
-            form = VPNTokenAdminChangeForm
+            form = super().get_form(request, obj, change, **kwargs)
+            not_editable_fields = [
+                'outline_id',
+                'previous_vpn_token_id',
+                'vpn_key',
+                'is_demo',
+                'is_tech',
+                'is_active',
+            ]
+            for field_name, field in form.fields.items():
+                if field_name in not_editable_fields:
+                    field.disabled = True
+                if field_name == 'traffic_limit':
+                    field.help_text = 'Указывайте новое значение в Мб.' \
+                                      'При сохранении система автоматически пересчитывает в байты.'
+            # form = VPNTokenAdminChangeForm
             form.base_fields['name'].widget.attrs['style'] = 'width: 30em;'
             return form
 
