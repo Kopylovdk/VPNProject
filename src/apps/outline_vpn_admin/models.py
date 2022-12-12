@@ -101,7 +101,7 @@ class Contact(models.Model, DictRepresentationMixin):
         verbose_name = 'Contact'
         verbose_name_plural = 'Contacts'
 
-    client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Владелец ключа')
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Клиент')
     transport = models.ForeignKey(Transport, on_delete=models.RESTRICT, verbose_name='Канал связи')
     uid = models.CharField(
         verbose_name='Идентификатор контакта',
