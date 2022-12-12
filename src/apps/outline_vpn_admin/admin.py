@@ -164,22 +164,24 @@ class VPNToken(admin.ModelAdmin):
             return VPNTokenAdminCreateForm
         else:
             form = super().get_form(request, obj, change, **kwargs)
-            not_editable_fields = [
-                'outline_id',
-                'previous_vpn_token_id',
-                'vpn_key',
-                'is_demo',
-                'is_tech',
-                'is_active',
-            ]
-            for field_name, field in form.fields.items():
-                if field_name in not_editable_fields:
-                    field.disabled = True
-                if field_name == 'traffic_limit':
-                    field.help_text = 'Указывайте новое значение в Мб.' \
-                                      'При сохранении система автоматически пересчитывает в байты.'
+            # not_editable_fields = [
+            #     'outline_id',
+            #     'previous_vpn_token_id',
+            #     'vpn_key',
+            #     'is_demo',
+            #     'is_tech',
+            #     'is_active',
+            # ]
+            # for field_name, field in form.fields.items():
+            #     if field_name in not_editable_fields:
+            #         field.disabled = True
+            #     if field_name == 'traffic_limit':
+            #         field.help_text = 'Указывайте новое значение в Мб.' \
+            #                           'При сохранении система автоматически пересчитывает в байты.'
             # form = VPNTokenAdminChangeForm
             form.base_fields['name'].widget.attrs['style'] = 'width: 30em;'
+            form.base_fields['traffic_limit'].help_text = 'Указывайте новое значение в Мб.' \
+                                                          'При сохранении система автоматически пересчитывает в байты.'
             return form
 
     def has_delete_permission(self, request, obj=None):
