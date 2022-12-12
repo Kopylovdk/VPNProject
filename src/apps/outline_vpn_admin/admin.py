@@ -244,6 +244,7 @@ class VPNToken(admin.ModelAdmin):
                     processes.add_traffic_limit(obj.id, obj.traffic_limit)
                 except exceptions.VPNServerResponseError:
                     processes.change_vpn_token_traffic_limit(obj, obj.traffic_limit)
+            super().save_model(request, obj, form, change)
         else:
             processes.token_new(
                 server_name=obj.server.name,
