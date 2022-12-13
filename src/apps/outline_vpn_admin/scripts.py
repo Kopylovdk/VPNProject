@@ -33,7 +33,7 @@ scheduler.add_jobstore(DjangoJobStore(), 'expired_vpn_tokens')
     id='collect_expired_vpn_token',
 )
 def collect_expired_vpn_token():
-    transports = Transport.objects.all()
+    transports = Transport.objects.filter(is_active=True)
     active_tokens = VPNToken.objects.select_related('tariff', 'server', 'client').filter(
         is_active=True,
         valid_until__lte=datetime.datetime.now(),
