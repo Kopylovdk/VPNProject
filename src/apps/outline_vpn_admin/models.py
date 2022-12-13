@@ -63,6 +63,7 @@ class Transport(models.Model, DictRepresentationMixin):
         help_text='Наименование полей в credentials для формирования имени клиента. {Поле_1} {Поле_2} и т.д.',
     )
     credentials = models.JSONField(verbose_name='Реквизиты бота')
+    is_admin_transport = models.BooleanField(verbose_name='Для администраторов', default=False)
     is_active = models.BooleanField(verbose_name='Активность', default=True)
     created_at = models.DateTimeField(verbose_name='Дата создания записи', auto_now_add=True)
     updated_at = models.DateTimeField(verbose_name='Дата обновления записи', auto_now=True)
