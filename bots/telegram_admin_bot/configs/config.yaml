@@ -1,5 +1,5 @@
 bot:
-  name: "test_admin_telegram_bot"
+  name: "prod_admin_telegram_bot"
   admin_alert: [480629416]
   admin_access: [480629416, 1416920102, 290253477]
   api:

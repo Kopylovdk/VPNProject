@@ -109,4 +109,4 @@ if __name__ == '__main__':
         get_tariffs(bot=bot)
         get_vpn_servers(bot=bot)
 
-    bot.polling(non_stop=True, interval=1)
+    bot.infinity_polling(interval=1)
