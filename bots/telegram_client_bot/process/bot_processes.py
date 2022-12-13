@@ -249,7 +249,11 @@ def get_vpn_keys(bot: TeleBot, user: User) -> None:
         tokens = json_data['tokens']
         msg = []
         for token_dict in tokens:
-            msg.append(f"Token ID - {token_dict['id']}, срок действия - {token_dict['valid_until']}, "
+            if token_dict['valid_until']:
+                valid_until = f'срок действия до: {token_dict["valid_until"]}'
+            else:
+                valid_until = 'без ограничения по сроку'
+            msg.append(f"Token ID - {token_dict['id']}, {valid_until}, "
                        f"демо ключ - {'Да' if token_dict['is_demo'] else 'Нет'}\n"
                        f"Ключ - {token_dict['vpn_key']}\n")
         bot.send_message(user_id, ''.join(msg) if msg else 'Ключи отсутствуют', reply_markup=main_keyboard())
