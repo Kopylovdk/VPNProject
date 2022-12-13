@@ -1,9 +1,7 @@
 import datetime
-
 import requests
 import logging
 import os
-
 from requests import Response
 from telebot import TeleBot, types
 from telebot.apihelper import ApiTelegramException
@@ -30,8 +28,22 @@ MANAGERS = CONFIG['bot']['managers']
 _cache_update_date = None
 
 
-def check_cache_date(new_date: datetime.datetime) -> None:
+def get_actual_cache_date(bot: TeleBot) -> datetime.datetime:
+    response = requests.get(
+        f'{API_URL}{API_URIS["get_actual_cache_date"]}',
+        headers=get_auth_api_headers(bot=bot),
+        allow_redirects=True,
+    )
+    if response.status_code == 200:
+        log.debug(f'get_actual_cache_date {datetime.datetime.fromisoformat(response.json()["cache_update_date"])}')
+        return datetime.datetime.fromisoformat(response.json()["cache_update_date"])
+    else:
+        send_alert_to_admins(bot=bot, response=response)
+
+
+def check_cache_date(bot: TeleBot) -> None:
     global _cache_update_date
+    new_date = get_actual_cache_date(bot=bot)
     if _cache_update_date:
         if _cache_update_date < new_date:
             _cache_update_date = new_date
@@ -77,16 +89,20 @@ def get_auth_api_headers(bot: TeleBot) -> dict:
 
 
 @lru_cache(maxsize=None)
-def get_tariffs(bot: TeleBot) -> list:
-    response = requests.get(
+def get_tariffs(bot: TeleBot) -> Response:
+    log.info(f'get_tariffs executed.')
+    return requests.get(
         f'{API_URL}{API_URIS["get_tariffs"]}',
         headers=get_auth_api_headers(bot=bot),
         allow_redirects=True,
     )
+
+
+def update_tariffs(bot) -> list:
+    check_cache_date(bot=bot)
+    response = get_tariffs(bot=bot)
     if response.status_code == 200:
-        log.info(f'get_tariffs executed')
         json_data = response.json()
-        check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
         tariffs = json_data["tariffs"]
         for i, tariff in enumerate(tariffs):
             if tariff['is_tech']:
@@ -97,17 +113,20 @@ def get_tariffs(bot: TeleBot) -> list:
 
 
 @lru_cache(maxsize=None)
-def get_vpn_servers(bot: TeleBot) -> list:
-    response = requests.get(
+def get_vpn_servers(bot: TeleBot) -> Response:
+    log.info('get_vpn_servers executed')
+    return requests.get(
         f'{API_URL}{API_URIS["get_vpn_servers"]}',
         headers=get_auth_api_headers(bot=bot),
         allow_redirects=True,
     )
+
+
+def update_vpn_servers(bot: TeleBot) -> list:
+    check_cache_date(bot=bot)
+    response = get_vpn_servers(bot=bot)
     if response.status_code == 200:
-        log.info('get_vpn_servers executed')
-        json_data = response.json()
-        check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
-        return json_data["vpn_servers"]
+        return response.json()["vpn_servers"]
     else:
         send_alert_to_admins(bot=bot, response=response)
 
@@ -125,8 +144,7 @@ def get_client(bot: TeleBot, messenger_id: int) -> dict:
     status_code = response.status_code
     json_data = response.json()
     if status_code == 200:
-        check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
-        return response.json()
+        return json_data
     elif status_code in [404] and "User does not exist" in json_data['details']:
         bot.send_message(
             messenger_id,
@@ -200,7 +218,6 @@ def add_or_update_user(bot: TeleBot, message: Message) -> None:
     )
     if response.status_code in [200, 201]:
         json_data = response.json()
-        check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
         bot.send_message(
             message.chat.id,
             'Вы успешно зарегистрированы. Теперь Вам доступен весь функционал.',
@@ -228,7 +245,6 @@ def get_vpn_keys(bot: TeleBot, user: User) -> None:
     status_code = response.status_code
     json_data = response.json()
     if status_code in [200]:
-        check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
         log.info(f"{response.json()}")
         tokens = json_data['tokens']
         msg = []
@@ -286,7 +302,6 @@ def renew_token_step_2(message: Message, bot: TeleBot):
             status_code = response.status_code
             details = json_data['details']
             if status_code in [201]:
-                check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
                 token = json_data['Tokens'][0]
                 bot.send_message(
                     user_id,
@@ -318,7 +333,7 @@ def renew_token_step_2(message: Message, bot: TeleBot):
 def subscribes_step_1(message: Message, bot: TeleBot):
     user_id = message.from_user.id
     send_wait_message_to_user(bot, user_id)
-    available_tariffs_dicts = get_tariffs(bot=bot)
+    available_tariffs_dicts = update_tariffs(bot=bot)
     available_tariffs_names = [tariff['name'] for tariff in available_tariffs_dicts]
     bot.send_message(
         user_id,
@@ -340,7 +355,7 @@ def subscribes_step_2(message: Message, bot: TeleBot, available_tariffs_dicts: l
                 selected_tariff_dict = tariff_dict
 
         send_wait_message_to_user(bot, user_id)
-        available_vpn_servers_dicts = get_vpn_servers(bot=bot)
+        available_vpn_servers_dicts = update_vpn_servers(bot=bot)
         available_vpn_servers_names = [vpn_server['external_name'] for vpn_server in available_vpn_servers_dicts]
         bot.send_message(
             user_id,
@@ -399,7 +414,6 @@ def subscribes_step_3(
             json_data = response.json()
             status_code = response.status_code
             if status_code == 201:
-                check_cache_date(datetime.datetime.fromisoformat(json_data['cache_update_date']))
                 token = response.json()['tokens'][0]
                 bot.send_message(
                     user_id,
@@ -457,7 +471,7 @@ def subscribes_step_3(
 def tariffs_step_1(bot: TeleBot, message: Message):
     user_id = message.chat.id
     send_wait_message_to_user(bot, user_id)
-    tariffs = get_tariffs(bot=bot)
+    tariffs = update_tariffs(bot=bot)
     msg = ['Доступные тарифы:\n']
     for tariff in tariffs:
         if tariff["traffic_limit"]:

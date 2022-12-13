@@ -6,6 +6,7 @@ bot:
     url: "https://api.tematika.org/"
     url_health: "https://admin.tematika.org/health/check/"
     uris: {
+      "get_actual_cache_date": "actual-cache-date/",
       "get_auth_token": "api-token-auth/",
       "get_tariffs": "tariff/",
       "get_contact": "contact/{transport_name}/{messenger_id}",
