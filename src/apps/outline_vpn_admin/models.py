@@ -1,5 +1,3 @@
-import datetime
-
 from django.core.validators import MaxValueValidator
 from django.db import models
 from django.forms import model_to_dict
@@ -7,7 +5,6 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
 from django.conf import settings
-from apps.outline_vpn_admin.cashe_update import update_cache_date
 
 
 class DictRepresentationMixin:
@@ -66,6 +63,7 @@ class Transport(models.Model, DictRepresentationMixin):
         help_text='Наименование полей в credentials для формирования имени клиента. {Поле_1} {Поле_2} и т.д.',
     )
     credentials = models.JSONField(verbose_name='Реквизиты бота')
+    is_active = models.BooleanField(verbose_name='Активность', default=True)
     created_at = models.DateTimeField(verbose_name='Дата создания записи', auto_now_add=True)
     updated_at = models.DateTimeField(verbose_name='Дата обновления записи', auto_now=True)
 
@@ -85,14 +83,6 @@ class Transport(models.Model, DictRepresentationMixin):
 
     def __str__(self):
         return self.name
-
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        super().save(force_insert=False, force_update=False, using=None, update_fields=None)
-        update_cache_date(self.updated_at)
-
-    def delete(self, using=None, keep_parents=False):
-        super().delete(using=None, keep_parents=False)
-        update_cache_date(datetime.datetime.now())
 
 
 class Contact(models.Model, DictRepresentationMixin):
@@ -147,14 +137,6 @@ class VPNServer(models.Model, DictRepresentationMixin):
     def __str__(self):
         return self.name
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        super().save(force_insert=False, force_update=False, using=None, update_fields=None)
-        update_cache_date(self.updated_at)
-
-    def delete(self, using=None, keep_parents=False):
-        super().delete(using=None, keep_parents=False)
-        update_cache_date(datetime.datetime.now())
-
 
 class Currency(models.Model, DictRepresentationMixin):
     class Meta:
@@ -200,14 +182,6 @@ class Tariff(models.Model, DictRepresentationMixin):
 
     def __str__(self):
         return self.name
-
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        super().save(force_insert=False, force_update=False, using=None, update_fields=None)
-        update_cache_date(self.updated_at)
-
-    def delete(self, using=None, keep_parents=False):
-        super().delete(using=None, keep_parents=False)
-        update_cache_date(datetime.datetime.now())
 
 
 class VPNToken(models.Model, DictRepresentationMixin):
