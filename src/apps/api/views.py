@@ -40,14 +40,12 @@ class GetActualCacheDate(BaseAPIView):
 
 class Tariff(BaseAPIView):
     def get(self, request):
-        response = get_tariff()
-        return Response(response, status=status.HTTP_200_OK)
+        return Response(get_tariff(), status=status.HTTP_200_OK)
 
 
 class VPNServer(BaseAPIView):
     def get(self, request):
-        response = get_vpn_servers()
-        return Response(response, status=status.HTTP_200_OK)
+        return Response(get_vpn_servers(), status=status.HTTP_200_OK)
 
 
 class ContactCreateOrUpdate(BaseAPIView):
@@ -259,8 +257,7 @@ class VPNToken(BaseAPIView):
 
 class Transport(BaseAPIView):
     def get(self, request):
-        response = get_transports()
-        return Response(response, status=status.HTTP_200_OK)
+        return Response(get_transports(), status=status.HTTP_200_OK)
 
 
 class TelegramMessageSend(BaseAPIView):
