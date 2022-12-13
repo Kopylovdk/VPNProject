@@ -14,11 +14,9 @@ from apps.outline_vpn_admin.outline_api import get_outline_client
 from django.db import transaction
 from vpnservice import settings
 
-
 log = logging.getLogger(__name__)
 EXPIRED_VPN_TOKEN_SCRIPT_NAME = 'expired_vpn_token_key'
-
-
+tg_messanger_name = 'telegram'
 scheduler = BlockingScheduler(timezone=settings.TIME_ZONE)
 scheduler.add_jobstore(DjangoJobStore(), 'expired_vpn_tokens')
 
@@ -34,20 +32,22 @@ scheduler.add_jobstore(DjangoJobStore(), 'expired_vpn_tokens')
 )
 def collect_expired_vpn_token():
     transports = Transport.objects.filter(is_active=True, is_admin_transport=False)
+    date = datetime.datetime.now()
     active_tokens = VPNToken.objects.select_related('tariff', 'server', 'client').filter(
         is_active=True,
-        valid_until__lte=datetime.datetime.now(),
+        valid_until__lt=date,
     )
     for vpn_token in active_tokens:
         for transport in transports:
-            try:
-                contact = vpn_token.client.contact_set.get(transport=transport)
-            except Contact.DoesNotExist:
-                log.info(f"VPN Token: {vpn_token.as_dict()},"
-                         f" client {vpn_token.client.as_dict()!r}"
-                         f" don't have contact with transport {transport.as_dict()!r}")
+            contacts = vpn_token.client.contact_set.filter(transport=transport)
+            if contacts.count() == 0:
+                log.info(
+                    f"VPN Token: {vpn_token.as_dict()},"
+                    f" client {vpn_token.client.as_dict()!r}"
+                    f" don't have contact with transport {transport.as_dict()!r}"
+                )
                 continue
-            else:
+            for contact in contacts:
                 text = f'Срок действия VPN ключа с ID={vpn_token.id} по тарифу {vpn_token.tariff.name} истек.\n' \
                        f'Спасибо, что воспользовались нашим VPN.\n'
                 process = TokenProcess.objects.create(
@@ -71,13 +71,15 @@ def process_expired_vpn_tokens_tg():
     tasks = TokenProcess.objects.select_related('vpn_token', 'transport', 'contact', 'vpn_server')
     tasks = tasks.filter(script_name=EXPIRED_VPN_TOKEN_SCRIPT_NAME, is_executed=False)
     for task in tasks:
-        with transaction.atomic():
-            token_delete_result = outline_token_delete(token=task.vpn_token, server=task.vpn_server)
-            token_deactivate_result = vpn_token_deactivate(token=task.vpn_token)
-            task_update(task)
-            if not token_deactivate_result and not token_delete_result:
-                raise
-        send_telegram_message(transport=task.transport, contact=task.contact, text=task.text)
+        if tg_messanger_name in task.transport.name:
+            with transaction.atomic():
+                token_delete_result = outline_token_delete(token=task.vpn_token, server=task.vpn_server)
+                token_deactivate_result = vpn_token_deactivate(token=task.vpn_token)
+                task_update(task)
+                if not token_deactivate_result and not token_delete_result:
+                    raise
+
+            send_telegram_message(transport=task.transport, contact=task.contact, text=task.text)
 
 
 def task_update(task: TokenProcess) -> bool:

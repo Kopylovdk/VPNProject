@@ -28,3 +28,20 @@ class MockResponseStatusCode404:
 class MockResponseStatusCode200:
     def __init__(self):
         self.status_code = 200
+
+
+class MockResponseGetServerInfo:
+    def __init__(self):
+        self.status_code = 200
+
+    def json(self):
+        return {
+            "name": "My Server",
+            "serverId": "7fda0079-5317-4e5a-bb41-5a431dddae21",
+            "metricsEnabled": False,
+            "createdTimestampMs": 1536613192052,
+            "version": "1.0.0",
+            "accessKeyDataLimit": {"bytes": 8589934592},
+            "portForNewAccessKeys": 1234,
+            "hostnameForAccessKeys": "example.com"
+        }
