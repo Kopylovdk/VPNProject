@@ -61,7 +61,8 @@ class ClientTestCase(BaseTestCase):
 class TransportTestCase(BaseTestCase):
     def test_create_transports(self):
         exist = Transport.objects.all().count()
-        self.assertEqual(self.cnt, len(helpers.create_transport(self.cnt)))
+        for cnt in range(self.cnt):
+            helpers.create_transport(transport_name=f'test {cnt}')
         self.assertEqual(self.cnt, Transport.objects.all().count() - exist)
         transport = Transport.objects.last()
         self.assertIn(self.test_str_value, transport.name)
@@ -92,15 +93,13 @@ class TransportTestCase(BaseTestCase):
 
 class ContactTestCase(BaseTestCase):
     def test_create_contacts(self):
-        self.assertEqual(
-            self.cnt,
-            len(helpers.create_contact(
-                cnt=self.cnt,
-                client=helpers.create_client()[0],
-                transport=helpers.create_transport()[0]
+        helpers_client = helpers.create_client(cnt=self.cnt)
+        for cnt in range(self.cnt):
+            helpers.create_contact(
+                client=helpers_client[cnt],
+                transport=helpers.create_transport(transport_name=f'test_create_contacts_{cnt}')[0]
             )
-            )
-        )
+
         self.assertEqual(self.cnt, Contact.objects.all().count())
         contact = Contact.objects.first()
         self.assertIsInstance(contact.client, Client)
@@ -141,7 +140,8 @@ class VPNTokenTestCase(BaseTestCase):
 class VPNServerTestCase(BaseTestCase):
     def test_create_vpn_server(self):
         exist = VPNServer.objects.all().count()
-        self.assertEqual(self.cnt, len(helpers.create_vpn_server(self.cnt)))
+        for cnt in range(self.cnt):
+            helpers.create_vpn_server(server_name=f'test_create_vpn_server {cnt}')
         self.assertEqual(self.cnt, VPNServer.objects.all().count() - exist)
         obj = VPNServer.objects.last()
         self.assertIn(self.test_str_value, obj.name)
