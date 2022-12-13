@@ -20,6 +20,33 @@ admin.site.unregister(Group)
 admin.ModelAdmin.save_on_top = True
 
 
+class BaseNoDeleteModelAdmin(admin.ModelAdmin):
+    model_name = ''
+    actions = [
+        'change_active_status',
+    ]
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.action(description='Change active status')
+    def change_active_status(self, request, queryset):
+        for obj in queryset:
+            obj.is_active = False if obj.is_active else True
+            obj.save()
+        cnt = queryset.count()
+        self.message_user(request, ngettext(
+            f'%d {self.model_name} activity was successfully changed.',
+            f'%d {self.model_name}s activity was successfully changed.',
+            cnt,
+        ) % cnt, messages.SUCCESS)
+
+    def add_view(self, request, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['show_save_and_continue'] = False
+        return super().add_view(request, form_url, extra_context=extra_context)
+
+
 @admin.register(vpn_models.Currency)
 class Currency(admin.ModelAdmin):
     list_display = (
@@ -35,7 +62,7 @@ class Currency(admin.ModelAdmin):
 
 
 @admin.register(vpn_models.VPNServer)
-class VPNServer(admin.ModelAdmin):
+class VPNServer(BaseNoDeleteModelAdmin):
     list_display = (
         'name',
         'uri',
@@ -52,17 +79,18 @@ class VPNServer(admin.ModelAdmin):
     list_filter = (
         'name',
     )
+    model_name = 'VPNServer'
 
 
 @admin.register(vpn_models.Tariff)
-class Tariff(admin.ModelAdmin):
+class Tariff(BaseNoDeleteModelAdmin):
     list_display = (
         'name',
         'is_demo',
         'prolong_period',
         'traffic_limit',
         'price',
-        'currency',
+        # 'currency',
         'is_active',
     )
 
@@ -77,23 +105,28 @@ class Tariff(admin.ModelAdmin):
         'is_demo',
     )
 
+    model_name = "Tariff"
+
 
 @admin.register(vpn_models.Transport)
-class Transport(admin.ModelAdmin):
+class Transport(BaseNoDeleteModelAdmin):
     list_display = (
         'name',
         'uid_format',
         'full_name_format',
+        'is_active'
     )
 
     search_fields = (
         'name',
     )
+    model_name = 'Transport'
 
 
 @admin.register(vpn_models.Client)
 class Client(admin.ModelAdmin):
     list_display = (
+        'id',
         'full_name',
     )
 
@@ -170,18 +203,17 @@ class VPNToken(admin.ModelAdmin):
 
     @admin.action(description='Delete VPN record')
     def delete_vpn_record(self, request, queryset):
-        objects_qnt = len(queryset)
         for obj in queryset:
             try:
                 processes.del_outline_vpn_key(obj.id)
             except exceptions.VPNServerResponseError:
                 processes.change_vpn_token_active_state(obj)
-
+        qnt = queryset.count()
         self.message_user(request, ngettext(
-            '%d VPN token was successfully deleted.',
-            '%d VPN tokens were successfully deleted.',
-            objects_qnt,
-        ) % objects_qnt, messages.SUCCESS)
+            '%d VPN token was successfully deleted from VPN server.',
+            '%d VPN tokens were successfully deleted from VPN server.',
+            qnt,
+        ) % qnt, messages.SUCCESS)
 
     @admin.action(description='Delete traffic limit')
     def del_traffic_limit(self, request, queryset):
@@ -191,12 +223,12 @@ class VPNToken(admin.ModelAdmin):
             except exceptions.VPNServerResponseError:
                 processes.change_vpn_token_traffic_limit(obj)
 
-        objects = len(queryset)
+        cnt = queryset.count()
         self.message_user(request, ngettext(
             '%d traffic limit was successfully deleted.',
             '%d traffic limits were successfully deleted.',
-            objects,
-        ) % objects, messages.SUCCESS)
+            cnt,
+        ) % cnt, messages.SUCCESS)
 
     @admin.action(description='Add default traffic limit')
     def add_default_traffic_limit(self, request, queryset):
@@ -206,12 +238,12 @@ class VPNToken(admin.ModelAdmin):
             except exceptions.VPNServerResponseError:
                 processes.change_vpn_token_traffic_limit(obj, 1024)
 
-        objects = len(queryset)
+        cnt = queryset.count()
         self.message_user(request, ngettext(
             '%d default traffic limit was successfully added.',
             '%d default traffic limits were successfully added.',
-            objects,
-        ) % objects, messages.SUCCESS)
+            cnt,
+        ) % cnt, messages.SUCCESS)
 
     def save_model(self, request, obj, form, change):
         if change:
@@ -247,7 +279,6 @@ class TokenProcess(admin.ModelAdmin):
 
     list_filter = (
         'script_name',
-        'vpn_token',
         'vpn_server',
         'is_executed',
     )
