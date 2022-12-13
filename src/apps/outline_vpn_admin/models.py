@@ -26,8 +26,8 @@ class Client(models.Model, DictRepresentationMixin):
         verbose_name_plural = 'Clients'
 
     full_name = models.CharField(verbose_name='ФИО', max_length=254, null=True, blank=True)
-    created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
-    updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
+    created_at = models.DateTimeField(verbose_name='Дата создания записи', auto_now_add=True)
+    updated_at = models.DateTimeField(verbose_name='Дата обновления записи', auto_now=True)
 
     def is_has_demo(self):
         return self.vpntoken_set.filter(is_demo=True).exists()
@@ -63,8 +63,9 @@ class Transport(models.Model, DictRepresentationMixin):
         help_text='Наименование полей в credentials для формирования имени клиента. {Поле_1} {Поле_2} и т.д.',
     )
     credentials = models.JSONField(verbose_name='Реквизиты бота')
-    created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
-    updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
+    is_active = models.BooleanField(verbose_name='Активность', default=True)
+    created_at = models.DateTimeField(verbose_name='Дата создания записи', auto_now_add=True)
+    updated_at = models.DateTimeField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id!r} name={self.name!r}>"
@@ -90,7 +91,7 @@ class Contact(models.Model, DictRepresentationMixin):
         verbose_name = 'Contact'
         verbose_name_plural = 'Contacts'
 
-    client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Владелец ключа')
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Клиент')
     transport = models.ForeignKey(Transport, on_delete=models.RESTRICT, verbose_name='Канал связи')
     uid = models.CharField(
         verbose_name='Идентификатор контакта',
@@ -101,8 +102,8 @@ class Contact(models.Model, DictRepresentationMixin):
     name = models.CharField(verbose_name='Название контакта', max_length=254, null=True, blank=True)
     phone_number = models.CharField(verbose_name='Номер телефона', max_length=20, null=True, blank=True)
     credentials = models.JSONField(verbose_name='Реквизиты пользователя', null=True, blank=True)
-    created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
-    updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
+    created_at = models.DateTimeField(verbose_name='Дата создания записи', auto_now_add=True)
+    updated_at = models.DateTimeField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id!r} name={self.name!r}>"
@@ -127,8 +128,8 @@ class VPNServer(models.Model, DictRepresentationMixin):
     uri = models.CharField(verbose_name='URI для создания ключей OutLine', max_length=254)
     is_default = models.BooleanField(verbose_name='Сервер по умолчанию', default=False)
     is_active = models.BooleanField(verbose_name='Активность', default=True)
-    created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
-    updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
+    created_at = models.DateTimeField(verbose_name='Дата создания записи', auto_now_add=True)
+    updated_at = models.DateTimeField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id!r} name={self.name!r}>"
@@ -147,8 +148,8 @@ class Currency(models.Model, DictRepresentationMixin):
     name_iso = models.IntegerField(verbose_name='Цифровой код валюты по ISO 4217', validators=[MaxValueValidator(999)])
     is_main = models.BooleanField(verbose_name='Основная валюта', default=False)
     exchange_rate = models.DecimalField(verbose_name='Курс к основной валюте', max_digits=5, decimal_places=2)
-    created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
-    updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
+    created_at = models.DateTimeField(verbose_name='Дата создания записи', auto_now_add=True)
+    updated_at = models.DateTimeField(verbose_name='Дата обновления записи', auto_now=True)
     is_active = models.BooleanField(verbose_name='Активность валюты', default=True)
 
     def __repr__(self):
@@ -169,12 +170,12 @@ class Tariff(models.Model, DictRepresentationMixin):
     price = models.DecimalField(verbose_name='Стоимость', max_digits=10, decimal_places=2)
     currency = models.ForeignKey(Currency, on_delete=models.RESTRICT, verbose_name='Валюта')
     traffic_limit = models.IntegerField(verbose_name='Ограничение трафика в байтах', null=True, blank=True)
-    valid_until = models.DateField(verbose_name='Срок активности тарифа', null=True, blank=True)
+    valid_until = models.DateTimeField(verbose_name='Срок активности тарифа', null=True, blank=True)
     is_demo = models.BooleanField(verbose_name='Демо тариф', default=False)
     is_tech = models.BooleanField(verbose_name='Технический тариф', default=False)
     is_active = models.BooleanField(verbose_name='Активность тарифа', default=True)
-    created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
-    updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
+    created_at = models.DateTimeField(verbose_name='Дата создания записи', auto_now_add=True)
+    updated_at = models.DateTimeField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id!r} name={self.name!r}>"
@@ -196,19 +197,16 @@ class VPNToken(models.Model, DictRepresentationMixin):
     previous_vpn_token_id = models.BigIntegerField(verbose_name='ID предыдущего VPN ключа', null=True, blank=True)
     name = models.CharField(verbose_name='Имя VPN ключа', max_length=254, null=True, blank=True)
     vpn_key = models.TextField(verbose_name='VPN ключ', null=True, blank=True)
-    valid_until = models.DateField(verbose_name='Дата окончания подписки', null=True, blank=True)
+    valid_until = models.DateTimeField(verbose_name='Дата окончания подписки', null=True, blank=True)
     is_active = models.BooleanField(verbose_name='Активность VPN ключа', default=True)
     is_demo = models.BooleanField(verbose_name='Демо ключ', default=False)
     is_tech = models.BooleanField(verbose_name='Технический ключ', default=False)
     traffic_limit = models.BigIntegerField(verbose_name='Лимит трафика', null=True, blank=True)
-    created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
-    updated_at = models.DateField(verbose_name='Дата обновления записи', auto_now=True)
+    created_at = models.DateTimeField(verbose_name='Дата создания записи', auto_now_add=True)
+    updated_at = models.DateTimeField(verbose_name='Дата обновления записи', auto_now=True)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id!r} outline_id={self.outline_id!r}>"
-
-    # def __str__(self):
-    #     return self.name
 
 
 class TokenProcess(models.Model, DictRepresentationMixin):
@@ -224,8 +222,8 @@ class TokenProcess(models.Model, DictRepresentationMixin):
     script_name = models.CharField(verbose_name='Имя скрипта, добавившего запись', max_length=254)
     text = models.TextField(verbose_name='Текст сообщения')
     is_executed = models.BooleanField(verbose_name='Выполнено', default=False)
-    executed_at = models.DateField(verbose_name='Дата создания записи', null=True, blank=True)
-    created_at = models.DateField(verbose_name='Дата создания записи', auto_now_add=True)
+    executed_at = models.DateTimeField(verbose_name='Дата создания записи', null=True, blank=True)
+    created_at = models.DateTimeField(verbose_name='Дата создания записи', auto_now_add=True)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id!r}>"

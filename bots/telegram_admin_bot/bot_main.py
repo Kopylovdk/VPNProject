@@ -15,6 +15,7 @@ from process.bot_processes import (
     select_action_with_user_step_1,
     new_token_step_1,
     select_message_send_type_step_1,
+    check_cache_date,
     ADMIN_ACCESS
 )
 from process.keyboards import main_keyboard, register_keyboard
@@ -89,6 +90,7 @@ if __name__ == '__main__':
     else:
         # add to cache
         get_auth_api_headers(bot=bot)
+        check_cache_date(bot=bot)
         get_tariffs(bot=bot)
         get_vpn_servers(bot=bot)
         get_transports(bot=bot)

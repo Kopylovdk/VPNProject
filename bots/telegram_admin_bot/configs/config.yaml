@@ -7,6 +7,7 @@ bot:
     url_health: "https://admin.tematika.org/health/check/"
     uris: {
       "get_auth_token": "api-token-auth/",
+      "get_actual_cache_date": "actual-cache-date/",
 
       "get_tariffs": "tariff/",
       "get_vpn_servers": "vpn-servers/",

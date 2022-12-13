@@ -64,7 +64,7 @@ class Migration(migrations.Migration):
                 name = f'{months[i]} {months_names[i]}'
             Tariff.objects.create(
                 name=name,
-                prolong_period=prolong_periods[i] if traffic_limits[i] else None,
+                prolong_period=prolong_periods[i] if prolong_periods[i] else None,
                 price=prices[i],
                 traffic_limit=traffic_limits[i] if traffic_limits[i] else None,
                 currency=currency,

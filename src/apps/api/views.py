@@ -4,6 +4,7 @@ from apps.api.renderers import BaseJSONRenderer
 from rest_framework import status
 from rest_framework.response import Response
 from apps.outline_vpn_admin import exceptions
+from apps.outline_vpn_admin.cashe_update import get_actual_cache_date
 from apps.outline_vpn_admin.processes import (
     get_tariff,
     create_or_update_contact,
@@ -20,6 +21,7 @@ from apps.outline_vpn_admin.processes import (
     telegram_message_sender,
     get_token_info,
 )
+
 import logging
 
 
@@ -29,6 +31,11 @@ log = logging.getLogger(__name__)
 class BaseAPIView(views.APIView):
     permission_classes = (IsAuthenticated,)
     renderer_classes = (BaseJSONRenderer,)
+
+
+class GetActualCacheDate(BaseAPIView):
+    def get(self, request):
+        return Response({'cache_update_date': get_actual_cache_date().isoformat()}, status=status.HTTP_200_OK)
 
 
 class Tariff(BaseAPIView):

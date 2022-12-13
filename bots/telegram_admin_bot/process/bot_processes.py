@@ -1,9 +1,10 @@
+import datetime
 import requests
 import logging
 import os
 from requests import Response
 from telebot import TeleBot, types
-from process.config_loader import CONFIG
+from configs.config_loader import CONFIG
 from telebot.types import Message
 from functools import lru_cache
 from process.keyboards import (
@@ -27,6 +28,36 @@ API_URIS = CONFIG['bot']['api']['uris']
 BOT_NAME = CONFIG['bot']['name']
 ADMIN_ACCESS = CONFIG['bot']['admin_access']
 ADMIN_ALERT = CONFIG['bot']['admin_alert']
+_cache_update_date = None
+
+
+def get_actual_cache_date(bot: TeleBot) -> datetime.datetime:
+    response = requests.get(
+        f'{API_URL}{API_URIS["get_actual_cache_date"]}',
+        headers=get_auth_api_headers(bot=bot),
+        allow_redirects=True,
+    )
+    if response.status_code == 200:
+        return datetime.datetime.fromisoformat(response.json()['cache_update_date'])
+    else:
+        send_alert_to_admins(bot=bot, response=response)
+
+
+def check_cache_date(bot: TeleBot) -> None:
+    global _cache_update_date
+    new_date = get_actual_cache_date(bot=bot)
+    if _cache_update_date:
+        if _cache_update_date < new_date:
+            _cache_update_date = new_date
+            clear_cache()
+    else:
+        _cache_update_date = new_date
+
+
+def clear_cache():
+    get_vpn_servers.cache_clear()
+    get_tariffs.cache_clear()
+    get_transports.cache_clear()
 
 
 def check_int(data: str) -> int or str:
@@ -77,42 +108,57 @@ def get_auth_api_headers(bot: TeleBot) -> dict:
 
 
 @lru_cache(maxsize=None)
-def get_tariffs(bot: TeleBot) -> list:
-    response = requests.get(
+def get_tariffs(bot: TeleBot) -> Response:
+    log.info(f'get_tariffs executed')
+    return requests.get(
         f'{API_URL}{API_URIS["get_tariffs"]}',
         headers=get_auth_api_headers(bot=bot),
         allow_redirects=True,
     )
+
+
+def update_tariffs(bot) -> list:
+    check_cache_date(bot=bot)
+    response = get_tariffs(bot=bot)
     if response.status_code == 200:
-        log.info(f'get_tariffs executed')
         return response.json()["tariffs"]
     else:
         send_alert_to_admins(bot=bot, response=response)
 
 
 @lru_cache(maxsize=None)
-def get_vpn_servers(bot: TeleBot) -> list:
-    response = requests.get(
+def get_vpn_servers(bot: TeleBot) -> Response:
+    log.info('get_vpn_servers executed')
+    return requests.get(
         f'{API_URL}{API_URIS["get_vpn_servers"]}',
         headers=get_auth_api_headers(bot=bot),
         allow_redirects=True,
     )
+
+
+def update_vpn_servers(bot: TeleBot) -> list:
+    check_cache_date(bot=bot)
+    response = get_vpn_servers(bot=bot)
     if response.status_code == 200:
-        log.info('get_vpn_servers executed')
         return response.json()["vpn_servers"]
     else:
         send_alert_to_admins(bot=bot, response=response)
 
 
 @lru_cache(maxsize=None)
-def get_transports(bot: TeleBot) -> list:
-    response = requests.get(
+def get_transports(bot: TeleBot) -> Response:
+    log.info(f'get_transports executed')
+    return requests.get(
         f'{API_URL}{API_URIS["get_transports"]}',
         headers=get_auth_api_headers(bot=bot),
         allow_redirects=True,
     )
+
+
+def update_transports(bot: TeleBot) -> list:
+    check_cache_date(bot=bot)
+    response = get_transports(bot=bot)
     if response.status_code == 200:
-        log.info(f'get_transports executed')
         return response.json()["transports"]
     else:
         send_alert_to_admins(bot=bot, response=response)
@@ -146,8 +192,8 @@ def add_or_update_user(bot: TeleBot, message: Message) -> None:
 
 
 def transfer_token_data_ids_to_names(bot: TeleBot, token_dict: dict) -> dict:
-    tariffs = get_tariffs(bot=bot)
-    servers = get_vpn_servers(bot=bot)
+    tariffs = update_tariffs(bot=bot)
+    servers = update_vpn_servers(bot=bot)
     for token_key, token_item in token_dict.items():
         if token_key == 'server':
             for server in servers:
@@ -402,7 +448,7 @@ def token_delete_step_1(message: Message, bot: TeleBot, token_dict: dict):
 def select_action_with_user_step_1(message: Message, bot: TeleBot):
     user_id = message.from_user.id
     send_wait_message_to_user(bot=bot, user_id=user_id)
-    transports = get_transports(bot=bot)
+    transports = update_transports(bot=bot)
     list_for_kb = []
     for item in transports:
         list_for_kb.append(item['name'])
@@ -548,7 +594,7 @@ def get_vpn_keys_step_1(message: Message, bot: TeleBot, to_send: dict, user_info
 def new_token_step_1(message: Message, bot: TeleBot):
     user_id = message.from_user.id
     send_wait_message_to_user(bot=bot, user_id=user_id)
-    servers = get_vpn_servers(bot=bot)
+    servers = update_vpn_servers(bot=bot)
     list_for_kb = []
     for server in servers:
         list_for_kb.append(server['external_name'])
@@ -570,7 +616,7 @@ def new_token_step_2(message: Message, bot: TeleBot, servers: list[dict], list_f
         for server in servers:
             if server['external_name'] == user_answer:
                 to_send['server_name'] = server['name']
-        tariffs = get_tariffs(bot=bot)
+        tariffs = update_tariffs(bot=bot)
         list_for_kb = []
         for tariff in tariffs:
             list_for_kb.append(tariff['name'])
@@ -635,7 +681,7 @@ def new_token_step_3(message: Message, bot: TeleBot, list_for_kb: list, to_send:
 def select_message_send_type_step_1(message: Message, bot: TeleBot):
     user_id = message.from_user.id
     send_wait_message_to_user(bot=bot, user_id=user_id)
-    transports = get_transports(bot=bot)
+    transports = update_transports(bot=bot)
     list_for_kb = []
     for item in transports:
         list_for_kb.append(item['name'])
