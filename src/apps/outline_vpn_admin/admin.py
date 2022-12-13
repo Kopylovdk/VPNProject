@@ -48,7 +48,7 @@ class BaseNoDeleteModelAdmin(admin.ModelAdmin):
 
 
 @admin.register(vpn_models.Currency)
-class Currency(admin.ModelAdmin):
+class Currency(BaseNoDeleteModelAdmin):
     list_display = (
         'name',
         'name_iso',
@@ -59,6 +59,8 @@ class Currency(admin.ModelAdmin):
     search_fields = (
         'name',
     )
+
+    model_name = 'Currency'
 
 
 @admin.register(vpn_models.VPNServer)
