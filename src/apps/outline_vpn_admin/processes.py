@@ -286,7 +286,7 @@ def get_transports() -> dict:
         "details": "get_bots",
         "transports": [],
     }
-    for transport in Transport.objects.all():
+    for transport in Transport.objects.filter(is_active=True):
         response["transports"].append(transport.as_dict(exclude=['credentials']))
     return response
 
