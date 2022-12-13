@@ -114,7 +114,8 @@ class Transport(BaseNoDeleteModelAdmin):
         'name',
         'uid_format',
         'full_name_format',
-        'is_active'
+        'is_active',
+        'is_admin_transport',
     )
 
     search_fields = (
