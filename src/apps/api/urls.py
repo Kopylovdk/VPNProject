@@ -6,6 +6,7 @@ app_name = 'api'
 
 urlpatterns = [
     # get
+    path('actual-cache-date/', api_views.GetActualCacheDate.as_view(), name='get_actual_cache_date'),
     path('tariff/', api_views.Tariff.as_view(), name='get_tariffs'),
     path('vpn-servers/', api_views.VPNServer.as_view(), name='get_vpn_servers'),
     path('transports/', api_views.Transport.as_view(), name='get_transports'),
