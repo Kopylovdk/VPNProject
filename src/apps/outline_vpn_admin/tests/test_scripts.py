@@ -4,6 +4,7 @@ import apps.outline_vpn_admin.tests.helpers as helpers
 from apps.outline_vpn_admin import scripts
 from unittest.mock import patch
 from django.test import TestCase
+from apps.outline_vpn_admin.exceptions import VPNServerDoesNotResponse
 from apps.outline_vpn_admin.models import TokenProcess
 
 
@@ -144,17 +145,17 @@ class TaskUpdateTestCase(BaseSetUp):
         self.assertFalse(to_update.executed_at)
         self.assertFalse(to_update.is_executed)
 
-        self.assertTrue(scripts.task_update(to_update))
+        scripts.task_update(to_update)
 
         self.assertTrue(to_update.executed_at)
         self.assertTrue(to_update.is_executed)
 
 
 class VPNTokenDeactivateTestCase(BaseSetUp):
-    def test_vpn_token_deactivate(self):
+    def test_vpn_token_deactivate_ok(self):
         self.assertTrue(self.vpn_keys[1].is_active)
 
-        self.assertTrue(scripts.vpn_token_deactivate(self.vpn_keys[1]))
+        scripts.vpn_token_deactivate(self.vpn_keys[1])
 
         self.assertFalse(self.vpn_keys[1].is_active)
         self.assertIn('Deleted by script.', self.vpn_keys[1].name)
@@ -164,12 +165,13 @@ class OutlineTokenDeleteTestCase(BaseSetUp):
     @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     @patch("requests.delete", return_value=mocks.MockResponseStatusCode204())
     def test_outline_token_delete_ok(self, *args):
-        self.assertTrue(scripts.outline_token_delete(self.vpn_keys[0], self.vpn_server))
+        scripts.outline_token_delete(self.vpn_keys[0], self.vpn_server)
 
     @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     @patch('requests.delete', return_value=mocks.MockResponseStatusCode404())
     def test_outline_token_delete_false(self, *args):
-        self.assertFalse(scripts.outline_token_delete(self.vpn_keys[0], self.vpn_server))
+        with self.assertRaises(VPNServerDoesNotResponse):
+            scripts.outline_token_delete(self.vpn_keys[0], self.vpn_server)
 
 
 class SendTelegramMessageTestCase(BaseSetUp):

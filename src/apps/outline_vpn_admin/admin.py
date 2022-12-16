@@ -278,6 +278,7 @@ class VPNToken(admin.ModelAdmin):
             super().save_model(request, obj, form, change)
         else:
             processes.token_new(
+                client=obj.client,
                 server_name=obj.server.name,
                 tariff_name=obj.tariff.name,
             )
@@ -288,11 +289,15 @@ class TokenProcess(admin.ModelAdmin):
     list_display = (
         'script_name',
         'created_at',
-        'vpn_token',
+        'vpn_token_name',
         'contact',
         'is_executed',
         'executed_at',
     )
+
+    @admin.display(description='Имя VPN ключа')
+    def vpn_token_name(self, obj):
+        return obj.vpn_token.name
 
     search_fields = (
         'script_name',

@@ -1,8 +1,6 @@
 class ProcessException(Exception):
     """Базовое исключение"""
-    message = 'BASE_EXCEPTION'
-
-    def __init__(self, message):
+    def __init__(self, message=None):
         self.message = message
 
 
