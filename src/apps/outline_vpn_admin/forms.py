@@ -8,6 +8,7 @@ class VPNTokenAdminCreateForm(forms.ModelForm):
     class Meta:
         model = VPNToken
         fields = [
+            'client',
             'server',
             'tariff',
         ]
