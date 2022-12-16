@@ -1,5 +1,9 @@
 import datetime
 import logging
+
+from telebot.apihelper import ApiHTTPException
+
+from apps.outline_vpn_admin import exceptions
 from django_apscheduler.jobstores import DjangoJobStore
 from telebot import TeleBot
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -73,24 +77,28 @@ def process_expired_vpn_tokens_tg():
     for task in tasks:
         if tg_messanger_name in task.transport.name:
             with transaction.atomic():
-                token_delete_result = outline_token_delete(token=task.vpn_token, server=task.vpn_server)
-                token_deactivate_result = vpn_token_deactivate(token=task.vpn_token)
+                # try:
+                outline_token_delete(token=task.vpn_token, server=task.vpn_server)
+                vpn_token_deactivate(token=task.vpn_token)
                 task_update(task)
-                if not token_deactivate_result and not token_delete_result:
-                    raise
+               # except (
+                #     exceptions.VPNServerDoesNotResponse,
+                #     exceptions.ProcessException,
+                # ) as err:
+                #     log.error(f'process_expired_vpn_tokens_tg {err=}')
+                #     raise
+            # TODO проверить есть ли в случае не успешной транзакции выполнение
+                send_telegram_message(transport=task.transport, contact=task.contact, text=task.text)
 
-            send_telegram_message(transport=task.transport, contact=task.contact, text=task.text)
 
-
-def task_update(task: TokenProcess) -> bool:
+def task_update(task: TokenProcess) -> None:
     task.executed_at = datetime.datetime.now()
     task.is_executed = True
     try:
         task.save()
     except Exception as err:
         log.error(f'{task.as_dict()!r} save to database error={err}')
-        return False
-    return True
+        raise exceptions.ProcessException
 
 
 def vpn_token_deactivate(token: VPNToken):
@@ -100,15 +108,15 @@ def vpn_token_deactivate(token: VPNToken):
         token.save()
     except Exception as err:
         log.error(f'{token.as_dict()!r} save to database error={err}')
-        return False
-    return True
+        raise exceptions.ProcessException
 
 
 def outline_token_delete(token: VPNToken, server: VPNServer) -> bool:
     outline_client = get_outline_client(server)
     if not outline_client.delete_key(token.outline_id):
-        log.error('Outline client error occurred due outline_token_delete')
-        return False
+        msg = 'Outline client error occurred due outline_token_delete'
+        log.error(f'{msg}')
+        raise exceptions.VPNServerDoesNotResponse
     return True
 
 
@@ -116,7 +124,7 @@ def send_telegram_message(transport: Transport, text: str, contact: Contact):
     bot = TeleBot(transport.credentials['token'])
     try:
         bot.send_message(contact.credentials['id'], text)
-    except Exception as err:
+    except ApiHTTPException as err:
         log.error(f'send_telegram_message by script {err=!r}')
 
 
