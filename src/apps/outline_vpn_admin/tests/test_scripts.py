@@ -1,11 +1,10 @@
-from apps.outline_vpn_admin import scripts
 import apps.outline_vpn_admin.tests.mocks as mocks
 import datetime
 import apps.outline_vpn_admin.tests.helpers as helpers
+from apps.outline_vpn_admin import scripts
 from unittest.mock import patch
 from django.test import TestCase
-
-from apps.outline_vpn_admin.models import TokenProcess, Transport, Tariff
+from apps.outline_vpn_admin.models import TokenProcess
 
 
 class BaseSetUp(TestCase):
@@ -13,8 +12,12 @@ class BaseSetUp(TestCase):
         self.date_now = datetime.datetime.now()
         self.clients = helpers.create_client(2)
         self.transports = []
-        for i in range(1, 3):
+        for i in range(1, 4):
             self.transports.append(helpers.create_transport(transport_name=f'test_{i}')[0])
+        self.transports[0].name = self.transports[0].name + ' ' + scripts.tg_messanger_name
+        self.transports[1].name = self.transports[1].name + ' ' + scripts.tg_messanger_name
+        self.transports[0].save()
+        self.transports[1].save()
         self.tariff = helpers.create_tariff(currency=helpers.create_currency()[0])[0]
         self.vpn_server_name = 'test_scripts'
         self.vpn_server = helpers.create_vpn_server(server_name=self.vpn_server_name)[0]
@@ -38,7 +41,20 @@ class BaseSetUp(TestCase):
                     credentials=creds,
                 )[0]
                 self.contacts.append(contact)
-
+            if cnt == 1:
+                contact = helpers.create_contact(
+                    client=client,
+                    transport=self.transports[1],
+                    credentials=creds,
+                )[0]
+                self.contacts.append(contact)
+            if cnt == 3:
+                contact = helpers.create_contact(
+                    client=client,
+                    transport=self.transports[2],
+                    credentials=creds,
+                )[0]
+                self.contacts.append(contact)
             vpn_key = helpers.create_vpn_token(
                 vpn_server=self.vpn_server,
                 tariff=self.tariff,
@@ -50,7 +66,7 @@ class BaseSetUp(TestCase):
             elif cnt in [1, 4]:
                 valid_date = self.date_now - datetime.timedelta(days=2)
             elif cnt in [2]:
-                valid_date = self.date_now
+                valid_date = self.date_now + datetime.timedelta(minutes=20)
             else:
                 valid_date = self.date_now + datetime.timedelta(days=7)
             vpn_key.valid_until = valid_date
@@ -66,14 +82,52 @@ class CollectExpiredVPNTokenTestCase(BaseSetUp):
             is_executed=False,
             script_name=scripts.EXPIRED_VPN_TOKEN_SCRIPT_NAME,
         )
-        self.assertEqual(2, len(token_process))
+        self.assertEqual(4, len(token_process))
         self.assertFalse(token_process[0].executed_at)
         self.assertFalse(token_process[1].executed_at)
+        self.assertFalse(token_process[2].executed_at)
+        self.assertFalse(token_process[3].executed_at)
 
 
 class ProcessExpiredVPNTokensTGTestCase(BaseSetUp):
-    def test_process_expired_vpn_tokens_tg(self):
-        pass
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    @patch("requests.delete", return_value=mocks.MockResponseStatusCode204())
+    @patch('telebot.TeleBot.send_message', return_value=mocks.MockResponseStatusCode200())
+    def test_process_expired_vpn_tokens_tg(self, *args):
+        TokenProcess(
+            vpn_token=self.vpn_keys[1],
+            transport=self.transports[0],
+            contact=self.contacts[0],
+            vpn_server=self.vpn_server,
+            script_name=scripts.EXPIRED_VPN_TOKEN_SCRIPT_NAME,
+            text='test_task_update_text',
+        ).save()
+        TokenProcess(
+            vpn_token=self.vpn_keys[1],
+            transport=self.transports[1],
+            contact=self.contacts[0],
+            vpn_server=self.vpn_server,
+            script_name=scripts.EXPIRED_VPN_TOKEN_SCRIPT_NAME,
+            text='test_task_update_text',
+        ).save()
+        TokenProcess(
+            vpn_token=self.vpn_keys[1],
+            transport=self.transports[2],
+            contact=self.contacts[0],
+            vpn_server=self.vpn_server,
+            script_name=scripts.EXPIRED_VPN_TOKEN_SCRIPT_NAME,
+            text='test_task_update_text',
+        ).save()
+        token_processes = TokenProcess.objects.filter(is_executed=False)
+        self.assertEqual(token_processes.count(), 3)
+        scripts.process_expired_vpn_tokens_tg()
+        token_processes_execute = TokenProcess.objects.filter(is_executed=True)
+        self.assertEqual(token_processes.count(), 1)
+        self.assertEqual(self.transports[2].name, token_processes[0].transport.name)
+        self.assertTrue(token_processes_execute[0].is_executed)
+        self.assertIsNotNone(token_processes_execute[0].executed_at)
+        self.assertTrue(token_processes_execute[1].is_executed)
+        self.assertIsNotNone(token_processes_execute[1].executed_at)
 
 
 class TaskUpdateTestCase(BaseSetUp):
@@ -107,16 +161,18 @@ class VPNTokenDeactivateTestCase(BaseSetUp):
 
 
 class OutlineTokenDeleteTestCase(BaseSetUp):
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     @patch("requests.delete", return_value=mocks.MockResponseStatusCode204())
-    def test_outline_token_delete_ok(self, mocked_delete):
+    def test_outline_token_delete_ok(self, *args):
         self.assertTrue(scripts.outline_token_delete(self.vpn_keys[0], self.vpn_server))
 
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     @patch('requests.delete', return_value=mocks.MockResponseStatusCode404())
-    def test_outline_token_delete_false(self, mocked_delete):
+    def test_outline_token_delete_false(self, *args):
         self.assertFalse(scripts.outline_token_delete(self.vpn_keys[0], self.vpn_server))
 
 
 class SendTelegramMessageTestCase(BaseSetUp):
     @patch('telebot.TeleBot.send_message', return_value=mocks.MockResponseStatusCode200())
-    def test_send_telegram_message(self, mock):
+    def test_send_telegram_message(self, *args):
         scripts.send_telegram_message(self.transports[0], 'text', self.contacts[0])

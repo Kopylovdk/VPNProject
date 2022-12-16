@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('outline_vpn_admin', 'fill_db'),
+        ('outline_vpn_admin', 'create_superuser'),
     ]
 
     operations = [

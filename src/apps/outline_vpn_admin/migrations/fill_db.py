@@ -7,6 +7,7 @@ from apps.outline_vpn_admin.models import Transport, VPNServer, Tariff, Currency
 class Migration(migrations.Migration):
     dependencies = [
         ('outline_vpn_admin', 'create_superuser'),
+        ('outline_vpn_admin', '0004_alter_transport_is_admin_transport'),
     ]
 
     def fill_test_db_data(*args, **kwargs):
@@ -30,7 +31,8 @@ class Migration(migrations.Migration):
                 name=test_bots_name[test_bot_cnt],
                 uid_format='{id}',
                 full_name_format='{first_name} {last_name}',
-                credentials=test_bots_api[test_bot_cnt]
+                credentials=test_bots_api[test_bot_cnt],
+                is_admin_transport=True if "admin" in test_bots_name[test_bot_cnt] else False,
             ).save()
 
         VPNServer.objects.create(

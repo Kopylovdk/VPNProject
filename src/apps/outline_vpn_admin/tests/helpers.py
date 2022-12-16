@@ -72,8 +72,11 @@ def create_vpn_server(cnt: int = 1, server_name: str = None) -> list[VPNServer]:
     """
     result = []
     for obj_cnt in range(1000, cnt + 1000):
+        server_name = server_name or f'test {obj_cnt}'
+        external_name = server_name
         new_obj = VPNServer(
-            name=server_name if server_name else f'test {obj_cnt}',
+            name=server_name,
+            external_name=external_name,
             uri=f'test {obj_cnt}',
         )
         new_obj.save()
