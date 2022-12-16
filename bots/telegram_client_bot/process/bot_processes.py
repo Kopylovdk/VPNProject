@@ -151,6 +151,7 @@ def get_client(bot: TeleBot, messenger_id: int) -> dict:
             "Вы не зарегистрированы.\nПожалуйста, пройдите регистрацию, нажав на соответствующую кнопку в Меню",
             reply_markup=main_keyboard()
         )
+        return {'details': 'No register'}
     else:
         send_alert_to_admins(bot=bot, response=response)
 
@@ -187,6 +188,10 @@ def send_alert_to_admins(bot: TeleBot, response: Response, user: User = None) ->
 def send_msg_to_managers(bot: TeleBot, text: str, message: Message) -> None:
     """Функция отправки сообщений всем менеджерам"""
     response = get_client(bot, message.from_user.id)
+    if "No register" in response['details']:
+        text_2 = 'для не зарегистрированного пользователя'
+    else:
+        text_2 = f'Номер телефона - {response["user_info"]["contact"]["phone_number"]!r}'
     for manager_id in MANAGERS:
         try:
             bot.send_message(
@@ -195,7 +200,7 @@ def send_msg_to_managers(bot: TeleBot, text: str, message: Message) -> None:
                      f'ID - {message.from_user.id!r}\n'
                      f'Логин - {message.from_user.username!r}\n'
                      f'ФИО - {message.from_user.full_name!r}\n'
-                     f'Номер телефона - {response["user_info"]["contact"]["phone_number"]!r}\n'
+                     f"{text_2}\n"
                      f'{text}',
             )
         except ApiTelegramException:
