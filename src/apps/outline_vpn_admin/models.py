@@ -198,7 +198,7 @@ class VPNToken(models.Model, DictRepresentationMixin):
     previous_vpn_token_id = models.BigIntegerField(verbose_name='ID предыдущего VPN ключа', null=True, blank=True)
     name = models.CharField(verbose_name='Имя VPN ключа', max_length=254, null=True, blank=True)
     vpn_key = models.TextField(verbose_name='VPN ключ', null=True, blank=True)
-    valid_until = models.DateTimeField(verbose_name='Дата окончания подписки', null=True, blank=True)
+    valid_until = models.DateField(verbose_name='Дата окончания подписки', null=True, blank=True)
     is_active = models.BooleanField(verbose_name='Активность VPN ключа', default=True)
     is_demo = models.BooleanField(verbose_name='Демо ключ', default=False)
     is_tech = models.BooleanField(verbose_name='Технический ключ', default=False)
@@ -208,6 +208,9 @@ class VPNToken(models.Model, DictRepresentationMixin):
 
     def __repr__(self):
         return f"<{self.__class__.__name__} id={self.id!r} outline_id={self.outline_id!r}>"
+
+    # def __str__(self):
+    #     return self.name
 
 
 class TokenProcess(models.Model, DictRepresentationMixin):
@@ -223,7 +226,7 @@ class TokenProcess(models.Model, DictRepresentationMixin):
     script_name = models.CharField(verbose_name='Имя скрипта, добавившего запись', max_length=254)
     text = models.TextField(verbose_name='Текст сообщения')
     is_executed = models.BooleanField(verbose_name='Выполнено', default=False)
-    executed_at = models.DateTimeField(verbose_name='Дата создания записи', null=True, blank=True)
+    executed_at = models.DateTimeField(verbose_name='Дата выполнения', null=True, blank=True)
     created_at = models.DateTimeField(verbose_name='Дата создания записи', auto_now_add=True)
 
     def __repr__(self):
