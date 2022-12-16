@@ -35,7 +35,12 @@ class BaseAPIView(views.APIView):
 
 class GetActualCacheDate(BaseAPIView):
     def get(self, request):
-        return Response({'cache_update_date': get_actual_cache_date().isoformat()}, status=status.HTTP_200_OK)
+        return Response({
+            'details': "get_actual_cache_date",
+            'cache_update_date': get_actual_cache_date().isoformat()
+            },
+            status=status.HTTP_200_OK
+        )
 
 
 class Tariff(BaseAPIView):
@@ -100,10 +105,16 @@ class VPNTokenNew(BaseAPIView):
             log.error(msg)
             return Response({"details": f'{msg}'}, status=status.HTTP_403_FORBIDDEN)
         except (
+                exceptions.VPNServerResponseError,
+                exceptions.VPNServerDoesNotResponse,
+        ) as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except (
             exceptions.TransportDoesNotExist,
             exceptions.UserDoesNotExist,
             exceptions.VPNServerDoesNotExist,
-            exceptions.VPNServerDoesNotResponse,
             exceptions.TariffDoesNotExist,
         ) as err:
             msg = str(err.message)
@@ -132,8 +143,15 @@ class VPNTokenRenew(BaseAPIView):
             log.error(msg)
             return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
         except (
+                exceptions.VPNServerResponseError,
+                exceptions.VPNServerDoesNotResponse,
+        ) as err:
+            msg = str(err.message)
+            log.error(msg)
+            return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except (
             exceptions.BelongToAnotherUser,
-            exceptions.DemoKeyExist,
+            # exceptions.DemoKeyExist,
             exceptions.DemoKeyNotAllowed
         ) as err:
             msg = str(err.message)
@@ -163,7 +181,6 @@ class VPNTokens(BaseAPIView):
             return Response(response, status=status.HTTP_200_OK)
 
 
-# TODO: Tests needed
 class VPNToken(BaseAPIView):
     def get(self, request, token_id):
         try:
@@ -180,19 +197,20 @@ class VPNToken(BaseAPIView):
         data = request.data
         data_keys = data.keys()
         if "traffic_limit" in data_keys:
-            log.error(f'{data=!r}')
             try:
                 response = add_traffic_limit(
                     token_id=data['token_id'],
                     traffic_limit=int(data['traffic_limit']),
                 )
-            except exceptions.VPNServerResponseError as err:
+            except (
+                exceptions.VPNServerResponseError,
+                exceptions.VPNServerDoesNotResponse,
+            ) as err:
                 msg = str(err.message)
                 log.error(msg)
                 return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             except (
                 exceptions.VPNServerDoesNotExist,
-                exceptions.VPNServerDoesNotResponse,
                 exceptions.VPNTokenDoesNotExist,
             ) as err:
                 msg = str(err.message)
@@ -219,14 +237,16 @@ class VPNToken(BaseAPIView):
                 response = del_traffic_limit(
                     token_id=data['token_id'],
                 )
-            except exceptions.VPNServerResponseError as err:
+            except (
+                exceptions.VPNServerResponseError,
+                exceptions.VPNServerDoesNotResponse,
+            ) as err:
                 msg = str(err.message)
                 log.error(msg)
                 return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             except (
                 exceptions.VPNServerDoesNotExist,
                 exceptions.VPNTokenDoesNotExist,
-                exceptions.VPNServerDoesNotResponse,
             ) as err:
                 msg = str(err.message)
                 log.error(msg)
@@ -238,13 +258,15 @@ class VPNToken(BaseAPIView):
     def delete(self, request):
         try:
             response = del_outline_vpn_key(request.data['token_id'])
-        except exceptions.VPNServerResponseError as err:
+        except (
+            exceptions.VPNServerResponseError,
+            exceptions.VPNServerDoesNotResponse,
+        ) as err:
             msg = str(err.message)
             log.error(msg)
             return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except (
             exceptions.VPNServerDoesNotExist,
-            exceptions.VPNServerDoesNotResponse,
             exceptions.VPNTokenDoesNotExist,
         ) as err:
             msg = str(err.message)
@@ -273,9 +295,7 @@ class TelegramMessageSend(BaseAPIView):
             msg = str(err.message)
             log.error(msg)
             return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        except (
-                exceptions.TransportDoesNotExist,
-        ) as err:
+        except exceptions.TransportDoesNotExist as err:
             msg = str(err.message)
             log.error(msg)
             return Response({"details": f'{msg}'}, status=status.HTTP_404_NOT_FOUND)
