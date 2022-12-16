@@ -81,7 +81,6 @@ def process_expired_vpn_tokens_tg():
                     outline_token_delete(token=task.vpn_token, server=task.vpn_server)
                     vpn_token_deactivate(token=task.vpn_token)
                 task_update(task)
-            # TODO проверить есть ли в случае не успешной транзакции выполнение
                 send_telegram_message(transport=task.transport, contact=task.contact, text=task.text)
 
 
