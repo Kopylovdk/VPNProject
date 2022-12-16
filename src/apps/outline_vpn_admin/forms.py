@@ -1,5 +1,7 @@
 from django import forms
+from apps.outline_vpn_admin.exceptions import VPNServerDoesNotResponse
 from apps.outline_vpn_admin.models import VPNToken
+from apps.outline_vpn_admin.outline_api import get_outline_client
 
 
 class VPNTokenAdminCreateForm(forms.ModelForm):
@@ -20,6 +22,11 @@ class VPNTokenAdminCreateForm(forms.ModelForm):
             raise forms.ValidationError("Выберите Сервер")
         if self.cleaned_data['tariff'].is_demo:
             raise forms.ValidationError("Создание VPN Token с тарифом DEMO из админки не возможно")
+        try:
+            get_outline_client(self.cleaned_data['server'])
+        except VPNServerDoesNotResponse:
+            raise forms.ValidationError("Ошибка подключения к VPN серверу. "
+                                        "Обратитесь к администратору и попробуйте позже")
 
 
 class VPNTokenAdminChangeForm(forms.ModelForm):

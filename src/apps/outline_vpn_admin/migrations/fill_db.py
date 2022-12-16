@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
         VPNServer.objects.create(
             name='test_vpn_server_in_russia',
             external_name='В России',
-            uri='https://62.113.111.75:20125/et_PPlt-7Kz-O0FxVnT4gQ',
+            uri='вставить url для тестового сервера',
         ).save()
 
         cur_names = ['RUB', 'USD', 'EUR']
