@@ -288,8 +288,8 @@ class TokenProcess(admin.ModelAdmin):
     list_display = (
         'script_name',
         'created_at',
-        'vpn_token__name',
-        'contact__phone_number',
+        'vpn_token',
+        'contact',
         'is_executed',
         'executed_at',
     )
