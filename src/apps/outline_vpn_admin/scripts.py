@@ -77,16 +77,9 @@ def process_expired_vpn_tokens_tg():
     for task in tasks:
         if tg_messanger_name in task.transport.name:
             with transaction.atomic():
-                # try:
                 outline_token_delete(token=task.vpn_token, server=task.vpn_server)
                 vpn_token_deactivate(token=task.vpn_token)
                 task_update(task)
-               # except (
-                #     exceptions.VPNServerDoesNotResponse,
-                #     exceptions.ProcessException,
-                # ) as err:
-                #     log.error(f'process_expired_vpn_tokens_tg {err=}')
-                #     raise
             # TODO проверить есть ли в случае не успешной транзакции выполнение
                 send_telegram_message(transport=task.transport, contact=task.contact, text=task.text)
 
@@ -101,7 +94,7 @@ def task_update(task: TokenProcess) -> None:
         raise exceptions.ProcessException
 
 
-def vpn_token_deactivate(token: VPNToken):
+def vpn_token_deactivate(token: VPNToken) -> None:
     token.is_active = False
     token.name = f'Deleted by script. {token.name}'
     try:
@@ -111,16 +104,15 @@ def vpn_token_deactivate(token: VPNToken):
         raise exceptions.ProcessException
 
 
-def outline_token_delete(token: VPNToken, server: VPNServer) -> bool:
+def outline_token_delete(token: VPNToken, server: VPNServer) -> None:
     outline_client = get_outline_client(server)
     if not outline_client.delete_key(token.outline_id):
         msg = 'Outline client error occurred due outline_token_delete'
         log.error(f'{msg}')
         raise exceptions.VPNServerDoesNotResponse
-    return True
 
 
-def send_telegram_message(transport: Transport, text: str, contact: Contact):
+def send_telegram_message(transport: Transport, text: str, contact: Contact) -> None:
     bot = TeleBot(transport.credentials['token'])
     try:
         bot.send_message(contact.credentials['id'], text)
