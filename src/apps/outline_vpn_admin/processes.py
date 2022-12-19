@@ -26,7 +26,7 @@ def get_transport_contact_by_(
         transport = Transport.objects.get(name=transport_name)
     except Transport.DoesNotExist as err:
         log.error(f'Error get_transport_contact_by_ {transport_name=!r}, {credentials=!r}, {messenger_id=!r}, {err=!r}')
-        raise exceptions.TransportDoesNotExist(message=f'Bot {transport_name!r} does not exist')
+        raise exceptions.TransportDoesNotExist(message=f'Transport {transport_name!r} does not exist')
 
     if credentials:
         check_uid = transport.make_contact_credentials_uid(credentials)
@@ -395,7 +395,7 @@ def telegram_message_sender(
         transport = Transport.objects.get(name=transport_name)
     except Transport.DoesNotExist as err:
         log.error(f'{transport_name=!r}, {err=!r}')
-        raise exceptions.TransportDoesNotExist(message=f'Bot {transport_name!r} does not exist')
+        raise exceptions.TransportDoesNotExist(message=f'Transport {transport_name!r} does not exist')
 
     from telebot import TeleBot
     bot_creds = transport.credentials
@@ -420,7 +420,7 @@ def telegram_message_sender(
             response['info']['success'] += 1
     else:
         contacts_to_send = Contact.objects.select_related('transport').filter(transport=transport)
-        response['details'] = 'All bot users message send'
+        response['details'] = 'All users message send'
         for contact in contacts_to_send:
             id_to_send = contact.uid.split('@')[1]
             try:
