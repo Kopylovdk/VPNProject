@@ -1,4 +1,6 @@
+import datetime
 import apps.outline_vpn_admin.tests.helpers as helpers
+from vpnservice.settings import DATE_STRING_FORMAT
 from unittest.mock import patch
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
@@ -16,13 +18,14 @@ class BaseAPITestCase(APITestCase):
         self.status_FORBIDDEN = 403
         self.status_UNAUTHORIZED = 401
         self.status_SERVICE_UNAVAILABLE = 503
+        self.not_exist_transport = 'not_exist'
         self.bot = User.objects.create(
             username='test',
             password='test',
             email='test@test.ru'
         )
         self.bot.save()
-
+        self.invalid_token_id = 9999999
         self.token = Token.objects.get(user_id=self.bot.id).key
         self.HTTP_AUTHORIZATION = f"Token  {self.token}"
         self.contact_client = helpers.create_client()[0]
@@ -154,10 +157,10 @@ class ContactCreateOrUpdateTest(BaseAPITestCase):
 
     def test_get_client_transport_does_not_exist(self):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
-        url_get = reverse(self.url_get, args=['no_exist', self.credentials['id']])
+        url_get = reverse(self.url_get, args=[self.not_exist_transport, self.credentials['id']])
         response = self.client.get(url_get, format='json')
         self.assertEqual(self.status_NOT_FOUND, response.status_code)
-        self.assertIn("Bot 'no_exist' does not exist", response.json()['details'])
+        self.assertIn(f"Transport {self.not_exist_transport!r} does not exist", response.json()['details'])
 
     def test_get_client_user_does_not_exist(self):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
@@ -199,12 +202,12 @@ class ContactCreateOrUpdateTest(BaseAPITestCase):
     def test_create_or_update_contact_transport_does_not_exist(self):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         send_data = {
-            'transport_name': 'no_exist',
+            'transport_name': self.not_exist_transport,
             'credentials': self.credentials,
         }
         response = self.client.post(self.url_post, data=send_data, format='json')
         self.assertEqual(self.status_NOT_FOUND, response.status_code)
-        self.assertIn("Bot 'no_exist' does not exist", response.json()['details'])
+        self.assertIn(f"Transport {self.not_exist_transport!r} does not exist", response.json()['details'])
 
     def test_create_or_update_contact_no_auth(self):
         self.client.credentials()
@@ -322,7 +325,7 @@ class VPNTokenNewTest(BaseAPITestCase):
     def test_vpn_token_new_transport_does_not_exist(self, *args):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         send_data = {
-            'transport_name': 'not_exist',
+            'transport_name': self.not_exist_transport,
             'credentials': self.credentials,
             'server_name': self.server_name,
             'tariff_name': self.tariff.name,
@@ -330,7 +333,7 @@ class VPNTokenNewTest(BaseAPITestCase):
         response = self.client.post(self.url, data=send_data, format='json')
         self.assertEqual(self.status_NOT_FOUND, response.status_code)
         data_dict = response.json()
-        self.assertEqual("Bot 'not_exist' does not exist", data_dict['details'])
+        self.assertEqual(f"Transport {self.not_exist_transport!r} does not exist", data_dict['details'])
 
     @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     def test_vpn_token_new_user_does_not_exist(self, *args):
@@ -446,14 +449,14 @@ class VPNTokenReNewTest(BaseAPITestCase):
     def test_vpn_token_renew_transport_does_not_exist(self):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         send_data = {
-            'transport_name': 'not_exist',
+            'transport_name': self.not_exist_transport,
             'credentials': self.credentials,
             'token_id': self.vpn_token.id,
         }
         response = self.client.post(self.url, data=send_data, format='json')
         self.assertEqual(self.status_NOT_FOUND, response.status_code)
         data_dict = response.json()
-        self.assertEqual("Bot 'not_exist' does not exist", data_dict['details'])
+        self.assertEqual(f"Transport {self.not_exist_transport!r} does not exist", data_dict['details'])
 
     def test_vpn_token_renew_user_does_not_exist(self):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
@@ -473,7 +476,7 @@ class VPNTokenReNewTest(BaseAPITestCase):
         send_data = {
             'transport_name': self.transport_name,
             'credentials': self.credentials,
-            'token_id': 923139,
+            'token_id': self.invalid_token_id,
         }
         response = self.client.post(self.url, data=send_data, format='json')
         data_dict = response.json()
@@ -542,10 +545,10 @@ class VPNTokensTest(BaseAPITestCase):
 
     def test_vpn_tokens_transport_does_not_exist(self):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
-        url_get = reverse(self.url, args=['no_exist', self.credentials['id']])
+        url_get = reverse(self.url, args=[self.not_exist_transport, self.credentials['id']])
         response = self.client.get(url_get, format='json')
         self.assertEqual(self.status_NOT_FOUND, response.status_code)
-        self.assertIn("Bot 'no_exist' does not exist", response.json()['details'])
+        self.assertIn(f"Transport {self.not_exist_transport!r} does not exist", response.json()['details'])
 
     def test_vpn_tokens_user_does_not_exist(self):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
@@ -574,7 +577,7 @@ class VPNTokenGetTest(BaseAPITestCase):
 
     def test_get_vpn_token_does_not_exist(self):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
-        url = reverse(self.url, args=[99999999999])
+        url = reverse(self.url, args=[self.invalid_token_id])
         response = self.client.get(url, format='json')
         self.assertEqual(self.status_NOT_FOUND, response.status_code)
         self.assertIn('does not exist', response.json()['details'])
@@ -593,91 +596,201 @@ class VPNTokenDeleteTest(BaseAPITestCase):
         cls.details = 'VPN Token deleted'
         cls.data_key_name = 'tokens'
 
-    def test_delete_vpn_token_ok(self):
-        self.status_OK
-        pass
+    @patch("requests.delete", return_value=mocks.MockResponseStatusCode204())
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_delete_vpn_token_ok(self, *args):
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        json_to_send = {
+            'token_id': self.vpn_token.id
+        }
+        response = self.client.delete(self.url, data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_OK)
+        json_data = response.json()
+        self.assertEqual(self.details, json_data['details'])
+        self.vpn_token.refresh_from_db()
+        self.assertEqual(self.vpn_token.name, json_data[self.data_key_name][0]['name'])
 
     def test_delete_vpn_token_no_auth(self):
-        self.status_UNAUTHORIZED
-        pass
+        self.client.credentials()
+        json_to_send = {
+            'token_id': self.vpn_token.id
+        }
+        response = self.client.delete(self.url, data=json_to_send, format='json')
+        self.assertEqual(self.status_UNAUTHORIZED, response.status_code)
 
-    def test_delete_vpn_token_vpn_server_response_error(self):
-        self.status_SERVICE_UNAVAILABLE
-        pass
+    @patch("requests.get", return_value=mocks.MockResponseStatusCode404())
+    def test_delete_vpn_token_vpn_server_response_error(self, *args):
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        json_to_send = {
+            'token_id': self.vpn_token.id
+        }
+        response = self.client.delete(self.url, data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_SERVICE_UNAVAILABLE)
 
     def test_delete_vpn_token_vpn_server_does_not_exist(self):
-        self.status_NOT_FOUND
+        """Недостижимый сценарий, на VPN сервер foreign key из vpn_token и он заведомо существует,
+        тк создать ключ без сервера невозможно"""
         pass
 
-    def test_delete_vpn_token_vpn_server_does_not_response(self):
-        self.status_SERVICE_UNAVAILABLE
-        pass
+    @patch("requests.delete", return_value=mocks.MockResponseStatusCode404())
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_delete_vpn_token_vpn_server_does_not_response(self, *args):
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        json_to_send = {
+            'token_id': self.vpn_token.id
+        }
+        response = self.client.delete(self.url,data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_SERVICE_UNAVAILABLE)
 
     def test_delete_vpn_token_vpn_token_does_not_exist(self):
-        self.status_NOT_FOUND
-        pass
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        json_to_send = {
+            'token_id': self.invalid_token_id
+        }
+        response = self.client.delete(self.url, data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_NOT_FOUND)
 
 
 class VPNTokenPatchTest(BaseAPITestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.url_patch = reverse('api:update_token')
+        cls.url = reverse('api:update_token')
         cls.details_traffic_limit = 'Traffic limit updated'
         cls.details_valid_until = 'Token valid_until updated'
         cls.details_else = 'Traffic limit removed'
         cls.data_key_name = 'tokens'
 
     def test_vpn_token_patch_no_auth(self):
-        self.status_UNAUTHORIZED
-        pass
+        self.client.credentials()
+        response = self.client.patch(self.url, format='json')
+        self.assertEqual(self.status_UNAUTHORIZED, response.status_code)
 
-    def test_vpn_token_patch_traffic_limit_ok(self):
-        self.status_OK
-        pass
-
-    def test_vpn_token_patch_traffic_limit_vpn_server_response_error(self):
-        self.status_SERVICE_UNAVAILABLE
-        pass
-
-    def test_vpn_token_patch_traffic_limit_vpn_server_does_not_exist(self):
-        self.status_NOT_FOUND
-        pass
-
-    def test_vpn_token_patch_traffic_limit_vpn_server_does_not_response(self):
-        self.status_SERVICE_UNAVAILABLE
-        pass
-
-    def test_vpn_token_patch_traffic_limit_vpn_token_does_not_exist(self):
-        self.status_NOT_FOUND
-        pass
+    @patch("requests.put", return_value=mocks.MockResponseStatusCode204())
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_vpn_token_patch_traffic_limit_ok(self, *args):
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        traffic_limit_in_mb = 1024
+        json_to_send = {
+            'token_id': self.vpn_token.id,
+            'traffic_limit': traffic_limit_in_mb
+        }
+        self.assertIsNone(self.vpn_token.traffic_limit)
+        response = self.client.patch(self.url, data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_OK)
+        response_json = response.json()
+        self.assertEqual(self.details_traffic_limit, response_json['details'])
+        self.assertEqual(traffic_limit_in_mb, response_json[self.data_key_name][0]['traffic_limit'] / 1024 / 1024)
 
     def test_vpn_token_patch_valid_until_ok(self):
-        self.status_OK
-        pass
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        days = 365
+        new_date = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime(DATE_STRING_FORMAT)
+        json_to_send = {
+            'token_id': self.vpn_token.id,
+            'valid_until': days
+        }
+        self.assertIsNone(self.vpn_token.valid_until)
+        response = self.client.patch(self.url, data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_OK)
+        response_json = response.json()
+        self.assertEqual(self.details_valid_until, response_json['details'])
+        self.assertEqual(new_date, response_json[self.data_key_name][0]['valid_until'])
+
+    @patch("requests.delete", return_value=mocks.MockResponseStatusCode204())
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_vpn_token_patch_else_ok(self, *args):
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        json_to_send = {
+            'token_id': self.vpn_token.id,
+        }
+        self.vpn_token.traffic_limit = 1024
+        self.vpn_token.save()
+        response = self.client.patch(self.url, data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_OK)
+        response_json = response.json()
+        self.assertEqual(self.details_else, response_json['details'])
+        self.assertEqual(self.vpn_token.id, response_json[self.data_key_name][0]['id'])
+        self.assertIsNone(response_json[self.data_key_name][0]['traffic_limit'])
+
+    def test_vpn_token_patch_traffic_limit_vpn_token_does_not_exist(self):
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        traffic_limit_in_mb = 1024
+        json_to_send = {
+            'token_id': self.invalid_token_id,
+            'traffic_limit': traffic_limit_in_mb
+        }
+        response = self.client.patch(self.url, data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_NOT_FOUND)
 
     def test_vpn_token_patch_valid_until_vpn_token_does_not_exist(self):
-        self.status_NOT_FOUND
-        pass
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        days = 365
+        json_to_send = {
+            'token_id': self.invalid_token_id,
+            'valid_until': days
+        }
+        response = self.client.patch(self.url, data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_NOT_FOUND)
 
-    def test_vpn_token_patch_else_ok(self):
-        self.status_OK
-        pass
+    def test_vpn_token_patch_else_vpn_token_does_not_exist(self):
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        json_to_send = {
+            'token_id': self.invalid_token_id,
+        }
+        response = self.client.patch(self.url, data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_NOT_FOUND)
 
-    def test_vpn_token_patch_else_vpn_server_response_error(self):
-        self.status_SERVICE_UNAVAILABLE
+    def test_vpn_token_patch_traffic_limit_vpn_server_does_not_exist(self):
+        """Недостижимый сценарий, на VPN сервер foreign key из vpn_token и он заведомо существует,
+        тк создать ключ без сервера невозможно"""
         pass
 
     def test_vpn_token_patch_else_vpn_server_does_not_exist(self):
-        self.status_NOT_FOUND
+        """Недостижимый сценарий, на VPN сервер foreign key из vpn_token и он заведомо существует,
+        тк создать ключ без сервера невозможно"""
         pass
 
-    def test_vpn_token_patch_else_vpn_server_does_not_response(self):
-        self.status_SERVICE_UNAVAILABLE
-        pass
+    @patch("requests.put", return_value=mocks.MockResponseStatusCode404())
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_vpn_token_patch_traffic_limit_vpn_server_response_error(self, *args):
+        traffic_limit_in_mb = 1024
+        json_to_send = {
+            'token_id': self.vpn_token.id,
+            'traffic_limit': traffic_limit_in_mb
+        }
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        response = self.client.patch(self.url, data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_SERVICE_UNAVAILABLE)
 
-    def test_vpn_token_patch_else_vpn_token_does_not_exist(self):
-        self.status_NOT_FOUND
-        pass
+    @patch("requests.delete", return_value=mocks.MockResponseStatusCode404())
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_vpn_token_patch_else_vpn_server_response_error(self, *args):
+        json_to_send = {
+            'token_id': self.vpn_token.id,
+        }
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        response = self.client.patch(self.url, data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_SERVICE_UNAVAILABLE)
+
+    @patch("requests.get", return_value=mocks.MockResponseStatusCode404())
+    def test_vpn_token_patch_traffic_limit_vpn_server_does_not_response(self, *args):
+        traffic_limit_in_mb = 1024
+        json_to_send = {
+            'token_id': self.vpn_token.id,
+            'traffic_limit': traffic_limit_in_mb
+        }
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        response = self.client.patch(self.url, data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_SERVICE_UNAVAILABLE)
+
+    @patch("requests.get", return_value=mocks.MockResponseStatusCode404())
+    def test_vpn_token_patch_else_vpn_server_does_not_response(self, *args):
+        json_to_send = {
+            'token_id': self.vpn_token.id,
+        }
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        response = self.client.patch(self.url, data=json_to_send, format='json')
+        self.assertEqual(response.status_code, self.status_SERVICE_UNAVAILABLE)
 
 
 class TransportTest(BaseAPITestCase):
@@ -704,27 +817,52 @@ class TransportTest(BaseAPITestCase):
 class TelegramMessageSendTest(BaseAPITestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.url_patch = reverse('api:telegram_message_send')
-        cls.details_all = 'All bot users message send'
+        cls.url = reverse('api:telegram_message_send')
+        cls.details_all = 'All users message send'
         cls.details_personal = 'Personal message send'
         cls.data_key_name = 'info'
+        cls.text_to_send = 'test message'
 
-    def test_telegram_message_send_ok_personal(self):
-        self.status_OK
-        pass
+    @patch('telebot.TeleBot.send_message', return_value=mocks.MockResponseStatusCode200())
+    def test_telegram_message_send_ok_personal(self, *args):
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        json_to_send = {
+            'transport_name': self.transport_name,
+            'text': self.text_to_send,
+            'messenger_id': self.credentials['id'],
+        }
+        response = self.client.post(self.url, data=json_to_send, format='json')
+        self.assertEqual(self.status_OK, response.status_code)
+        json_data = response.json()
+        self.assertIn(self.details_personal, json_data['details'])
+        self.assertEqual(json_data[self.data_key_name]['success'], 1)
+        self.assertEqual(json_data[self.data_key_name]['error'], 0)
 
-    def test_telegram_message_send_ok_all(self):
-        self.status_OK
-        pass
+    @patch('telebot.TeleBot.send_message', return_value=mocks.MockResponseStatusCode200())
+    def test_telegram_message_send_ok_all(self, *args):
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        json_to_send = {
+            'transport_name': self.transport_name,
+            'text': self.text_to_send,
+        }
+        response = self.client.post(self.url, data=json_to_send, format='json')
+        self.assertEqual(self.status_OK, response.status_code)
+        json_data = response.json()
+        self.assertIn(self.details_all, json_data['details'])
+        self.assertEqual(json_data[self.data_key_name]['success'], 1)
+        self.assertEqual(json_data[self.data_key_name]['error'], 0)
 
     def test_telegram_message_send_no_auth(self):
-        self.status_UNAUTHORIZED
-        pass
+        self.client.credentials()
+        response = self.client.post(self.url, format='json')
+        self.assertEqual(self.status_UNAUTHORIZED, response.status_code)
 
     def test_telegram_message_send_transport_does_not_exist(self):
-        self.status_NOT_FOUND
-        pass
-
-    def test_telegram_message_send_transport_message_send_error(self):
-        self.status_NOT_FOUND
-        pass
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        json_to_send = {
+            'transport_name': self.not_exist_transport,
+            'text': self.text_to_send,
+        }
+        response = self.client.post(self.url, data=json_to_send, format='json')
+        self.assertEqual(self.status_NOT_FOUND, response.status_code)
+        self.assertIn(f"Transport {self.not_exist_transport!r} does not exist", response.json()['details'])
