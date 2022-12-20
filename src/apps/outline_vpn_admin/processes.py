@@ -186,17 +186,23 @@ def token_new(
         msg = f'Outline client error occurred due create key {new_token=!r}'
         log.error(msg)
         raise exceptions.VPNServerResponseError(message=msg)
+    new_token.outline_id = outline_key.key_id
+    new_token.vpn_key = outline_key.access_url
+    new_token.save()
 
     outline_key_name = f"OUTLINE_VPN_id:{outline_key.key_id!r}, client_id: {client.id!r}"
-
     if not outline_client.rename_key(outline_key.key_id, outline_key_name):
         msg = f'Outline client error occurred due rename key {new_token=!r}'
         log.error(msg)
         raise exceptions.VPNServerResponseError(message=msg)
-    new_token.outline_id = outline_key.key_id
-    new_token.vpn_key = outline_key.access_url
     new_token.name = outline_key_name
     new_token.save()
+
+    if new_token.traffic_limit:
+        if not outline_client.add_data_limit(new_token.outline_id, new_token.traffic_limit):
+            msg = f'Outline client error occurred due data limit update {new_token=!r}'
+            log.error(msg)
+            raise exceptions.VPNServerResponseError(message=msg)
 
     token_dict = new_token.as_dict()
     if token_dict['valid_until']:
@@ -271,6 +277,12 @@ def token_renew(
         raise exceptions.VPNServerResponseError(message=msg)
     new_token.name = outline_key_name
     new_token.save()
+
+    if new_token.traffic_limit:
+        if not outline_client.add_data_limit(new_token.outline_id, new_token.traffic_limit):
+            msg = f'Outline client error occurred due data limit update {new_token=!r} {old_token=!r}'
+            log.error(msg)
+            raise exceptions.VPNServerResponseError(message=msg)
 
     if not outline_client.delete_key(old_token.outline_id):
         msg = f'Outline client error occurred due delete key {new_token=!r} {old_token=!r}'
