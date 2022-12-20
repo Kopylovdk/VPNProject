@@ -51,10 +51,15 @@ def handle_text(message: Message):
         )
 
     elif 'Перевыпустить VPN ключ' in user_answer:
-        renew_token_step_1(
-            bot=bot,
-            message=message,
+        bot.send_message(
+            tg_user.id,
+            text='Временно не работает. Для перевыпуска ключа обратитесь в поддержку',
+            reply_markup=main_keyboard(),
         )
+        # renew_token_step_1(
+        #     bot=bot,
+        #     message=message,
+        # )
 
     elif 'Мои VPN ключи' in user_answer:
         get_vpn_keys(
