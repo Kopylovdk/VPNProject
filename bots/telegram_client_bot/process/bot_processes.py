@@ -435,9 +435,10 @@ def subscribes_step_3(
                 bot.send_message(
                     user_id,
                     f'ID ключа - {token["id"]}\nСрок действия до - {token["valid_until"]}'
-                    f'\nЛимит траффика - {token["traffic_limit"] / 1024 / 1024} мб\nКлюч - {token["vpn_key"]}',
+                    f'\nЛимит траффика - {token["traffic_limit"] / 1024 / 1024} мб\nКлюч:\n',
                     reply_markup=main_keyboard(),
                 )
+                bot.send_message(user_id, f'{token["vpn_key"]}', reply_markup=main_keyboard())
             elif status_code == 403:
                 bot.send_message(
                     user_id,
