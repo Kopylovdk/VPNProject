@@ -312,11 +312,15 @@ def renew_token_step_2(message: Message, bot: TeleBot):
             details = json_data['details']
             if status_code in [201]:
                 token = json_data['tokens'][0]
+                if token['valid_until']:
+                    valid_until = f'срок действия до: {token["valid_until"]}'
+                else:
+                    valid_until = 'без ограничения по сроку'
                 bot.send_message(
                     user_id,
-                    f'Новый ключ создан.\n'
+                    f'Новый ключ создан.\n Старый ключ более не действителен, замените его в приложении\n'
                     f'ID ключа - {token["id"]}\n'
-                    f'Срок действия, до- {token["valid_until"]}\n'
+                    f'{valid_until}\n'
                     f'Ключ - {token["vpn_key"]}',
                     reply_markup=main_keyboard()
                 )
@@ -328,8 +332,7 @@ def renew_token_step_2(message: Message, bot: TeleBot):
                     text = "Ключ принадлежит другому пользователю, проверьте ID ключа и повторите ввод."
                 elif 'not active' in details:
                     text = "Не возможно перевыпустить неактивный ключ. Проверьте список своих ключей"
-                bot.send_message(user_id, text, reply_markup=back_to_main_menu_keyboard())
-                bot.register_next_step_handler(message, renew_token_step_2, bot)
+                bot.send_message(user_id, text, reply_markup=main_keyboard())
             elif status_code in [404] and "User does not exist" in details:
                 bot.send_message(
                     user_id,
