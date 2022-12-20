@@ -260,7 +260,8 @@ def get_vpn_keys(bot: TeleBot, user: User) -> None:
                 valid_until = 'без ограничения по сроку'
             msg.append(f"Token ID - {token_dict['id']}, {valid_until}, "
                        f"демо ключ - {'Да' if token_dict['is_demo'] else 'Нет'}\n"
-                       f"Ключ - {token_dict['vpn_key']}\n")
+                       f"Ключ:\n")
+            msg.append(f'{token_dict["vpn_key"]}')
         bot.send_message(user_id, ''.join(msg) if msg else 'Ключи отсутствуют', reply_markup=main_keyboard())
     elif status_code in [404] and "User does not exist" in json_data['details']:
         bot.send_message(
@@ -321,9 +322,11 @@ def renew_token_step_2(message: Message, bot: TeleBot):
                     f'Новый ключ создан.\n Старый ключ более не действителен, замените его в приложении\n'
                     f'ID ключа - {token["id"]}\n'
                     f'{valid_until}\n'
-                    f'Ключ - {token["vpn_key"]}',
-                    reply_markup=main_keyboard()
+                    f'Ключ в следующем сообщении',
+                    reply_markup=main_keyboard(),
                 )
+                bot.send_message(user_id, f'{token["vpn_key"]}', reply_markup=main_keyboard())
+
             elif status_code in [403]:
                 text = 'Что-то пошло не так. Свяжитесь с администратором или повторите попытку позже.'
                 if 'Cannot' in details:
