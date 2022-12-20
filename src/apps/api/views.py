@@ -151,8 +151,8 @@ class VPNTokenRenew(BaseAPIView):
             return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except (
             exceptions.BelongToAnotherUser,
-            # exceptions.DemoKeyExist,
-            exceptions.DemoKeyNotAllowed
+            exceptions.VPNTokenIsNotActive,
+            exceptions.DemoKeyNotAllowed,
         ) as err:
             msg = str(err.message)
             log.error(msg)
@@ -285,11 +285,12 @@ class Transport(BaseAPIView):
 class TelegramMessageSend(BaseAPIView):
     def post(self, request):
         data = request.data
+        messenger_id = data['messenger_id'] if 'messenger_id' in data.keys() else None
         try:
             response = telegram_message_sender(
                 transport_name=data['transport_name'],
                 text=data['text'],
-                messenger_id=data['messenger_id'],
+                messenger_id=messenger_id,
             )
         except exceptions.TransportMessageSendError as err:
             msg = str(err.message)

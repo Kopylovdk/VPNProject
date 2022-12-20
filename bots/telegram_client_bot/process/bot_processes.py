@@ -311,7 +311,7 @@ def renew_token_step_2(message: Message, bot: TeleBot):
             status_code = response.status_code
             details = json_data['details']
             if status_code in [201]:
-                token = json_data['Tokens'][0]
+                token = json_data['tokens'][0]
                 bot.send_message(
                     user_id,
                     f'Новый ключ создан.\n'
@@ -326,6 +326,8 @@ def renew_token_step_2(message: Message, bot: TeleBot):
                     text = "Невозможно перевыпустить демо ключ. Проверьте корректность ID ключа и повторите ввод."
                 elif 'belongs' in details:
                     text = "Ключ принадлежит другому пользователю, проверьте ID ключа и повторите ввод."
+                elif 'not active' in details:
+                    text = "Не возможно перевыпустить неактивный ключ. Проверьте список своих ключей"
                 bot.send_message(user_id, text, reply_markup=back_to_main_menu_keyboard())
                 bot.register_next_step_handler(message, renew_token_step_2, bot)
             elif status_code in [404] and "User does not exist" in details:

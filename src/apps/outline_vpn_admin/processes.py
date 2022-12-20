@@ -26,7 +26,7 @@ def get_transport_contact_by_(
         transport = Transport.objects.get(name=transport_name)
     except Transport.DoesNotExist as err:
         log.error(f'Error get_transport_contact_by_ {transport_name=!r}, {credentials=!r}, {messenger_id=!r}, {err=!r}')
-        raise exceptions.TransportDoesNotExist(message=f'Bot {transport_name!r} does not exist')
+        raise exceptions.TransportDoesNotExist(message=f'Transport {transport_name!r} does not exist')
 
     if credentials:
         check_uid = transport.make_contact_credentials_uid(credentials)
@@ -238,6 +238,10 @@ def token_renew(
         err = f'Error token renew. Cannot renew demo key.'
         log.error(err)
         raise exceptions.DemoKeyNotAllowed(message=err)
+    if not old_token.is_active:
+        err = f'Error token renew. Token is not active and not exist on VPN server'
+        log.error(err)
+        raise exceptions.VPNTokenIsNotActive(message=err)
 
     outline_client = get_outline_client(old_token.server)
 
@@ -256,21 +260,23 @@ def token_renew(
         msg = f'Outline client error occurred due create key {new_token=!r} {old_token=!r}'
         log.error(msg)
         raise exceptions.VPNServerResponseError(message=msg)
+    new_token.outline_id = new_outline_key.key_id
+    new_token.vpn_key = new_outline_key.access_url
+    new_token.save()
 
     outline_key_name = f"OUTLINE_VPN_id:{new_outline_key.key_id!r}, client_id: {old_token.client.id!r}"
     if not outline_client.rename_key(new_outline_key.key_id, outline_key_name):
         msg = f'Outline client error occurred due rename key {new_token=!r} {old_token=!r}'
         log.error(msg)
         raise exceptions.VPNServerResponseError(message=msg)
+    new_token.name = outline_key_name
+    new_token.save()
 
     if not outline_client.delete_key(old_token.outline_id):
         msg = f'Outline client error occurred due delete key {new_token=!r} {old_token=!r}'
         log.error(msg)
         raise exceptions.VPNServerResponseError(message=msg)
-    new_token.outline_id = new_outline_key.key_id
-    new_token.name = outline_key_name
-    new_token.vpn_key = new_outline_key.access_url
-    new_token.save()
+
     new_token_dict = new_token.as_dict()
     if new_token_dict['valid_until']:
         new_token_dict['valid_until'] = new_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
@@ -395,7 +401,7 @@ def telegram_message_sender(
         transport = Transport.objects.get(name=transport_name)
     except Transport.DoesNotExist as err:
         log.error(f'{transport_name=!r}, {err=!r}')
-        raise exceptions.TransportDoesNotExist(message=f'Bot {transport_name!r} does not exist')
+        raise exceptions.TransportDoesNotExist(message=f'Transport {transport_name!r} does not exist')
 
     from telebot import TeleBot
     bot_creds = transport.credentials
@@ -420,7 +426,7 @@ def telegram_message_sender(
             response['info']['success'] += 1
     else:
         contacts_to_send = Contact.objects.select_related('transport').filter(transport=transport)
-        response['details'] = 'All bot users message send'
+        response['details'] = 'All users message send'
         for contact in contacts_to_send:
             id_to_send = contact.uid.split('@')[1]
             try:
