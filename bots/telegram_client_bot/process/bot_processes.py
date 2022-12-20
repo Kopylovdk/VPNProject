@@ -333,7 +333,6 @@ def renew_token_step_2(message: Message, bot: TeleBot):
                 elif 'not active' in details:
                     text = "Не возможно перевыпустить неактивный ключ. Проверьте список своих ключей"
                 bot.send_message(user_id, text, reply_markup=main_keyboard())
-                # bot.register_next_step_handler(message, renew_token_step_2, bot)
             elif status_code in [404] and "User does not exist" in details:
                 bot.send_message(
                     user_id,
