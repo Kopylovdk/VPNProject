@@ -151,8 +151,8 @@ class VPNTokenRenew(BaseAPIView):
             return Response({'details': f'{msg}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except (
             exceptions.BelongToAnotherUser,
-            # exceptions.DemoKeyExist,
-            exceptions.DemoKeyNotAllowed
+            exceptions.VPNTokenIsNotActive,
+            exceptions.DemoKeyNotAllowed,
         ) as err:
             msg = str(err.message)
             log.error(msg)

@@ -164,6 +164,7 @@ class VPNToken(admin.ModelAdmin):
         'outline_id',
         'valid_until',
         'traffic_limit',
+        'client',
         'server',
         'is_demo',
         'is_tech',

@@ -46,3 +46,7 @@ class VPNTokenDoesNotExist(ProcessException):
 
 class TransportMessageSendError(ProcessException):
     """Send message with transport error"""
+
+
+class VPNTokenIsNotActive(ProcessException):
+    """VPN Token is not active"""
