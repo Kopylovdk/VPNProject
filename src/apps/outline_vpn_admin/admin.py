@@ -19,7 +19,7 @@ admin.AdminSite.site_title = 'Tematika VPN Admin'
 admin.site.unregister(Group)
 admin.ModelAdmin.save_on_top = True
 
-# TODO: test needed
+
 def format_bytes_to_human(size: int) -> str:
     info_size = 1024
     n = 0
