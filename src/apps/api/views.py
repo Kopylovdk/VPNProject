@@ -196,11 +196,11 @@ class VPNToken(BaseAPIView):
     def patch(self, request):
         data = request.data
         data_keys = data.keys()
-        if "traffic_limit" in data_keys:
+        if "traffic_limit_in_bytes" in data_keys:
             try:
                 response = add_traffic_limit(
                     token_id=data['token_id'],
-                    traffic_limit=int(data['traffic_limit']),
+                    traffic_limit_in_bytes=int(data['traffic_limit_in_bytes']),
                 )
             except (
                 exceptions.VPNServerResponseError,
@@ -221,10 +221,7 @@ class VPNToken(BaseAPIView):
                 return Response(response, status=status.HTTP_200_OK)
         elif "valid_until" in data_keys:
             try:
-                response = update_token_valid_until(
-                    token_id=data['token_id'],
-                    valid_until=int(data['valid_until']),
-                )
+                response = update_token_valid_until(token_id=data['token_id'], days_from_now=int(data['valid_until']))
             except exceptions.VPNTokenDoesNotExist as err:
                 msg = str(err.message)
                 log.error(msg)

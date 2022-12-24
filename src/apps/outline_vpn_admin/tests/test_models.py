@@ -11,6 +11,7 @@ from apps.outline_vpn_admin.models import (
     VPNServer,
     Tariff,
     Currency,
+    TokenProcess,
 )
 
 
@@ -25,13 +26,13 @@ class BaseTestCase(TestCase):
 class ClientTestCase(BaseTestCase):
     def test_create_clients(self):
         self.assertEqual(self.cnt, len(helpers.create_client(self.cnt)))
-        self.assertEqual(self.cnt, Client.objects.all().count())
+        self.assertEqual(self.cnt, Client.objects.count())
         client = Client.objects.first()
         self.assertIn(self.test_str_value, client.full_name)
         self.assertIsNotNone(client.created_at)
         self.assertIsNotNone(client.updated_at)
 
-    def test_is_has_demo_false(self):
+    def test_is_has_demo(self):
         client = helpers.create_client()[0]
         self.assertFalse(client.is_has_demo())
         token = helpers.create_vpn_token(
@@ -60,10 +61,10 @@ class ClientTestCase(BaseTestCase):
 
 class TransportTestCase(BaseTestCase):
     def test_create_transports(self):
-        exist = Transport.objects.all().count()
+        exist = Transport.objects.count()
         for cnt in range(self.cnt):
             helpers.create_transport(transport_name=f'test {cnt}')
-        self.assertEqual(self.cnt, Transport.objects.all().count() - exist)
+        self.assertEqual(self.cnt, Transport.objects.count() - exist)
         transport = Transport.objects.last()
         self.assertIn(self.test_str_value, transport.name)
         self.assertEqual(helpers.TRANSPORT_CREDENTIALS, transport.credentials)
@@ -100,7 +101,7 @@ class ContactTestCase(BaseTestCase):
                 transport=helpers.create_transport(transport_name=f'test_create_contacts_{cnt}')[0]
             )
 
-        self.assertEqual(self.cnt, Contact.objects.all().count())
+        self.assertEqual(self.cnt, Contact.objects.count())
         contact = Contact.objects.first()
         self.assertIsInstance(contact.client, Client)
         self.assertIsInstance(contact.transport, Transport)
@@ -120,10 +121,10 @@ class VPNTokenTestCase(BaseTestCase):
                 tariff=helpers.create_tariff(
                     currency=helpers.create_currency()[0]
                 )[0]
-            )
+                )
             )
         )
-        self.assertEqual(self.cnt, VPNToken.objects.all().count())
+        self.assertEqual(self.cnt, VPNToken.objects.count())
         token = VPNToken.objects.first()
         self.assertIn(self.test_str_value, token.name)
         self.assertIn(self.test_str_value, token.vpn_key)
@@ -139,10 +140,10 @@ class VPNTokenTestCase(BaseTestCase):
 
 class VPNServerTestCase(BaseTestCase):
     def test_create_vpn_server(self):
-        exist = VPNServer.objects.all().count()
+        exist = VPNServer.objects.count()
         for cnt in range(self.cnt):
             helpers.create_vpn_server(server_name=f'test_create_vpn_server {cnt}')
-        self.assertEqual(self.cnt, VPNServer.objects.all().count() - exist)
+        self.assertEqual(self.cnt, VPNServer.objects.count() - exist)
         obj = VPNServer.objects.last()
         self.assertIn(self.test_str_value, obj.name)
         self.assertIn(self.test_str_value, obj.uri)
@@ -151,9 +152,9 @@ class VPNServerTestCase(BaseTestCase):
         self.assertIsNotNone(obj.updated_at)
 
 
-class TarifficationTestCase(BaseTestCase):
+class TariffTestCase(BaseTestCase):
     def test_create_tariffications(self):
-        exist = Tariff.objects.all().count()
+        exist = Tariff.objects.count()
         self.assertEqual(
             self.cnt,
             len(helpers.create_tariff(
@@ -162,7 +163,7 @@ class TarifficationTestCase(BaseTestCase):
             )
             )
         )
-        self.assertEqual(self.cnt, Tariff.objects.all().count() - exist)
+        self.assertEqual(self.cnt, Tariff.objects.count() - exist)
         tariff = Tariff.objects.last()
         self.assertIn(self.test_str_value, tariff.name)
         self.assertTrue(tariff.is_active)
@@ -182,12 +183,48 @@ class CurrencyTestCase(BaseTestCase):
         self.assertIsNotNone(obj.updated_at)
 
 
-class UserTokensTestCase(TestCase):
+class UserTokensTestCase(BaseTestCase):
     def test_create_user_w_token(self):
-        exist = Token.objects.all().count()
+        exist = Token.objects.count()
         User.objects.create(
             username='test',
             password='test',
             email='test@test.ru',
         ).save()
-        self.assertEqual(1, Token.objects.all().count() - exist)
+        self.assertEqual(1, Token.objects.count() - exist)
+
+
+class TokenProcessTestCase(BaseTestCase):
+    def test_create_token_process(self):
+        token_process_before = TokenProcess.objects.count()
+        client = helpers.create_client(self.cnt)
+        transports = []
+        for cnt in range(self.cnt):
+            transports.append(helpers.create_transport(transport_name=f'token_process_transport_name_{cnt}')[0])
+        contacts = []
+        for cnt in range(self.cnt):
+            contacts.append(helpers.create_contact(
+                client=client[cnt],
+                transport=transports[cnt]
+            )[0])
+        vpn_server = helpers.create_vpn_server()[0]
+        tariff = helpers.create_tariff(currency=helpers.create_currency()[0])[0]
+        vpn_tokens = []
+        for cnt in range(self.cnt):
+            vpn_tokens.append(helpers.create_vpn_token(
+                vpn_server=vpn_server,
+                client=client[cnt],
+                tariff=tariff,
+        )[0])
+        for cnt in range(self.cnt):
+            TokenProcess.objects.create(
+                vpn_token=vpn_tokens[cnt],
+                transport=transports[cnt],
+                contact=contacts[cnt],
+                vpn_server=vpn_server,
+                script_name='test',
+                text='some'
+            ).save()
+        token_process_after = TokenProcess.objects.count()
+        self.assertEqual(0, token_process_before)
+        self.assertEqual(self.cnt, token_process_after)

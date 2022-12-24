@@ -25,7 +25,7 @@ class BaseAPITestCase(APITestCase):
             email='test@test.ru'
         )
         self.bot.save()
-        self.invalid_token_id = 9999999
+        self.invalid_token_id = 98989898
         self.token = Token.objects.get(user_id=self.bot.id).key
         self.HTTP_AUTHORIZATION = f"Token  {self.token}"
         self.contact_client = helpers.create_client()[0]
@@ -216,6 +216,8 @@ class ContactCreateOrUpdateTest(BaseAPITestCase):
 
 
 class VPNTokenNewTest(BaseAPITestCase):
+    outline_id = 9999
+
     @classmethod
     def setUpTestData(cls):
         cls.url = reverse('api:create_new_token')
@@ -224,7 +226,7 @@ class VPNTokenNewTest(BaseAPITestCase):
 
     @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     @patch("requests.put", return_value=mocks.MockResponseStatusCode204())
-    @patch("requests.post", return_value=mocks.MockResponseCreateKey())
+    @patch("requests.post", return_value=mocks.MockResponseCreateKey(outline_id))
     def test_vpn_token_new_ok(self, *args):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         send_data = {
@@ -257,7 +259,7 @@ class VPNTokenNewTest(BaseAPITestCase):
 
     @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     @patch("requests.put", return_value=mocks.MockResponseStatusCode204())
-    @patch("requests.post", return_value=mocks.MockResponseCreateKey())
+    @patch("requests.post", return_value=mocks.MockResponseCreateKey(outline_id))
     def test_vpn_token_key_admin_ok(self, *args):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         send_data = {
@@ -293,7 +295,7 @@ class VPNTokenNewTest(BaseAPITestCase):
 
     @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     @patch("requests.put", return_value=mocks.MockResponseStatusCode204())
-    @patch("requests.post", return_value=mocks.MockResponseCreateKey())
+    @patch("requests.post", return_value=mocks.MockResponseCreateKey(outline_id))
     def test_vpn_token_demo_new_ok(self, *args):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         new_cred = {'id': 987654321, 'phone_number': 987654321, 'first_name': 'test', 'last_name': 'test'}
@@ -383,21 +385,9 @@ class VPNTokenNewTest(BaseAPITestCase):
         data_dict = response.json()
         self.assertEqual("Tariff 'not exist' does not exist", data_dict['details'])
 
-    @patch("requests.get", return_value=mocks.MockResponseStatusCode404())
-    def test_vpn_token_new_vpn_server_response_error(self, *args):
-        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
-        send_data = {
-            'transport_name': self.transport_name,
-            'credentials': self.credentials,
-            'server_name': self.server_name,
-            'tariff_name': self.tariff.name,
-        }
-        response = self.client.post(self.url, data=send_data, format='json')
-        self.assertEqual(self.status_SERVICE_UNAVAILABLE, response.status_code)
-
     @patch("requests.post", return_value=mocks.MockResponseStatusCode404())
     @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
-    def test_vpn_token_new_vpn_server_does_not_response(self, *args):
+    def test_vpn_token_new_vpn_server_response_error(self, *args):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         send_data = {
             'transport_name': self.transport_name,
@@ -409,8 +399,22 @@ class VPNTokenNewTest(BaseAPITestCase):
         self.assertEqual(self.status_SERVICE_UNAVAILABLE, response.status_code)
         self.assertEqual(VPNToken.objects.all().count(), 3)
 
+    @patch("requests.get", return_value=mocks.MockResponseStatusCode404())
+    def test_vpn_token_new_vpn_server_does_not_response(self, *args):
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        send_data = {
+            'transport_name': self.transport_name,
+            'credentials': self.credentials,
+            'server_name': self.server_name,
+            'tariff_name': self.tariff.name,
+        }
+        response = self.client.post(self.url, data=send_data, format='json')
+        self.assertEqual(self.status_SERVICE_UNAVAILABLE, response.status_code)
+
 
 class VPNTokenReNewTest(BaseAPITestCase):
+    outline_id = 9999
+
     @classmethod
     def setUpTestData(cls):
         cls.url = reverse('api:renew_exist_token')
@@ -420,7 +424,7 @@ class VPNTokenReNewTest(BaseAPITestCase):
     @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     @patch("requests.delete", return_value=mocks.MockResponseStatusCode204())
     @patch("requests.put", return_value=mocks.MockResponseStatusCode204())
-    @patch("requests.post", return_value=mocks.MockResponseCreateKey())
+    @patch("requests.post", return_value=mocks.MockResponseCreateKey(outline_id))
     def test_vpn_token_renew_ok(self, *args):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         send_data = {
@@ -483,6 +487,20 @@ class VPNTokenReNewTest(BaseAPITestCase):
         self.assertEqual(self.status_FORBIDDEN, response.status_code)
         self.assertEqual('Error token renew. Token belongs to another user.', data_dict.get('details'))
 
+    def test_vpn_token_renew_vpn_token_is_not_active(self):
+        self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
+        self.vpn_token.is_active = False
+        self.vpn_token.save()
+        send_data = {
+            'transport_name': self.transport_name,
+            'credentials': self.credentials,
+            'token_id': self.vpn_token.id,
+        }
+        response = self.client.post(self.url, data=send_data, format='json')
+        data_dict = response.json()
+        self.assertEqual(self.status_FORBIDDEN, response.status_code)
+        self.assertEqual('Error token renew. Token is not active and not exist on VPN server', data_dict.get('details'))
+
     def test_vpn_token_renew_demo_key_not_possible(self):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         send_data = {
@@ -495,7 +513,8 @@ class VPNTokenReNewTest(BaseAPITestCase):
         self.assertEqual(self.status_FORBIDDEN, response.status_code)
         self.assertEqual('Error token renew. Cannot renew demo key.', data_dict.get('details'))
 
-    @patch("requests.get", return_value=mocks.MockResponseStatusCode404())
+    @patch("requests.post", return_value=mocks.MockResponseStatusCode404())
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     def test_vpn_token_renew_vpn_server_response_error(self, *args):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         send_data = {
@@ -506,8 +525,7 @@ class VPNTokenReNewTest(BaseAPITestCase):
         response = self.client.post(self.url, data=send_data, format='json')
         self.assertEqual(self.status_SERVICE_UNAVAILABLE, response.status_code)
 
-    @patch("requests.post", return_value=mocks.MockResponseStatusCode404())
-    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    @patch("requests.get", return_value=mocks.MockResponseStatusCode404())
     def test_vpn_token_renew_vpn_server_does_not_response(self, *args):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         send_data = {
@@ -517,7 +535,6 @@ class VPNTokenReNewTest(BaseAPITestCase):
         }
         response = self.client.post(self.url, data=send_data, format='json')
         self.assertEqual(self.status_SERVICE_UNAVAILABLE, response.status_code)
-        self.assertEqual(VPNToken.objects.all().count(), 3)
 
 
 class VPNTokensTest(BaseAPITestCase):
@@ -593,7 +610,7 @@ class VPNTokenDeleteTest(BaseAPITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.url = reverse('api:delete_token')
-        cls.details = 'VPN Token deleted'
+        cls.details = 'vpn_token_deleted'
         cls.data_key_name = 'tokens'
 
     @patch("requests.delete", return_value=mocks.MockResponseStatusCode204())
@@ -618,7 +635,8 @@ class VPNTokenDeleteTest(BaseAPITestCase):
         response = self.client.delete(self.url, data=json_to_send, format='json')
         self.assertEqual(self.status_UNAUTHORIZED, response.status_code)
 
-    @patch("requests.get", return_value=mocks.MockResponseStatusCode404())
+    @patch("requests.delete", return_value=mocks.MockResponseStatusCode404())
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     def test_delete_vpn_token_vpn_server_response_error(self, *args):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         json_to_send = {
@@ -632,14 +650,13 @@ class VPNTokenDeleteTest(BaseAPITestCase):
         тк создать ключ без сервера невозможно"""
         pass
 
-    @patch("requests.delete", return_value=mocks.MockResponseStatusCode404())
-    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    @patch("requests.get", return_value=mocks.MockResponseStatusCode404())
     def test_delete_vpn_token_vpn_server_does_not_response(self, *args):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         json_to_send = {
             'token_id': self.vpn_token.id
         }
-        response = self.client.delete(self.url,data=json_to_send, format='json')
+        response = self.client.delete(self.url, data=json_to_send, format='json')
         self.assertEqual(response.status_code, self.status_SERVICE_UNAVAILABLE)
 
     def test_delete_vpn_token_vpn_token_does_not_exist(self):
@@ -655,9 +672,9 @@ class VPNTokenPatchTest(BaseAPITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.url = reverse('api:update_token')
-        cls.details_traffic_limit = 'Traffic limit updated'
-        cls.details_valid_until = 'Token valid_until updated'
-        cls.details_else = 'Traffic limit removed'
+        cls.details_traffic_limit = 'traffic_limit_updated'
+        cls.details_valid_until = 'token_valid_until_updated'
+        cls.details_else = 'traffic_limit_removed'
         cls.data_key_name = 'tokens'
 
     def test_vpn_token_patch_no_auth(self):
@@ -669,17 +686,17 @@ class VPNTokenPatchTest(BaseAPITestCase):
     @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     def test_vpn_token_patch_traffic_limit_ok(self, *args):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
-        traffic_limit_in_mb = 1024
+        traffic_limit_in_bytes = 1024
         json_to_send = {
             'token_id': self.vpn_token.id,
-            'traffic_limit': traffic_limit_in_mb
+            'traffic_limit_in_bytes': traffic_limit_in_bytes
         }
         self.assertIsNone(self.vpn_token.traffic_limit)
         response = self.client.patch(self.url, data=json_to_send, format='json')
         self.assertEqual(response.status_code, self.status_OK)
         response_json = response.json()
         self.assertEqual(self.details_traffic_limit, response_json['details'])
-        self.assertEqual(traffic_limit_in_mb, response_json[self.data_key_name][0]['traffic_limit'] / 1024 / 1024)
+        self.assertEqual(traffic_limit_in_bytes, response_json[self.data_key_name][0]['traffic_limit'])
 
     def test_vpn_token_patch_valid_until_ok(self):
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
@@ -753,10 +770,10 @@ class VPNTokenPatchTest(BaseAPITestCase):
     @patch("requests.put", return_value=mocks.MockResponseStatusCode404())
     @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     def test_vpn_token_patch_traffic_limit_vpn_server_response_error(self, *args):
-        traffic_limit_in_mb = 1024
+        traffic_limit_in_bytes = 1024
         json_to_send = {
             'token_id': self.vpn_token.id,
-            'traffic_limit': traffic_limit_in_mb
+            'traffic_limit_in_bytes': traffic_limit_in_bytes
         }
         self.client.credentials(HTTP_AUTHORIZATION=self.HTTP_AUTHORIZATION)
         response = self.client.patch(self.url, data=json_to_send, format='json')
@@ -818,8 +835,8 @@ class TelegramMessageSendTest(BaseAPITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.url = reverse('api:telegram_message_send')
-        cls.details_all = 'All users message send'
-        cls.details_personal = 'Personal message send'
+        cls.details_all = 'all_users_message_send'
+        cls.details_personal = 'personal_message_send'
         cls.data_key_name = 'info'
         cls.text_to_send = 'test message'
 
