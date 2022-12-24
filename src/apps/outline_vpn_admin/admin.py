@@ -20,6 +20,16 @@ admin.site.unregister(Group)
 admin.ModelAdmin.save_on_top = True
 
 
+def format_bytes_to_human(size: int) -> str:
+    info_size = 1024
+    n = 0
+    info_labels = ['байт', 'Кб', 'Мб', 'Гб', 'Тб', 'Пб', 'Эб', 'Зб', 'Йб']
+    while size >= info_size:
+        size /= info_size
+        n += 1
+    return f"{size:.2f} {info_labels[n]}"
+
+
 class BaseNoDeleteModelAdmin(admin.ModelAdmin):
     model_name = ''
     actions = [
@@ -90,9 +100,8 @@ class Tariff(BaseNoDeleteModelAdmin):
         'name',
         'is_demo',
         'prolong_period',
-        'traffic_limit',
+        'traffic_limit_',
         'price',
-        # 'currency',
         'is_active',
     )
 
@@ -108,6 +117,13 @@ class Tariff(BaseNoDeleteModelAdmin):
     )
 
     model_name = "Tariff"
+
+    @admin.display(description='Лимит')
+    def traffic_limit_(self, obj):
+        traffic_limit = obj.traffic_limit
+        if traffic_limit:
+            return format_bytes_to_human(traffic_limit)
+        return ''
 
 
 @admin.register(vpn_models.Transport)
@@ -131,11 +147,21 @@ class Client(admin.ModelAdmin):
     list_display = (
         'id',
         'full_name',
+        'vpn_tokens_cnt',
+        'contacts_cnt',
     )
 
     search_fields = (
         'full_name',
     )
+
+    @admin.display(description='Всего ключей')
+    def vpn_tokens_cnt(self, obj):
+        return obj.vpntoken_set.count()
+
+    @admin.display(description='Всего контактов')
+    def contacts_cnt(self, obj):
+        return obj.contact_set.count()
 
 
 @admin.register(vpn_models.Contact)
@@ -159,11 +185,12 @@ class Contact(admin.ModelAdmin):
 
 @admin.register(vpn_models.VPNToken)
 class VPNToken(admin.ModelAdmin):
+    default_traffic_limit = 1024 * 1024 * 1024
     list_display = (
         'name',
         'outline_id',
         'valid_until',
-        'traffic_limit',
+        'traffic_limit_',
         'server',
         'is_demo',
         'is_tech',
@@ -190,6 +217,13 @@ class VPNToken(admin.ModelAdmin):
         'delete_vpn_record',
     ]
 
+    @admin.display(description='Лимит')
+    def traffic_limit_(self, obj):
+        traffic_limit = obj.traffic_limit
+        if traffic_limit:
+            return format_bytes_to_human(traffic_limit)
+        return ''
+
     def add_view(self, request, form_url='', extra_context=None):
         extra_context = extra_context or {}
         extra_context['show_save_and_continue'] = False
@@ -213,8 +247,8 @@ class VPNToken(admin.ModelAdmin):
             #         field.disabled = True
             # form = VPNTokenAdminChangeForm
             form.base_fields['name'].widget.attrs['style'] = 'width: 30em;'
-            form.base_fields['traffic_limit'].help_text = 'Указывайте новое значение в Мб.' \
-                                                          'При сохранении система автоматически пересчитывает в байты.'
+            # form.base_fields['traffic_limit'].help_text = 'Указывайте новое значение в Мб.' \
+            #                                               'При сохранении система автоматически пересчитывает в байты.'
             return form
 
     def has_delete_permission(self, request, obj=None):
@@ -253,9 +287,10 @@ class VPNToken(admin.ModelAdmin):
     def add_default_traffic_limit(self, request, queryset):
         for obj in queryset:
             try:
-                processes.add_traffic_limit(obj.id)
+
+                processes.add_traffic_limit(obj.id, self.default_traffic_limit)
             except exceptions.VPNServerResponseError:
-                processes.change_vpn_token_traffic_limit(obj, 1024)
+                processes.change_vpn_token_traffic_limit(obj, self.default_traffic_limit)
 
         cnt = queryset.count()
         self.message_user(request, ngettext(
@@ -270,7 +305,7 @@ class VPNToken(admin.ModelAdmin):
                 try:
                     processes.del_traffic_limit(obj.id)
                 except exceptions.VPNServerResponseError:
-                    processes.change_vpn_token_traffic_limit(obj)
+                    processes.change_vpn_token_traffic_limit(obj, 0)
             else:
                 try:
                     processes.add_traffic_limit(obj.id, obj.traffic_limit)

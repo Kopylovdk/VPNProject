@@ -170,7 +170,7 @@ class Tariff(models.Model, DictRepresentationMixin):
     prolong_period = models.IntegerField(verbose_name='Срок продления в днях', null=True, blank=True)
     price = models.DecimalField(verbose_name='Стоимость', max_digits=10, decimal_places=2)
     currency = models.ForeignKey(Currency, on_delete=models.RESTRICT, verbose_name='Валюта')
-    traffic_limit = models.IntegerField(verbose_name='Ограничение трафика в байтах', null=True, blank=True)
+    traffic_limit = models.BigIntegerField(verbose_name='Ограничение трафика в байтах', null=True, blank=True)
     valid_until = models.DateTimeField(verbose_name='Срок активности тарифа', null=True, blank=True)
     is_demo = models.BooleanField(verbose_name='Демо тариф', default=False)
     is_tech = models.BooleanField(verbose_name='Технический тариф', default=False)

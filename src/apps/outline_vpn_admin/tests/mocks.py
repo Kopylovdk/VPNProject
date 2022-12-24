@@ -1,6 +1,5 @@
 class MockResponseCreateKey:
-
-    def __init__(self, outline_id: int = 9999):
+    def __init__(self, outline_id: int):
         self.status_code = 201
         self.outline_id = outline_id
 

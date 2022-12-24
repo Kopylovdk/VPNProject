@@ -1,3 +1,5 @@
+import datetime
+
 import apps.outline_vpn_admin.processes as processes
 import apps.outline_vpn_admin.tests.helpers as helpers
 from copy import copy
@@ -9,505 +11,709 @@ from apps.outline_vpn_admin.models import (
     VPNToken,
     Tariff,
     Transport,
-    VPNServer
+    VPNServer, Client,
 )
-from apps.outline_vpn_admin.tests.mocks import (
-    MockResponseCreateKey,
-    MockResponseStatusCode204,
-)
+from apps.outline_vpn_admin.tests import mocks as mocks
 from vpnservice.settings import DATE_STRING_FORMAT
 
 
-# TODO: Доделать тесты, передалать все тесты в божеский вид
-
-class GetTransportContact(TestCase):
+class BaseSetUpConfig(TestCase):
     def setUp(self) -> None:
-        self.transport_name = 'test_test_test'
-        self.cred = {'id': 9999999, "first_name": "some", "phone_number": '', "last_name": "some"}
-
-    def test_get_transport_contact_by_credentials(self):
-        transports = helpers.create_transport(transport_name=self.transport_name)
-        clients = helpers.create_client()
-        contacts = helpers.create_contact(
-            transport=transports[0],
-            client=clients[0],
-            credentials=self.cred
+        self.contact_client = helpers.create_client()[0]
+        self.transport_name = 'test'
+        self.transport_cnt = Transport.objects.count()
+        self.transport = helpers.create_transport(transport_name=self.transport_name)[0]
+        self.valid_messenger_id = 9999999
+        self.credentials = {'id': self.valid_messenger_id, 'phone_number': '9999', 'first_name': 'test', 'last_name': 'test'}
+        self.invalid_messenger_id = 98989898
+        self.not_exist_transport_name = 'not_exist'
+        self.not_exist_server_name = self.not_exist_transport_name
+        self.not_exist_tariff_name = self.not_exist_transport_name
+        self.not_exist_cont_cred = {'id': self.invalid_messenger_id}
+        self.contact = helpers.create_contact(
+            client=self.contact_client,
+            transport=self.transport,
+            credentials=self.credentials
+        )[0]
+        self.tariffs = helpers.create_tariff(
+            cnt=2,
+            currency=helpers.create_currency()[0]
         )
+        self.tariffs[0].is_demo = True
+        self.tariffs[0].save()
+        self.tariff_demo = self.tariffs[0]
+        self.tariff = self.tariffs[1]
+        self.server_name = 'test_server_name'
+        self.new_contact_credentials = {
+            "id": 98989891,
+            "first_name": "new first_name",
+            "last_name": "new last_name",
+            "phone_number": '987654321'
+        }
+        self.vpn_server = helpers.create_vpn_server(server_name=self.server_name)[0]
+        self.vpn_token_demo = helpers.create_vpn_token(
+            client=self.contact_client,
+            vpn_server=self.vpn_server,
+            tariff=self.tariff_demo
+        )[0]
+        self.vpn_token_demo.is_demo = True
+        self.vpn_token_demo.outline_id = 919191
+        self.vpn_token_demo.save()
+        self.vpn_token = helpers.create_vpn_token(
+            client=self.contact_client,
+            vpn_server=self.vpn_server,
+            tariff=self.tariff
+        )[0]
+        self.vpn_tokens_cnt = 2
+        self.details_key_name = 'details'
+        self.invalid_token_id = 123123123
+        self.traffic_limit_in_bytes = 1024 * 1024 * 1024
+
+
+class GetTransportContactTestCase(BaseSetUpConfig):
+    def test_get_transport_contact_by_credentials(self):
         transport, contact = processes.get_transport_contact_by_(
             transport_name=self.transport_name,
-            credentials=self.cred
+            credentials=self.credentials
         )
         self.assertIsInstance(transport, Transport)
         self.assertIsInstance(contact, Contact)
-        self.assertEqual(contact.transport, transports[0])
-        self.assertEqual(contact.client, clients[0])
-        self.assertEqual(contact, contacts[0])
-        self.assertEqual(transport, transports[0])
+        self.assertEqual(contact.transport, self.transport)
+        self.assertEqual(contact.client, self.contact_client)
+        self.assertEqual(contact, self.contact)
+        self.assertEqual(transport, self.transport)
         self.assertEqual(transport.name, self.transport_name)
-        self.assertEqual(contact.credentials, self.cred)
+        self.assertEqual(contact.credentials, self.credentials)
 
     def test_get_transport_contact_by_messenger_id(self):
-        transports = helpers.create_transport(transport_name=self.transport_name)
-        clients = helpers.create_client()
-        contacts = helpers.create_contact(
-            transport=transports[0],
-            client=clients[0],
-            credentials=self.cred
-        )
         transport, contact = processes.get_transport_contact_by_(
             transport_name=self.transport_name,
-            messenger_id=self.cred['id']
+            messenger_id=self.credentials['id']
         )
-
         self.assertIsInstance(transport, Transport)
         self.assertIsInstance(contact, Contact)
-        self.assertEqual(contact.transport, transports[0])
-        self.assertEqual(contact.client, clients[0])
-        self.assertEqual(contact, contacts[0])
-        self.assertEqual(transport, transports[0])
+        self.assertEqual(contact.transport, self.transport)
+        self.assertEqual(contact.client, self.contact_client)
+        self.assertEqual(contact, self.contact)
+        self.assertEqual(transport, self.transport)
         self.assertEqual(transport.name, self.transport_name)
-        self.assertEqual(contact.credentials, self.cred)
+        self.assertEqual(contact.credentials, self.credentials)
 
     def test_get_transport_contact_by_transport_does_not_exist(self):
         with self.assertRaises(exceptions.TransportDoesNotExist) as err:
-            processes.get_transport_contact_by_(transport_name=self.transport_name, credentials=self.cred)
-        self.assertIn(f'Bot {self.transport_name!r} does not exist', err.exception.message)
+            processes.get_transport_contact_by_(
+                transport_name=self.not_exist_transport_name,
+                credentials=self.credentials
+            )
+        self.assertIn(
+            f'Transport {self.not_exist_transport_name!r} does not exist',
+            err.exception.message
+        )
 
     def test_get_transport_contact_by_user_does_not_exist(self):
-        helpers.create_transport(transport_name=self.transport_name)
         with self.assertRaises(exceptions.UserDoesNotExist) as err:
-            processes.get_transport_contact_by_(transport_name=self.transport_name, credentials=self.cred)
+            processes.get_transport_contact_by_(
+                transport_name=self.transport_name,
+                credentials=self.not_exist_cont_cred
+            )
         self.assertIn(f'User does not exist', err.exception.message)
 
 
-class CreateOrUpdateContactTestCase(TestCase):
-    clients = None
-    data = None
-    contacts = None
-    transports = None
-
+class CreateOrUpdateContactTestCase(BaseSetUpConfig):
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.data = {"id": 9999, "first_name": "some", "last_name": "some", "phone_number": ''}
-        cls.clients = helpers.create_client(3)
-        cls.transports = helpers.create_transport(2)
-        cls.transports[0].name = 'telegram'
-        cls.transports[0].save()
-        helpers.create_contact(
-            client=cls.clients[0],
-            transport=cls.transports[1],
-            cnt=3
-        )
-        helpers.create_contact(
-            client=cls.clients[1],
-            transport=cls.transports[0],
-            credentials=cls.data,
-        )
-        helpers.create_contact(
-            client=cls.clients[2],
-            transport=cls.transports[1]
-        )
-        cls.contacts = Contact.objects.all()
-
-        cls.send_json = {
-            "transport_name": "telegram",
-            "credentials": {
-                "id": 9999,
-                "first_name": "first_name",
-                "last_name": "last_name",
-                "login": "login",
-                "phone_number": 1234567890,
-            }
-        }
+        cls.details_new = 'Created new user'
+        cls.details_update = 'Updated exist user'
+        cls.data_key_name = 'user_info'
 
     def test_create_or_update_client_contact_create(self):
-        to_send = copy(self.send_json)
-        to_send["credentials"]["id"] = 222
-        uid_check = self.transports[0].make_contact_credentials_uid(to_send["credentials"])
-        contacts = self.transports[0].contact_set
-        self.assertFalse(contacts.filter(uid=uid_check))
-
-        response = processes.create_or_update_contact(transport_name=to_send['transport_name'],
-                                                      credentials=to_send["credentials"])
-
-        created_contact = Contact.objects.select_related('client', 'transport').last()
-
-        self.assertIn('details', response.keys())
-        self.assertEqual('Created new user', response['details'])
-        self.assertEqual(response['user_info']['contact']["credentials"], to_send["credentials"])
-
-        self.assertEqual(response['user_info']['user'], created_contact.client.as_dict())
-        self.assertEqual(
-            response['user_info']['user']['full_name'],
-            f'{to_send["credentials"]["first_name"]} {to_send["credentials"]["last_name"]}'
+        uid_check = self.transport.make_contact_credentials_uid(self.new_contact_credentials)
+        self.assertFalse(self.transport.contact_set.filter(uid=uid_check))
+        response = processes.create_or_update_contact(
+            transport_name=self.transport_name,
+            credentials=self.new_contact_credentials,
         )
-        new_uid = self.transports[0].make_contact_credentials_uid(to_send["credentials"])
-        self.assertEqual(new_uid, created_contact.uid)
-
-        self.assertEqual(created_contact.transport, self.transports[0])
-        self.assertEqual(created_contact.transport.name, self.transports[0].name)
+        self.assertIn(self.details_key_name, response.keys())
+        self.assertEqual(self.details_new, response[self.details_key_name])
+        user_info = response[self.data_key_name]
+        self.assertEqual(user_info['contact']["credentials"], self.new_contact_credentials)
+        self.assertEqual(
+            user_info['user']['full_name'],
+            f'{self.new_contact_credentials["first_name"]} {self.new_contact_credentials["last_name"]}'
+        )
+        created_contact = Contact.objects.select_related('client', 'transport').last()
+        self.assertEqual(user_info['user'], created_contact.client.as_dict())
+        self.assertEqual(uid_check, created_contact.uid)
+        self.assertEqual(created_contact.transport, self.transport)
+        self.assertEqual(created_contact.transport.name, self.transport.name)
 
     def test_create_or_update_client_contact_update(self):
-        cred_before = Contact.objects.get(credentials__id=self.send_json["credentials"]["id"]).credentials
-        self.assertEqual(cred_before, self.data)
+        new_credentials = copy(self.credentials)
+        new_credentials['first_name'] = 'updated'
+        qnt_before = Contact.objects.count()
+        response = processes.create_or_update_contact(
+            transport_name=self.transport_name,
+            credentials=new_credentials,
+        )
+        self.assertIn(self.details_key_name, response.keys())
+        self.assertEqual(self.details_update, response[self.details_key_name])
+        user_info = response[self.data_key_name]
+        self.assertEqual(new_credentials, user_info['contact']['credentials'])
+        self.assertNotEqual(self.credentials, new_credentials)
+        qnt_after = Contact.objects.count()
+        self.assertEqual(qnt_before, qnt_after)
 
-        response = processes.create_or_update_contact(transport_name=self.send_json['transport_name'],
-                                                      credentials=self.send_json["credentials"])
 
-        self.assertIn('details', response.keys())
-        self.assertEqual('Updated exist user', response['details'])
-
-        cred_after = Contact.objects.get(credentials__id=self.send_json["credentials"]["id"]).credentials
-
-        self.assertEqual(cred_after, self.send_json["credentials"])
-        self.assertNotEqual(cred_before, cred_after)
-
-
-class GetClientTokens(TestCase):
-    tariff = None
-    cred_no_token = None
-    token_1 = None
-    token_2 = None
-    token_3 = None
-    vpn_servers = None
-    contact_first = None
-    cred = None
-    clients = None
-    transports = None
-
+class GetClientTokensTestCase(BaseSetUpConfig):
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.clients = helpers.create_client(3)
-        cls.transports = helpers.create_transport(2)
-        cls.transports[0].name = 'telegram'
-        cls.transports[0].save()
-        cls.tariff = helpers.create_tariff(currency=helpers.create_currency()[0])[0]
-        cls.vpn_servers = helpers.create_vpn_server()
-        cls.cred = {
-            "id": 1000,
-            "first_name": "first_name",
-            "last_name": "last_name",
-            "login": "login",
-            "phone_number": '',
-        }
-        cls.contact_first = helpers.create_contact(cls.clients[0], cls.transports[0], cls.cred)[0]
-        helpers.create_contact(cls.clients[1], cls.transports[1])
-
-        cls.cred_no_token = {
-            "id": 1001,
-            "first_name": "first_name",
-            "last_name": "last_name",
-            "login": "login",
-            "phone_number": '',
-        }
-        helpers.create_contact(cls.clients[2], cls.transports[0], cls.cred_no_token)
-
-        cls.token_1 = helpers.create_vpn_token(cls.clients[0], cls.vpn_servers[0], cls.tariff)[0]
-        cls.token_1.outline_id = 1
-        cls.token_1.save()
-        cls.token_2 = helpers.create_vpn_token(cls.clients[0], cls.vpn_servers[0], cls.tariff)[0]
-        cls.token_2.outline_id = 2
-        cls.token_2.save()
-        cls.token_3 = helpers.create_vpn_token(cls.clients[1], cls.vpn_servers[0], cls.tariff)[0]
-        cls.token_3.outline_id = 3
-        cls.token_3.save()
+        cls.details = 'client_tokens'
+        cls.data_key_name = 'tokens'
 
     def test_get_client_tokens(self):
-
         response = processes.get_client_tokens(
-            transport_name=self.transports[0].name,
-            messenger_id=self.cred['id']
+            transport_name=self.transport_name,
+            messenger_id=self.valid_messenger_id,
         )
+        self.assertIn(self.details_key_name, response.keys())
+        self.assertEqual(self.details, response[self.details_key_name])
+        self.assertEqual(2, len(response[self.data_key_name]))
 
-        self.assertIn('details', response.keys())
-        self.assertIn('client_tokens', response['details'])
-        self.assertEqual(2, len(response['tokens']))
         self.assertIn('user_info', response.keys())
         self.assertIn('user', response['user_info'].keys())
         self.assertIn('credentials', response['user_info']['contact'].keys())
+        self.assertEqual(response['user_info']['contact']['credentials'], self.credentials)
+        self.assertEqual(response['user_info']['user']['id'], self.contact_client.id)
+        self.assertEqual(response['user_info']['user']['full_name'], self.contact_client.full_name)
 
-        self.assertEqual(response['user_info']['contact']['credentials'], self.cred)
-        self.assertEqual(response['user_info']['user']['id'], self.contact_first.client.id)
-        self.assertEqual(response['user_info']['user']['full_name'], self.contact_first.client.full_name)
 
-    def test_get_client_tokens_no_tokens(self):
-        response = processes.get_client_tokens(
-            transport_name=self.transports[0].name,
-            messenger_id=self.cred_no_token['id']
+class GetClientTestCase(BaseSetUpConfig):
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.details = 'get_client'
+        cls.data_key_name = 'user_info'
+
+    def test_get_client(self):
+        response = processes.get_client(
+            messenger_id=self.valid_messenger_id,
+            transport_name=self.transport_name,
         )
-        self.assertEqual(0, len(response['tokens']))
-        self.assertIsInstance(response['tokens'], list)
+        self.assertEqual(self.details, response[self.details_key_name])
+        data_dict = response[self.data_key_name]
+        self.assertEqual(self.contact_client.as_dict(), data_dict['user'])
+        self.assertEqual(self.contact.as_dict(), data_dict['contact'])
 
 
-class TokenBaseTestCase(TestCase):
-    token = None
-    tariffs = None
-    vpn_server = None
-    contact_first = None
-    cred = None
-    clients = None
-    transport = None
+class TokenNewTestCase(BaseSetUpConfig):
+    outline_token_id_new_client = 9999
+    outline_token_id_new_admin_anonim = 8888
+    outline_token_id_new_admin_client = 7777
 
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.clients = helpers.create_client(2)
-        cls.transport = helpers.create_transport()[0]
-        cls.transport.name = 'telegram'
-        cls.transport.save()
-        cls.tariffs = helpers.create_tariff(
-            currency=helpers.create_currency()[0],
-            cnt=3
-        )
-        cls.vpn_server = helpers.create_vpn_server()[0]
-        cls.vpn_server.name = 'kz'
-        cls.vpn_server.save()
-        cls.cred = {
-            "id": 1000,
-            "first_name": "first_name",
-            "last_name": "last_name",
-            "login": "login",
-            "phone_number": '',
-        }
-        cls.contact_first = helpers.create_contact(cls.clients[0], cls.transport, cls.cred)[0]
+        cls.details_client = 'new_token by client'
+        cls.details_admin = 'new_token by admin'
+        cls.data_key_name = 'tokens'
 
-        cls.token = helpers.create_vpn_token(
-            client=cls.clients[0],
-            vpn_server=cls.vpn_server,
-            tariff=cls.tariffs[0]
-        )[0]
-        cls.token.outline_id = 9000
-        cls.token.save()
-
-
-class TokenNewTestCase(TokenBaseTestCase):
-    @patch("requests.put", return_value=MockResponseStatusCode204())
-    @patch("requests.post", return_value=MockResponseCreateKey())
-    def test_token_new(self, mocked_put, mocked_post):
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    @patch("requests.put", return_value=mocks.MockResponseStatusCode204())
+    @patch("requests.post", return_value=mocks.MockResponseCreateKey(outline_id=outline_token_id_new_client))
+    def test_token_new_ok(self, *args):
         response = processes.token_new(
-            transport_name="telegram",
-            server_name="kz",
-            credentials={"id": 1000, "some": "data", "phone_number": ''},
-            tariff_name=self.tariffs[0].name,
+            transport_name=self.transport_name,
+            server_name=self.server_name,
+            credentials=self.credentials,
+            tariff_name=self.tariff.name,
         )
-        self.assertEqual(response['details'], 'new_token by client')
-        self.assertEqual(response['tokens'][0]['outline_id'], 9999)
-        new_token = VPNToken.objects.get(outline_id=9999)
-        self.assertTrue(new_token.is_active)
-        new_token_dict = new_token.as_dict()
-        new_token_dict['valid_until'] = new_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
-        self.assertEqual(response['tokens'][0], new_token_dict)
-        self.assertEqual(self.clients[0].as_dict(), response['user_info']['user'])
-        self.assertEqual(self.contact_first.as_dict(), response['user_info']['contact'])
+        token_dict = response[self.data_key_name][0]
+        self.assertEqual(response[self.details_key_name], self.details_client)
+        self.assertEqual(token_dict['outline_id'], self.outline_token_id_new_client)
+        self.assertTrue(token_dict['is_active'])
+        self.assertFalse(token_dict['is_tech'])
+        self.assertEqual(self.contact_client.as_dict(), response['user_info']['user'])
 
-    def test_token_new_admin_ok(self):
-        pass
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    @patch("requests.put", return_value=mocks.MockResponseStatusCode204())
+    @patch("requests.post", return_value=mocks.MockResponseCreateKey(outline_id=outline_token_id_new_admin_anonim))
+    def test_token_new_admin_ok_anonim(self, *args):
+        response = processes.token_new(
+            server_name=self.server_name,
+            tariff_name=self.tariff.name,
+        )
+        token_dict = response[self.data_key_name][0]
+        self.assertEqual(response[self.details_key_name], self.details_admin)
+        self.assertEqual(token_dict['outline_id'], self.outline_token_id_new_admin_anonim)
+        self.assertTrue(token_dict['is_active'])
+        self.assertFalse(token_dict['is_tech'])
+        self.assertEqual(Client.objects.last().as_dict(), response['user_info']['user'])
 
-    def test_token_new_admin_demo_not_allowed(self):
-        pass
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    @patch("requests.put", return_value=mocks.MockResponseStatusCode204())
+    @patch("requests.post", return_value=mocks.MockResponseCreateKey(outline_id=outline_token_id_new_admin_client))
+    def test_token_new_admin_ok_client(self, *args):
+        cnt_clients_before = Client.objects.count()
+        response = processes.token_new(
+            server_name=self.server_name,
+            tariff_name=self.tariff.name,
+            client=self.contact_client,
+        )
+        cnt_clients_after = Client.objects.count()
+        self.assertEqual(cnt_clients_after, cnt_clients_before)
+        token_dict = response[self.data_key_name][0]
+        self.assertEqual(response[self.details_key_name], self.details_admin)
+        self.assertEqual(token_dict['outline_id'], self.outline_token_id_new_admin_client)
+        self.assertTrue(token_dict['is_active'])
+        self.assertFalse(token_dict['is_tech'])
+        self.assertEqual(self.contact_client.as_dict(), response['user_info']['user'])
+
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_token_new_admin_demo_not_allowed(self, *args):
+        with self.assertRaises(exceptions.DemoKeyNotAllowed) as err:
+            processes.token_new(
+                server_name=self.server_name,
+                tariff_name=self.tariff_demo.name,
+                client=self.contact_client,
+            )
+        self.assertEqual(
+            'Cannot create demo key from admin',
+            err.exception.message,
+        )
 
     def test_token_new_vpn_server_does_not_exist(self):
-        not_exist_vpn_server = "no_name"
         with self.assertRaises(exceptions.VPNServerDoesNotExist) as err:
             processes.token_new(
-                transport_name="telegram",
-                server_name=not_exist_vpn_server,
-                credentials={"id": 1000, "some": "data", "phone_number": ''},
-                tariff_name=self.tariffs[0].name,
+                transport_name=self.transport_name,
+                server_name=self.not_exist_server_name,
+                credentials=self.credentials,
+                tariff_name=self.tariff.name,
             )
         self.assertEqual(
-            f'VPN Server {not_exist_vpn_server!r} does not exist',
-            str(err.exception.message)
+            f'VPN Server {self.not_exist_server_name!r} does not exist',
+            err.exception.message,
         )
 
-    def test_token_new_tariff_does_not_exist(self):
-        not_exist_tariff = "no_name"
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_token_new_tariff_does_not_exist(self, *args):
         with self.assertRaises(exceptions.TariffDoesNotExist) as err:
             processes.token_new(
-                transport_name="telegram",
-                server_name="kz",
-                credentials={"id": 1000, "some": "data", "phone_number": ''},
-                tariff_name=not_exist_tariff,
+                transport_name=self.transport_name,
+                server_name=self.server_name,
+                credentials=self.credentials,
+                tariff_name=self.not_exist_tariff_name,
             )
         self.assertEqual(
-            f'Tariff {not_exist_tariff!r} does not exist',
+            f'Tariff {self.not_exist_tariff_name!r} does not exist',
             str(err.exception.message)
         )
 
-    def test_token_new_demo_key_exist(self):
-        contact = helpers.create_contact(
-            client=helpers.create_client()[0],
-            transport=self.transport,
-            credentials={"id": 909090, "some": "data", "phone_number": ''}
-        )[0]
-        token_demo = helpers.create_vpn_token(
-            client=contact.client,
-            vpn_server=self.vpn_server,
-            tariff=self.tariffs[0],
-        )[0]
-        self.tariffs[0].is_demo = True
-        self.tariffs[0].save()
-        token_demo.is_demo = True
-        token_demo.save()
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_token_new_demo_key_exist(self, *args):
         with self.assertRaises(exceptions.DemoKeyExist) as err:
             processes.token_new(
-                transport_name="telegram",
-                server_name='kz',
-                credentials={"id": 909090, "some": "data", "phone_number": ''},
-                tariff_name=self.tariffs[0].name
+                transport_name=self.transport_name,
+                server_name=self.server_name,
+                credentials=self.credentials,
+                tariff_name=self.tariff_demo.name,
             )
         self.assertEqual(
             f'User already have demo key',
-            str(err.exception.message)
+            err.exception.message,
+        )
+
+    @patch("requests.post", return_value=mocks.MockResponseStatusCode404())
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_token_new_vpn_server_response_error(self, *args):
+        with self.assertRaises(exceptions.VPNServerResponseError) as err:
+            processes.token_new(
+                transport_name=self.transport_name,
+                server_name=self.server_name,
+                credentials=self.credentials,
+                tariff_name=self.tariff.name,
+            )
+        self.assertEqual(
+            f'Outline client error occurred due create key '
+            f'new_token=<VPNToken id={VPNToken.objects.last().id} outline_id=None>',
+            err.exception.message,
         )
 
 
-class TokenRenewTestCase(TokenBaseTestCase):
-    @patch("requests.delete", return_value=MockResponseStatusCode204())
-    @patch("requests.put", return_value=MockResponseStatusCode204())
-    @patch("requests.post", return_value=MockResponseCreateKey())
-    def test_token_renew_ok(self, mocked_put, mocked_post, mocked_delete):
-        self.assertTrue(self.token.is_active)
-        self.assertEqual(1, VPNToken.objects.all().count())
+class TokenRenewTestCase(BaseSetUpConfig):
+    outline_token_id_renew_client = 9999
+    outline_token_id_renew_admin = 8888
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.details_client = 'renew_token by client'
+        cls.details_admin = 'renew_token by admin'
+        cls.data_key_name = 'tokens'
+
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    @patch("requests.delete", return_value=mocks.MockResponseStatusCode204())
+    @patch("requests.put", return_value=mocks.MockResponseStatusCode204())
+    @patch("requests.post", return_value=mocks.MockResponseCreateKey(outline_id=outline_token_id_renew_client))
+    def test_token_renew_ok(self, *args):
+        self.assertTrue(self.vpn_token.is_active)
         response = processes.token_renew(
-            transport_name="telegram",
-            credentials={"id": 1000, "some": "data", "phone_number": ''},
-            token_id=self.token.id,
+            transport_name=self.transport_name,
+            credentials=self.credentials,
+            token_id=self.vpn_token.id,
         )
+        self.assertEqual(self.details_client, response[self.details_key_name])
+        data_dict = response[self.data_key_name][0]
+        self.vpn_token.refresh_from_db()
+        self.assertFalse(self.vpn_token.is_active)
+        self.assertEqual(self.vpn_token.id, data_dict['previous_vpn_token_id'])
+        self.assertEqual(data_dict['outline_id'], self.outline_token_id_renew_client)
+        renewed_token = VPNToken.objects.last()
+        self.assertEqual(renewed_token.id, data_dict['id'])
+        self.assertTrue(renewed_token.is_active)
+        self.assertEqual(data_dict, renewed_token.as_dict())
+        self.assertEqual(self.contact_client.as_dict(), response['user_info']['user'])
+        self.assertEqual(self.contact.as_dict(), response['user_info']['contact'])
 
-        self.token.refresh_from_db()
-
-        self.assertEqual(2, VPNToken.objects.all().count())
-        self.assertEqual(response['details'], 'renew_token by client')
-        self.assertEqual(response['tokens'][0]['outline_id'], 9999)
-
-        new_token = VPNToken.objects.get(outline_id=9999)
-        self.assertTrue(new_token.is_active)
-        self.assertFalse(self.token.is_active)
-        self.assertIn('Renewed by client', self.token.name)
-        self.assertEqual(response['tokens'][0], new_token.as_dict())
-        self.assertEqual(self.clients[0].as_dict(), response['user_info']['user'])
-        self.assertEqual(self.contact_first.as_dict(), response['user_info']['contact'])
-
-    def test_token_renew_admin_ok(self):
-        # TODO:
-        pass
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    @patch("requests.delete", return_value=mocks.MockResponseStatusCode204())
+    @patch("requests.put", return_value=mocks.MockResponseStatusCode204())
+    @patch("requests.post", return_value=mocks.MockResponseCreateKey(outline_id=outline_token_id_renew_admin))
+    def test_token_renew_admin_ok(self, *args):
+        self.assertTrue(self.vpn_token.is_active)
+        result = processes.token_renew(
+            token_id=self.vpn_token.id,
+        )
+        self.assertEqual(self.details_admin, result[self.details_key_name])
+        data_dict = result[self.data_key_name][0]
+        self.vpn_token.refresh_from_db()
+        self.assertFalse(self.vpn_token.is_active)
+        self.assertEqual(self.vpn_token.id, data_dict['previous_vpn_token_id'])
+        self.assertEqual(data_dict['outline_id'], self.outline_token_id_renew_admin)
+        renewed_token = VPNToken.objects.last()
+        self.assertEqual(renewed_token.id, data_dict['id'])
+        self.assertTrue(renewed_token.is_active)
+        self.assertEqual(data_dict, renewed_token.as_dict())
+        self.assertEqual(self.contact_client.as_dict(), result['user_info']['user'])
 
     def test_token_renew_belong_to_another_user(self):
         with self.assertRaises(exceptions.BelongToAnotherUser) as err:
             processes.token_renew(
-                transport_name="telegram",
-                credentials={"id": 1000, "some": "data", "phone_number": ''},
-                token_id=959595,
+                transport_name=self.transport_name,
+                credentials=self.credentials,
+                token_id=self.invalid_token_id,
             )
-        self.assertEqual('Error token renew. Token belongs to another user.', str(err.exception.message))
+        self.assertEqual('Error token renew. Token belongs to another user.', err.exception.message)
 
     def test_token_renew_renew_demo_key_not_allowed(self):
-        # TODO:
-        pass
+        with self.assertRaises(exceptions.DemoKeyNotAllowed) as err:
+            processes.token_renew(
+                transport_name=self.transport_name,
+                credentials=self.credentials,
+                token_id=self.vpn_token_demo.id,
+            )
+        self.assertEqual('Error token renew. Cannot renew demo key.', err.exception.message)
+
+    def test_token_renew_vpn_key_not_active(self):
+        self.vpn_token.is_active = False
+        self.vpn_token.save()
+        with self.assertRaises(exceptions.VPNTokenIsNotActive) as err:
+            processes.token_renew(
+                transport_name=self.transport_name,
+                credentials=self.credentials,
+                token_id=self.vpn_token.id,
+            )
+        self.assertEqual('Error token renew. Token is not active and not exist on VPN server', err.exception.message)
+
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    @patch("requests.post", return_value=mocks.MockResponseStatusCode404())
+    def test_token_renew_vpn_server_response_error(self, *args):
+        with self.assertRaises(exceptions.VPNServerResponseError) as err:
+            processes.token_renew(
+                transport_name=self.transport_name,
+                credentials=self.credentials,
+                token_id=self.vpn_token.id,
+            )
+        self.assertIn('Outline client error occurred due create key', err.exception.message)
 
 
-class GetTariffTestCase(TestCase):
-    tariffications = None
-
+class GetTariffTestCase(BaseSetUpConfig):
     @classmethod
     def setUpTestData(cls):
-        cls.tariffications = helpers.create_tariff(currency=helpers.create_currency()[0], cnt=6)
-        cls.tariffications[5].is_active = False
-        cls.tariffications[5].save()
+        cls.details = 'get_tariff'
+        cls.data_key_name = 'tariffs'
 
     def test_get_tariffications(self):
         response = processes.get_tariff()
-        self.assertEqual(len(response['tariffs']), Tariff.objects.filter(is_active=True).count())
-        self.assertIn("get_tariff", response["details"])
+        self.assertEqual(len(response[self.data_key_name]), Tariff.objects.filter(is_active=True).count())
+        self.assertEqual(self.details, response[self.details_key_name])
 
 
-class GetVPNServersTestCase(TestCase):
+class GetVPNServersTestCase(BaseSetUpConfig):
+    @classmethod
+    def setUpTestData(cls):
+        cls.details = 'get_vpn_servers'
+        cls.data_key_name = 'vpn_servers'
+
     def test_get_vpn_servers(self):
-        helpers.create_vpn_server(5)
         response = processes.get_vpn_servers()
-        self.assertEqual(len(response['vpn_servers']), VPNServer.objects.all().count())
+        self.assertEqual(len(response[self.data_key_name]), VPNServer.objects.filter(is_active=True).count())
+        self.assertEqual(self.details, response[self.details_key_name])
 
 
-class GetClientTestCase(TokenBaseTestCase):
-    def test_get_client(self):
-        response = processes.get_client(
-            messenger_id=self.cred['id'],
-            transport_name="telegram",
-        )
-        self.assertEqual(response['details'], "get_client")
-        self.assertIn('user_info', response.keys())
-        self.assertIn('user', response['user_info'].keys())
-        self.assertIn('contact', response['user_info'].keys())
+class GetTransportsTestCase(BaseSetUpConfig):
+    @classmethod
+    def setUpTestData(cls):
+        cls.details = 'get_transports'
+        cls.data_key_name = 'transports'
 
-
-class GetTransportsTestCase(TestCase):
-    def test_get_transports_ok(self):
+    def test_get_transports(self):
         response = processes.get_transports()
-        self.assertIn("get_bots", response['details'])
-        self.assertEqual(2, len(response['bots']))
+        self.assertEqual(len(response[self.data_key_name]), Transport.objects.filter(is_active=True).count())
+        self.assertEqual(self.details, response[self.details_key_name])
 
 
-class GetTokenTestCase(TestCase):
+class GetTokenTestCase(BaseSetUpConfig):
     def test_get_token_ok(self):
-        pass
+        response = processes.get_token(self.vpn_token.id)
+        self.assertEqual(self.vpn_token, response)
 
     def test_get_token_does_not_exist(self):
-        pass
+        with self.assertRaises(exceptions.VPNTokenDoesNotExist) as err:
+            processes.get_token(self.invalid_token_id)
+        self.assertIn(f'VPN Token id={self.invalid_token_id!r} does not exist', err.exception.message)
 
 
-class GetTokenInfoTestCase(TestCase):
+class GetTokenInfoTestCase(BaseSetUpConfig):
+    @classmethod
+    def setUpTestData(cls):
+        cls.details = 'get_token_info'
+        cls.data_key_name = 'tokens'
+
     def test_get_token_info(self):
-        pass
+        response = processes.get_token_info(self.vpn_token.id)
+        self.assertEqual(self.details, response[self.details_key_name])
+        data_dict = response[self.data_key_name][0]
+        vpn_token_dict = self.vpn_token.as_dict()
+        if vpn_token_dict['valid_until']:
+            vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+        self.assertEqual(data_dict, vpn_token_dict)
 
 
-class AddTrafficLimitTestCase(TestCase):
-    def test_add_traffic_limit_ok(self):
-        pass
+class AddTrafficLimitTestCase(BaseSetUpConfig):
+    @classmethod
+    def setUpTestData(cls):
+        cls.details = 'traffic_limit_updated'
+        cls.data_key_name = 'tokens'
 
-    def test_add_traffic_limit_vpn_server_response_error(self):
-        pass
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    @patch("requests.put", return_value=mocks.MockResponseStatusCode204())
+    def test_add_traffic_limit_ok(self, *args):
+        self.assertIsNone(self.vpn_token.traffic_limit)
+        response = processes.add_traffic_limit(self.vpn_token.id, self.traffic_limit_in_bytes)
+        self.assertEqual(self.details, response[self.details_key_name])
+        data_dict = response[self.data_key_name][0]
+        self.vpn_token.refresh_from_db()
+        self.assertIsNotNone(self.vpn_token.traffic_limit)
+        self.assertEqual(self.vpn_token.traffic_limit, self.traffic_limit_in_bytes)
+        self.assertEqual(self.vpn_token.traffic_limit, data_dict['traffic_limit'])
+
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    @patch("requests.put", return_value=mocks.MockResponseStatusCode404())
+    def test_add_traffic_limit_vpn_server_response_error(self, *args):
+        self.assertIsNone(self.vpn_token.traffic_limit)
+        with self.assertRaises(exceptions.VPNServerResponseError) as err:
+            processes.add_traffic_limit(self.vpn_token.id, self.traffic_limit_in_bytes)
+        self.assertEqual('Outline client error occurred due traffic limit add', err.exception.message)
+        self.vpn_token.refresh_from_db()
+        self.assertIsNone(self.vpn_token.traffic_limit)
 
 
-class DelTrafficLimitTestCase(TestCase):
-    def test_del_traffic_limit_ok(self):
-        pass
+class DelTrafficLimitTestCase(BaseSetUpConfig):
+    @classmethod
+    def setUpTestData(cls):
+        cls.details = 'traffic_limit_removed'
+        cls.data_key_name = 'tokens'
 
-    def test_del_traffic_limit_vpn_server_response_error(self):
-        pass
+    @patch("requests.delete", return_value=mocks.MockResponseStatusCode204())
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_del_traffic_limit_ok(self, *args):
+        self.assertIsNone(self.vpn_token.traffic_limit)
+        self.vpn_token.traffic_limit = self.traffic_limit_in_bytes
+        self.vpn_token.save()
+        response = processes.del_traffic_limit(self.vpn_token.id)
+        self.assertEqual(self.details, response[self.details_key_name])
+        data_dict = response[self.data_key_name][0]
+        self.vpn_token.refresh_from_db()
+        self.assertEqual(data_dict['traffic_limit'], self.vpn_token.traffic_limit)
+
+    @patch("requests.delete", return_value=mocks.MockResponseStatusCode404())
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_del_traffic_limit_vpn_server_response_error(self, *args):
+        self.assertIsNone(self.vpn_token.traffic_limit)
+        self.vpn_token.traffic_limit = self.traffic_limit_in_bytes
+        self.vpn_token.save()
+        with self.assertRaises(exceptions.VPNServerResponseError) as err:
+            processes.del_traffic_limit(self.vpn_token.id)
+        self.assertEqual('Outline client error occurred due traffic limit delete', err.exception.message)
+        self.vpn_token.refresh_from_db()
+        self.assertEqual(self.vpn_token.traffic_limit, self.traffic_limit_in_bytes)
 
 
-class DelOutlineVPNKeyTestCase(TestCase):
-    def test_del_outline_vpn_key_ok(self):
-        pass
+class ChangeVPNTokenTrafficLimitTestCase(BaseSetUpConfig):
+    def test_change_vpn_token_traffic_limit_ok_none(self):
+        self.assertFalse(self.vpn_token.traffic_limit)
+        self.vpn_token.traffic_limit = self.traffic_limit_in_bytes
+        self.vpn_token.save()
+        response = processes.change_vpn_token_traffic_limit(self.vpn_token, 0)
+        self.vpn_token.refresh_from_db()
+        vpn_token_dict = self.vpn_token.as_dict()
+        if vpn_token_dict['valid_until']:
+            vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+        self.assertEqual(response, vpn_token_dict)
 
-    def test_del_outline_vpn_key_vpn_server_response_error(self):
-        pass
+    def test_change_vpn_token_traffic_limit_ok_add(self):
+        self.assertFalse(self.vpn_token.traffic_limit)
+        response = processes.change_vpn_token_traffic_limit(self.vpn_token, 0)
+        self.vpn_token.refresh_from_db()
+        vpn_token_dict = self.vpn_token.as_dict()
+        if vpn_token_dict['valid_until']:
+            vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+        self.assertEqual(response, vpn_token_dict)
 
 
-class TelegramMessageSenderTestCase(TestCase):
-    def test_telegram_message_sender_ok_personal(self):
-        pass
+class DelOutlineVPNKeyTestCase(BaseSetUpConfig):
+    @classmethod
+    def setUpTestData(cls):
+        cls.details = 'vpn_token_deleted'
+        cls.data_key_name = 'tokens'
 
-    def test_telegram_message_sender_ok_all_users(self):
-        pass
+    @patch("requests.delete", return_value=mocks.MockResponseStatusCode204())
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_del_outline_vpn_key_ok(self, *args):
+        self.assertTrue(self.vpn_token.is_active)
+        response = processes.del_outline_vpn_key(self.vpn_token.id)
+        self.assertEqual(self.details, response[self.details_key_name])
+        data_dict = response[self.data_key_name][0]
+        self.vpn_token.refresh_from_db()
+        self.assertFalse(self.vpn_token.is_active)
+        self.assertFalse(data_dict['is_active'])
+        self.assertIn('Deleted', data_dict['name'])
+
+    @patch("requests.delete", return_value=mocks.MockResponseStatusCode404())
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    def test_del_outline_vpn_key_vpn_server_response_error(self, *args):
+        self.assertTrue(self.vpn_token.is_active)
+        with self.assertRaises(exceptions.VPNServerResponseError) as err:
+            processes.del_outline_vpn_key(self.vpn_token.id)
+        self.assertEqual('Outline client error occurred due key delete', err.exception.message)
+        self.vpn_token.refresh_from_db()
+        self.assertTrue(self.vpn_token.is_active)
+
+
+class ChangeVPNTokenActiveStatusTestCase(BaseSetUpConfig):
+    def test_change_vpn_token_active_state_false(self):
+        self.assertTrue(self.vpn_token.is_active)
+        response = processes.change_vpn_token_active_state(self.vpn_token)
+        self.vpn_token.refresh_from_db()
+        self.assertFalse(self.vpn_token.is_active)
+        self.assertIn('Deleted', self.vpn_token.name)
+        vpn_token_dict = self.vpn_token.as_dict()
+        if vpn_token_dict['valid_until']:
+            vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+        self.assertEqual(response, vpn_token_dict)
+
+    def test_change_vpn_token_active_state_true(self):
+        self.assertTrue(self.vpn_token.is_active)
+        self.vpn_token.is_active = False
+        self.vpn_token.save()
+        response = processes.change_vpn_token_active_state(self.vpn_token)
+        self.vpn_token.refresh_from_db()
+        self.assertFalse(self.vpn_token.is_active)
+        vpn_token_dict = self.vpn_token.as_dict()
+        if vpn_token_dict['valid_until']:
+            vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+        self.assertEqual(response, vpn_token_dict)
+
+
+class TelegramMessageSenderTestCase(BaseSetUpConfig):
+    @classmethod
+    def setUpTestData(cls):
+        cls.send_text = 'Test message'
+        cls.details_personal = 'personal_message_send'
+        cls.details_all = 'all_users_message_send'
+        cls.data_key_name = 'info'
+
+    @patch('telebot.TeleBot.send_message', return_value=mocks.MockResponseStatusCode200())
+    def test_telegram_message_sender_ok_personal(self, *args):
+        response = processes.telegram_message_sender(
+            transport_name=self.transport_name,
+            text=self.send_text,
+            messenger_id=self.valid_messenger_id,
+        )
+        self.assertEqual(self.details_personal, response[self.details_key_name])
+        data_dict = response[self.data_key_name]
+        self.assertEqual(data_dict['success'], 1)
+
+    @patch('telebot.TeleBot.send_message', return_value=mocks.MockResponseStatusCode200())
+    def test_telegram_message_sender_ok_all_users(self, *args):
+        helpers.create_contact(
+            client=helpers.create_client()[0],
+            transport=self.transport,
+            credentials=self.new_contact_credentials
+        )
+        response = processes.telegram_message_sender(
+            transport_name=self.transport_name,
+            text=self.send_text,
+        )
+        self.assertEqual(self.details_all, response[self.details_key_name])
+        data_dict = response[self.data_key_name]
+        self.assertEqual(data_dict['success'], 2)
+        self.assertEqual(data_dict['error'], 0)
 
     def test_telegram_message_sender_transport_does_not_exist(self):
-        pass
+        with self.assertRaises(exceptions.TransportDoesNotExist) as err:
+            processes.telegram_message_sender(
+                transport_name=self.not_exist_transport_name,
+                text=self.send_text,
+                messenger_id=self.valid_messenger_id,
+            )
+        self.assertEqual(f'Transport {self.not_exist_transport_name!r} does not exist', err.exception.message)
 
-    def test_telegram_message_sender_personal_transport_message_send_error(self):
-        pass
+    # @patch('telebot.TeleBot.send_message', return_value=mocks.MockResponseStatusCode404())
+    # def test_telegram_message_sender_personal_transport_message_send_error(self, *args):
+    #     with self.assertRaises(exceptions.TransportMessageSendError) as err:
+    #         processes.telegram_message_sender(
+    #             transport_name=self.transport_name,
+    #             text=self.send_text,
+    #             messenger_id=self.invalid_messenger_id,
+    #         )
+    #     self.assertIn(self.transport_name, err.exception.message)
 
 
-class TokenAdminNewTestCase(TestCase):
-    def test_token_admin_new_ok(self):
-        pass
+class UpdateTokenValidUntilTestCase(BaseSetUpConfig):
+    @classmethod
+    def setUpTestData(cls):
+        cls.days = 30
+        cls.details = 'token_valid_until_updated'
+        cls.data_key_name = 'tokens'
 
+    def test_update_token_valid_until_ok_date(self):
+        self.assertIsNone(self.vpn_token.valid_until)
+        response = processes.update_token_valid_until(self.vpn_token.id, self.days)
+        self.assertEqual(self.details, response[self.details_key_name])
+        data_dict = response[self.data_key_name][0]
+        self.vpn_token.refresh_from_db()
+        vpn_token_dict = self.vpn_token.as_dict()
+        if vpn_token_dict['valid_until']:
+            vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+        self.assertEqual(data_dict, vpn_token_dict)
 
-class TokenAdminRenewTestCase(TestCase):
-    def test_token_admin_renew_ok(self):
-        pass
-
-
-class UpdateTokenValidUntilTestCase(TestCase):
-    def test_update_token_valid_until_ok(self):
-        pass
+    def test_update_token_valid_until_ok_none(self):
+        self.assertIsNone(self.vpn_token.valid_until)
+        self.vpn_token.valid_until = datetime.datetime.now()
+        self.vpn_token.save()
+        response = processes.update_token_valid_until(self.vpn_token.id, 0)
+        self.assertEqual(self.details, response[self.details_key_name])
+        data_dict = response[self.data_key_name][0]
+        self.vpn_token.refresh_from_db()
+        vpn_token_dict = self.vpn_token.as_dict()
+        if vpn_token_dict['valid_until']:
+            vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+        self.assertEqual(data_dict, vpn_token_dict)

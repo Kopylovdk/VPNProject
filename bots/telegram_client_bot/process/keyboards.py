@@ -13,7 +13,8 @@ def main_keyboard() -> ReplyKeyboardMarkup:
         KeyboardButton(text='Перевыпустить VPN ключ'),
         KeyboardButton(text='Инструкция'),
 
-        KeyboardButton(text='Поддержка'),
+        KeyboardButton(text='Связаться со мной'),
+        KeyboardButton(text='Подписаться на канал'),
     ]
     kb.add(*to_add_btn)
     return kb

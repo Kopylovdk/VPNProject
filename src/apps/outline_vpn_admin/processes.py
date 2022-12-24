@@ -250,16 +250,9 @@ def token_renew(
         raise exceptions.VPNTokenIsNotActive(message=err)
 
     outline_client = get_outline_client(old_token.server)
-
     new_token = copy(old_token)
     new_token.id = None
     new_token.previous_vpn_token_id = old_token.id
-    new_token.save()
-
-    old_token.is_active = False
-    old_token.name = f'{old_token_name_prefix} {old_token.name}'
-    old_token.save()
-
     try:
         new_outline_key = outline_client.create_key()
     except Exception:
@@ -269,6 +262,10 @@ def token_renew(
     new_token.outline_id = new_outline_key.key_id
     new_token.vpn_key = new_outline_key.access_url
     new_token.save()
+
+    old_token.is_active = False
+    old_token.name = f'{old_token_name_prefix} {old_token.name}'
+    old_token.save()
 
     outline_key_name = f"OUTLINE_VPN_id:{new_outline_key.key_id!r}, client_id: {old_token.client.id!r}"
     if not outline_client.rename_key(new_outline_key.key_id, outline_key_name):
@@ -346,16 +343,15 @@ def get_token_info(token_id: int) -> dict:
     return {'details': 'get_token_info', 'tokens': [vpn_token_dict]}
 
 
-def add_traffic_limit(token_id: int, traffic_limit: int = 1024) -> dict:
+def add_traffic_limit(token_id: int, traffic_limit_in_bytes: int) -> dict:
     vpn_token = get_token(token_id)
     outline_client = get_outline_client(vpn_token.server)
-    limit_in_bytes = traffic_limit * 1024 * 1024
-    if not outline_client.add_data_limit(vpn_token.outline_id, limit_in_bytes):
+    if not outline_client.add_data_limit(vpn_token.outline_id, traffic_limit_in_bytes):
         msg = 'Outline client error occurred due traffic limit add'
         log.error(msg)
         raise exceptions.VPNServerResponseError(message=msg)
-    vpn_token_dict = change_vpn_token_traffic_limit(vpn_token, traffic_limit)
-    return {'details': 'Traffic limit updated', 'tokens': [vpn_token_dict]}
+    vpn_token_dict = change_vpn_token_traffic_limit(vpn_token, traffic_limit_in_bytes)
+    return {'details': 'traffic_limit_updated', 'tokens': [vpn_token_dict]}
 
 
 def del_traffic_limit(token_id: int) -> dict:
@@ -365,16 +361,15 @@ def del_traffic_limit(token_id: int) -> dict:
         msg = 'Outline client error occurred due traffic limit delete'
         log.error(msg)
         raise exceptions.VPNServerResponseError(message=msg)
-    vpn_token_dict = change_vpn_token_traffic_limit(vpn_token)
-    return {'details': 'Traffic limit removed', 'tokens': [vpn_token_dict]}
+    vpn_token_dict = change_vpn_token_traffic_limit(vpn_token, 0)
+    return {'details': 'traffic_limit_removed', 'tokens': [vpn_token_dict]}
 
 
-def change_vpn_token_traffic_limit(vpn_token: VPNToken, traffic_limit: int = None) -> dict:
-    if traffic_limit:
-        limit_in_bytes = traffic_limit * 1024 * 1024
-        vpn_token.traffic_limit = limit_in_bytes
-    else:
+def change_vpn_token_traffic_limit(vpn_token: VPNToken, traffic_limit_in_bytes: int) -> dict:
+    if not traffic_limit_in_bytes:
         vpn_token.traffic_limit = None
+    else:
+        vpn_token.traffic_limit = traffic_limit_in_bytes
     vpn_token.save()
     vpn_token_dict = vpn_token.as_dict()
     if vpn_token_dict['valid_until']:
@@ -390,7 +385,7 @@ def del_outline_vpn_key(token_id: int) -> dict:
         log.error(msg)
         raise exceptions.VPNServerResponseError(message=msg)
     vpn_token_dict = change_vpn_token_active_state(vpn_token)
-    return {'details': 'VPN Token deleted', 'tokens': [vpn_token_dict]}
+    return {'details': 'vpn_token_deleted', 'tokens': [vpn_token_dict]}
 
 
 def change_vpn_token_active_state(vpn_token: VPNToken) -> dict:
@@ -403,7 +398,7 @@ def change_vpn_token_active_state(vpn_token: VPNToken) -> dict:
         vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
     return vpn_token_dict
 
-
+##########
 def telegram_message_sender(
     transport_name: str,
     text: str,
@@ -427,7 +422,7 @@ def telegram_message_sender(
     }
     if messenger_id:
         log.info(f'{transport_name=!r}, {text=!r}, {messenger_id=!r}')
-        response['details'] = 'Personal message send'
+        response['details'] = 'personal_message_send'
         try:
             bot.send_message(messenger_id, text)
         except Exception as err:
@@ -438,7 +433,7 @@ def telegram_message_sender(
             response['info']['success'] += 1
     else:
         contacts_to_send = Contact.objects.select_related('transport').filter(transport=transport)
-        response['details'] = 'All users message send'
+        response['details'] = 'all_users_message_send'
         for contact in contacts_to_send:
             id_to_send = contact.uid.split('@')[1]
             try:
@@ -453,17 +448,17 @@ def telegram_message_sender(
     return response
 
 
-def update_token_valid_until(token_id: int, valid_until: int) -> dict:
+def update_token_valid_until(token_id: int, days_from_now: int) -> dict:
     token = get_token(token_id)
-    if valid_until:
-        token.valid_until = datetime.datetime.now() + datetime.timedelta(days=valid_until)
+    if days_from_now:
+        token.valid_until = datetime.datetime.now() + datetime.timedelta(days=days_from_now)
     else:
         token.valid_until = None
     token.save()
     vpn_token_dict = token.as_dict()
     if vpn_token_dict['valid_until']:
         vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
-    return {'details': "Token valid_until updated", 'tokens': [vpn_token_dict]}
+    return {'details': "token_valid_until_updated", 'tokens': [vpn_token_dict]}
 
 
 # def get_statistic_info(server_name: str):

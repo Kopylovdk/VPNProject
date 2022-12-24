@@ -16,11 +16,13 @@ from process.bot_processes import (
     subscribes_step_1,
     tariffs_step_1,
     check_cache_date,
+    subscribe_channel,
 )
 from process.keyboards import main_keyboard, register_keyboard
 
 
 log = logging.getLogger(__name__)
+# TODO: parse_mode='MarkdownV2' для всех сообщений
 bot = TeleBot(os.environ.get("TELEGRAM_TOKEN"))
 
 
@@ -51,15 +53,15 @@ def handle_text(message: Message):
         )
 
     elif 'Перевыпустить VPN ключ' in user_answer:
-        bot.send_message(
-            tg_user.id,
-            text='Временно не работает. Для перевыпуска ключа обратитесь в поддержку',
-            reply_markup=main_keyboard(),
-        )
-        # renew_token_step_1(
-        #     bot=bot,
-        #     message=message,
+        # bot.send_message(
+        #     tg_user.id,
+        #     text='Временно не работает. Для перевыпуска ключа обратитесь в поддержку',
+        #     reply_markup=main_keyboard(),
         # )
+        renew_token_step_1(
+            bot=bot,
+            message=message,
+        )
 
     elif 'Мои VPN ключи' in user_answer:
         get_vpn_keys(
@@ -81,13 +83,15 @@ def handle_text(message: Message):
             text=instruction,
             reply_markup=main_keyboard(),
         )
-    elif 'Поддержка' in message.text:
-        send_msg_to_managers(bot=bot, text='Требуется помощь администратора.', message=message)
+    elif 'Связаться со мной' in message.text:
+        send_msg_to_managers(bot=bot, text='Пользователю требуется помощь.', message=message)
         bot.send_message(
             tg_user.id,
             text='Администратор свяжется с Вами в ближайшее время.',
             reply_markup=main_keyboard(),
         )
+    elif 'Подписаться на канал' in message.text:
+        subscribe_channel(bot=bot, message=message)
     else:
         bot.send_message(
             tg_user.id,
