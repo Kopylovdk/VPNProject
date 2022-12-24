@@ -1,4 +1,5 @@
 import datetime
+import re
 import requests
 import logging
 import os
@@ -26,6 +27,16 @@ BOT_NAME = CONFIG['bot']['name']
 ADMIN_ALERT = CONFIG['bot']['admin_alert']
 MANAGERS = CONFIG['bot']['managers']
 _cache_update_date = None
+
+
+def format_bytes_to_human(size: int) -> str:
+    info_size = 1024
+    n = 0
+    info_labels = ['байт', 'Кб', 'Мб', 'Гб', 'Тб', 'Пб', 'Эб', 'Зб', 'Йб']
+    while size >= info_size:
+        size /= info_size
+        n += 1
+    return f"{size:.2f} {info_labels[n]}"
 
 
 def get_actual_cache_date(bot: TeleBot) -> datetime.datetime:
@@ -95,6 +106,15 @@ def get_tariffs(bot: TeleBot) -> Response:
         f'{API_URL}{API_URIS["get_tariffs"]}',
         headers=get_auth_api_headers(bot=bot),
         allow_redirects=True,
+    )
+
+
+def subscribe_channel(bot: TeleBot, message: Message) -> None:
+    bot.send_message(
+        message.chat.id,
+        "Подписаться на группу [Tematika VPN Official](https://t.me/tematikavpn)",
+        reply_markup=main_keyboard(),
+        parse_mode='MarkdownV2',
     )
 
 
@@ -203,6 +223,11 @@ def send_msg_to_managers(bot: TeleBot, text: str, message: Message) -> None:
                      f"{text_2}\n"
                      f'{text}',
             )
+            bot.forward_message(
+                chat_id=manager_id,
+                from_chat_id=message.chat.id,
+                message_id=message.message_id,
+            )
         except ApiTelegramException:
             continue
 
@@ -235,6 +260,39 @@ def add_or_update_user(bot: TeleBot, message: Message) -> None:
         log.error(f'add or update error {response}, {message}')
 
 
+def text_replace_for_markdown(text: str) -> str:
+    replacements = {
+        '-': '\-',
+        '.': '\.',
+        ',': '\,',
+        '<': '\<',
+        '>': '\>',
+        '[': '\[',
+        ']': '\]',
+        '(': '\(',
+        ')': '\)',
+    }
+    rep_sorted = sorted(replacements, key=len, reverse=True)
+    rep_escaped = map(re.escape, rep_sorted)
+    pattern = re.compile("|".join(rep_escaped), 0)
+    return pattern.sub(lambda match: replacements[match.group(0)], text)
+
+
+def prepare_token_to_send(token_dict: dict) -> str:
+    if token_dict['valid_until']:
+        valid_until = f'срок действия до: *{token_dict["valid_until"]}*'
+    else:
+        valid_until = '*без ограничения* по сроку'
+    if token_dict['traffic_limit']:
+        traffic_limit = f'лимит трафика: *{format_bytes_to_human(token_dict["traffic_limit"])}*'
+    else:
+        traffic_limit = '*без ограничения* трафика'
+    return f"Token ID: *{token_dict['id']}*, {valid_until}, "\
+           f"демо ключ - *{'Да' if token_dict['is_demo'] else 'Нет'}*, "\
+           f"{traffic_limit}"\
+           f"\nКлюч: _`{token_dict['vpn_key']}`_\n "
+
+
 def get_vpn_keys(bot: TeleBot, user: User) -> None:
     user_id = user.id
     send_wait_message_to_user(bot, user_id)
@@ -254,15 +312,17 @@ def get_vpn_keys(bot: TeleBot, user: User) -> None:
         tokens = json_data['tokens']
         msg = []
         for token_dict in tokens:
-            if token_dict['valid_until']:
-                valid_until = f'срок действия до: {token_dict["valid_until"]}'
-            else:
-                valid_until = 'без ограничения по сроку'
-            msg.append(f"Token ID - {token_dict['id']}, {valid_until}, "
-                       f"демо ключ - {'Да' if token_dict['is_demo'] else 'Нет'}\n"
-                       f"Ключ:\n")
-            msg.append(f'{token_dict["vpn_key"]}')
-        bot.send_message(user_id, ''.join(msg) if msg else 'Ключи отсутствуют', reply_markup=main_keyboard())
+            msg.append(
+                text_replace_for_markdown(
+                    prepare_token_to_send(token_dict)
+                )
+            )
+        bot.send_message(user_id, 'Для копирования ключа тапните на него.', reply_markup=main_keyboard())
+        bot.send_message(
+            user_id, ''.join(msg) if msg else 'Ключи отсутствуют',
+            reply_markup=main_keyboard(),
+            parse_mode='MarkdownV2',
+        )
     elif status_code in [404] and "User does not exist" in json_data['details']:
         bot.send_message(
             user_id,
@@ -313,20 +373,11 @@ def renew_token_step_2(message: Message, bot: TeleBot):
             details = json_data['details']
             if status_code in [201]:
                 token = json_data['tokens'][0]
-                if token['valid_until']:
-                    valid_until = f'срок действия до: {token["valid_until"]}'
-                else:
-                    valid_until = 'без ограничения по сроку'
-                bot.send_message(
-                    user_id,
-                    f'Новый ключ создан.\n Старый ключ более не действителен, замените его в приложении\n'
-                    f'ID ключа - {token["id"]}\n'
-                    f'{valid_until}\n'
-                    f'Ключ в следующем сообщении',
-                    reply_markup=main_keyboard(),
-                )
-                bot.send_message(user_id, f'{token["vpn_key"]}', reply_markup=main_keyboard())
-
+                renew_text = f'Новый ключ создан.\n Старый ключ более не действителен, замените его в приложении.\n' \
+                             f'Для копирования ключа тапните на него.\n'
+                text = text_replace_for_markdown(prepare_token_to_send(token))
+                bot.send_message(user_id, renew_text, reply_markup=main_keyboard())
+                bot.send_message(user_id, text, reply_markup=main_keyboard(), parse_mode='MarkdownV2')
             elif status_code in [403]:
                 text = 'Что-то пошло не так. Свяжитесь с администратором или повторите попытку позже.'
                 if 'Cannot' in details:
@@ -431,14 +482,11 @@ def subscribes_step_3(
             json_data = response.json()
             status_code = response.status_code
             if status_code == 201:
-                token = response.json()['tokens'][0]
-                bot.send_message(
-                    user_id,
-                    f'ID ключа - {token["id"]}\nСрок действия до - {token["valid_until"]}'
-                    f'\nЛимит траффика - {token["traffic_limit"] / 1024 / 1024} мб\nКлюч:\n',
-                    reply_markup=main_keyboard(),
-                )
-                bot.send_message(user_id, f'{token["vpn_key"]}', reply_markup=main_keyboard())
+                token = json_data['tokens'][0]
+                new_text = f'Новый ключ создан.\n Для копирования ключа тапните на него.\n'
+                text = text_replace_for_markdown(prepare_token_to_send(token))
+                bot.send_message(user_id, new_text, reply_markup=main_keyboard())
+                bot.send_message(user_id, text, reply_markup=main_keyboard(), parse_mode='MarkdownV2')
             elif status_code == 403:
                 bot.send_message(
                     user_id,
