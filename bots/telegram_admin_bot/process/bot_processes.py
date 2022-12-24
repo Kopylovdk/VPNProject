@@ -385,7 +385,7 @@ def token_traffic_limit_update_step_1(message: Message, bot: TeleBot, token_dict
             send_wait_message_to_user(bot=bot, user_id=user_id)
             to_send = {
                 "token_id": token_dict['id'],
-                "traffic_limit": str(user_answer),
+                "traffic_limit_in_bytes": str(user_answer),
             }
             response = requests.patch(
                 f'{API_URL}{API_URIS["update_token"]}',
