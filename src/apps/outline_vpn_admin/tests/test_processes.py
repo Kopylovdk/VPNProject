@@ -558,24 +558,17 @@ class DelTrafficLimitTestCase(BaseSetUpConfig):
 
 class ChangeVPNTokenTrafficLimitTestCase(BaseSetUpConfig):
     def test_change_vpn_token_traffic_limit_ok_none(self):
-        self.assertFalse(self.vpn_token.traffic_limit)
+        self.assertIsNone(self.vpn_token.traffic_limit)
         self.vpn_token.traffic_limit = self.traffic_limit_in_bytes
         self.vpn_token.save()
-        response = processes.change_vpn_token_traffic_limit(self.vpn_token, 0)
+        self.assertIsNone(processes.change_vpn_token_traffic_limit(self.vpn_token, 0))
         self.vpn_token.refresh_from_db()
-        vpn_token_dict = self.vpn_token.as_dict()
-        if vpn_token_dict['valid_until']:
-            vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
-        self.assertEqual(response, vpn_token_dict)
+        self.assertIsNone(self.vpn_token.traffic_limit)
 
     def test_change_vpn_token_traffic_limit_ok_add(self):
-        self.assertFalse(self.vpn_token.traffic_limit)
-        response = processes.change_vpn_token_traffic_limit(self.vpn_token, 0)
+        self.assertIsNone(self.vpn_token.traffic_limit)
+        self.assertIsNone(processes.change_vpn_token_traffic_limit(self.vpn_token, 0))
         self.vpn_token.refresh_from_db()
-        vpn_token_dict = self.vpn_token.as_dict()
-        if vpn_token_dict['valid_until']:
-            vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
-        self.assertEqual(response, vpn_token_dict)
 
 
 class DelOutlineVPNKeyTestCase(BaseSetUpConfig):
@@ -610,26 +603,26 @@ class DelOutlineVPNKeyTestCase(BaseSetUpConfig):
 class ChangeVPNTokenActiveStatusTestCase(BaseSetUpConfig):
     def test_change_vpn_token_active_state_false(self):
         self.assertTrue(self.vpn_token.is_active)
-        response = processes.change_vpn_token_active_state(self.vpn_token)
+        self.assertIsNone(processes.change_vpn_token_active_state(self.vpn_token))
         self.vpn_token.refresh_from_db()
         self.assertFalse(self.vpn_token.is_active)
         self.assertIn('Deleted', self.vpn_token.name)
-        vpn_token_dict = self.vpn_token.as_dict()
-        if vpn_token_dict['valid_until']:
-            vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
-        self.assertEqual(response, vpn_token_dict)
+        # vpn_token_dict = self.vpn_token.as_dict()
+        # if vpn_token_dict['valid_until']:
+        #     vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+        # self.assertEqual(response, vpn_token_dict)
 
     def test_change_vpn_token_active_state_true(self):
         self.assertTrue(self.vpn_token.is_active)
         self.vpn_token.is_active = False
         self.vpn_token.save()
-        response = processes.change_vpn_token_active_state(self.vpn_token)
+        self.assertIsNone(processes.change_vpn_token_active_state(self.vpn_token))
         self.vpn_token.refresh_from_db()
         self.assertFalse(self.vpn_token.is_active)
-        vpn_token_dict = self.vpn_token.as_dict()
-        if vpn_token_dict['valid_until']:
-            vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
-        self.assertEqual(response, vpn_token_dict)
+        # vpn_token_dict = self.vpn_token.as_dict()
+        # if vpn_token_dict['valid_until']:
+        #     vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+        # self.assertEqual(response, vpn_token_dict)
 
 
 class TelegramMessageSenderTestCase(BaseSetUpConfig):
@@ -717,3 +710,20 @@ class UpdateTokenValidUntilTestCase(BaseSetUpConfig):
         if vpn_token_dict['valid_until']:
             vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
         self.assertEqual(data_dict, vpn_token_dict)
+
+
+class PrepareVPNTokenToSend(BaseSetUpConfig):
+    def test_prepare_vpn_token_to_send(self):
+        datetime_now = datetime.datetime.now()
+        self.vpn_token.traffic_last_update = datetime_now
+        self.vpn_token.traffic_used = self.traffic_limit_in_bytes
+        self.vpn_token.save()
+        response = processes.prepare_vpn_token_to_send(self.vpn_token)
+        vpn_token_dict = self.vpn_token.as_dict()
+        if vpn_token_dict['valid_until']:
+            vpn_token_dict['valid_until'] = vpn_token_dict['valid_until'].strftime(DATE_STRING_FORMAT)
+        if vpn_token_dict['traffic_last_update']:
+            vpn_token_dict['traffic_last_update'] = vpn_token_dict['traffic_last_update'].strftime(
+                f'{DATE_STRING_FORMAT} %H:%M:%S'
+            )
+        self.assertEqual(response, vpn_token_dict)
