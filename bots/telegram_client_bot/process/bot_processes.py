@@ -278,7 +278,12 @@ def text_replace_for_markdown(text: str) -> str:
     return pattern.sub(lambda match: replacements[match.group(0)], text)
 
 
-def prepare_token_to_send(token_dict: dict) -> str:
+def prepare_token_to_send(token_dict: dict, bot: TeleBot) -> str:
+    vpn_servers_dict = update_vpn_servers(bot=bot)
+    for vpn_server in vpn_servers_dict:
+        if token_dict['server'] == vpn_server['id']:
+            token_dict['server'] = vpn_server['external_name']
+            break
     if token_dict['valid_until']:
         valid_until = f'срок действия до: *{token_dict["valid_until"]}*'
     else:
@@ -289,7 +294,7 @@ def prepare_token_to_send(token_dict: dict) -> str:
         traffic_limit = '*без ограничения* трафика'
     return f"Token ID: *{token_dict['id']}*, {valid_until}, "\
            f"демо ключ - *{'Да' if token_dict['is_demo'] else 'Нет'}*, "\
-           f"{traffic_limit}"\
+           f"{traffic_limit}, сервер: *{token_dict['server']}*"\
            f"\nКлюч: _`{token_dict['vpn_key']}`_\n "
 
 
@@ -314,7 +319,7 @@ def get_vpn_keys(bot: TeleBot, user: User) -> None:
         for token_dict in tokens:
             msg.append(
                 text_replace_for_markdown(
-                    prepare_token_to_send(token_dict)
+                    prepare_token_to_send(token_dict, bot)
                 )
             )
         bot.send_message(user_id, 'Для копирования ключа тапните на него.', reply_markup=main_keyboard())
@@ -375,7 +380,7 @@ def renew_token_step_2(message: Message, bot: TeleBot):
                 token = json_data['tokens'][0]
                 renew_text = f'Новый ключ создан.\n Старый ключ более не действителен, замените его в приложении.\n' \
                              f'Для копирования ключа тапните на него.\n'
-                text = text_replace_for_markdown(prepare_token_to_send(token))
+                text = text_replace_for_markdown(prepare_token_to_send(token, bot))
                 bot.send_message(user_id, renew_text, reply_markup=main_keyboard())
                 bot.send_message(user_id, text, reply_markup=main_keyboard(), parse_mode='MarkdownV2')
             elif status_code in [403]:
@@ -484,7 +489,7 @@ def subscribes_step_3(
             if status_code == 201:
                 token = json_data['tokens'][0]
                 new_text = f'Новый ключ создан.\n Для копирования ключа тапните на него.\n'
-                text = text_replace_for_markdown(prepare_token_to_send(token))
+                text = text_replace_for_markdown(prepare_token_to_send(token, bot))
                 bot.send_message(user_id, new_text, reply_markup=main_keyboard())
                 bot.send_message(user_id, text, reply_markup=main_keyboard(), parse_mode='MarkdownV2')
             elif status_code == 403:
