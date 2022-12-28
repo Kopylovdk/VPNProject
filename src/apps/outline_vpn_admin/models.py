@@ -203,6 +203,8 @@ class VPNToken(models.Model, DictRepresentationMixin):
     is_demo = models.BooleanField(verbose_name='Демо ключ', default=False)
     is_tech = models.BooleanField(verbose_name='Технический ключ', default=False)
     traffic_limit = models.BigIntegerField(verbose_name='Лимит трафика', null=True, blank=True)
+    traffic_used = models.BigIntegerField(verbose_name='Использовано трафика, байт', null=True, blank=True)
+    traffic_last_update = models.DateTimeField(verbose_name='Последнее обновление использованного трафика', null=True, blank=True)
     created_at = models.DateTimeField(verbose_name='Дата создания записи', auto_now_add=True)
     updated_at = models.DateTimeField(verbose_name='Дата обновления записи', auto_now=True)
 
@@ -234,6 +236,15 @@ class TokenProcess(models.Model, DictRepresentationMixin):
 
     def __str__(self):
         return f"id={self.id!r}, script_name={self.script_name!r}"
+
+
+# class VolumeTrafficLog(models.Model, DictRepresentationMixin):
+#     vpn_token = models.ForeignKey(VPNToken, on_delete=models.RESTRICT, verbose_name='VPN токен', primary_key=True)
+#     used_traffic = models.BigIntegerField(verbose_name='Использовано трафика, байт', null=True, blank=True)
+#     last_update = models.DateTimeField(verbose_name='Дата обновления записи', auto_now=True)
+#
+#     def __repr__(self):
+#         return f"<{self.__class__.__name__} id={self.id!r}>"
 
 
 # TODO: Сделать миграции, тесты и дополнить модель полями при подключении оплат
