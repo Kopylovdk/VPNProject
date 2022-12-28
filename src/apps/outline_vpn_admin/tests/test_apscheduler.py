@@ -259,9 +259,8 @@ class UpdateVPNTokenTrafficUsageTestCase(BaseSetUp):
         return_value=mocks.MockResponseGetMetrics(outline_id, used_bytes).json()
     )
     def test_update_vpn_token_traffic_usage(self, *args):
-        self.tariff.is_demo = True
-        self.tariff.save()
         self.vpn_keys[0].outline_id = self.outline_id
+        self.vpn_keys[0].traffic_limit = self.used_bytes
         self.vpn_keys[0].save()
         self.assertFalse(self.vpn_keys[0].traffic_used)
         jobs.update_vpn_token_traffic_usage()
