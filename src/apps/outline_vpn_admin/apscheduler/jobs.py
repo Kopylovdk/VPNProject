@@ -13,17 +13,21 @@ from apps.outline_vpn_admin.apscheduler.jobs_helpers import (
     task_update,
     outline_token_delete,
     vpn_token_deactivate,
+    collect_active_vpn_servers,
+    get_traffic_usage_on_vpn_server,
 )
 log = logging.getLogger(__name__)
 EXPIRED_VPN_TOKEN_SCRIPT_NAME = 'expired_vpn_token_key'
 INFORM_BEFORE_EXPIRED_VPN_TOKEN_SCRIPT_NAME = 'inform_before_vpn_token_key_expired'
 JOB_STORE_EXPIRED_VPN_TOKENS_NAME = 'expired_vpn_tokens'
+JOB_STORE_UPDATE_TRAFFIC_USAGE = 'update_traffic_usage'
 JOB_STORE_INFORM_CLIENTS_BEFORE_EXPIRE_NAME = 'inform_clients_before_expire_vpn_token'
 tg_messanger_name = 'telegram'
 
 scheduler = BlockingScheduler(timezone=settings.TIME_ZONE)
 scheduler.add_jobstore(DjangoJobStore(), JOB_STORE_EXPIRED_VPN_TOKENS_NAME)
 scheduler.add_jobstore(DjangoJobStore(), JOB_STORE_INFORM_CLIENTS_BEFORE_EXPIRE_NAME)
+scheduler.add_jobstore(DjangoJobStore(), JOB_STORE_UPDATE_TRAFFIC_USAGE)
 
 
 @scheduler.scheduled_job(
@@ -112,6 +116,24 @@ def process_expired_vpn_tokens_tg():
                     vpn_token_deactivate(token=task.vpn_token)
                 task_update(task)
                 send_telegram_message(transport=task.transport, contact=task.contact, text=task.text)
+
+
+@scheduler.scheduled_job(
+    trigger='interval',
+    minutes=20,
+    jobstore=JOB_STORE_UPDATE_TRAFFIC_USAGE,
+    id='update_vpn_token_traffic_usage',
+)
+def update_vpn_token_traffic_usage():
+    vpn_tokens = collect_active_tokens()
+    vpn_servers = collect_active_vpn_servers()
+    for vpn_server in vpn_servers:
+        tokens_to_update_traffic_usage = vpn_tokens.filter(server=vpn_server, tariff__is_demo=True)
+        traffic_usage = get_traffic_usage_on_vpn_server(vpn_server)
+        for vpn_token in tokens_to_update_traffic_usage:
+            vpn_token.traffic_used = traffic_usage.get(str(vpn_token.outline_id))
+            vpn_token.traffic_last_update = datetime.datetime.now()
+            vpn_token.save()
 
 
 def start_scheduler():

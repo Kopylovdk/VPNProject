@@ -25,6 +25,10 @@ def collect_active_client_transports():
     return Transport.objects.filter(is_active=True, is_admin_transport=False)
 
 
+def collect_active_vpn_servers():
+    return VPNServer.objects.filter(is_active=True)
+
+
 def create_process_tasks(vpn_token: VPNToken, text: str, script_name: str, transports: QuerySet[Transport]):
     for transport in transports:
         contacts = vpn_token.client.contact_set.filter(transport=transport)
@@ -74,6 +78,16 @@ def outline_token_delete(token: VPNToken, server: VPNServer) -> None:
         msg = 'Outline client error occurred due outline_token_delete'
         log.error(f'{msg}')
         raise exceptions.VPNServerDoesNotResponse
+
+
+def get_traffic_usage_on_vpn_server(server: VPNServer) -> dict:
+    outline_client = get_outline_client(server)
+    result = outline_client.get_metrics_transfer()
+    if not result:
+        msg = 'Outline client error occurred due get_metrics_transfer'
+        log.error(f'{msg}')
+        raise exceptions.VPNServerDoesNotResponse
+    return result
 
 
 def send_telegram_message(transport: Transport, text: str, contact: Contact) -> None:

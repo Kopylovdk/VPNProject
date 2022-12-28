@@ -1,3 +1,4 @@
+import apps.outline_vpn_admin.outline_api
 import apps.outline_vpn_admin.tests.mocks as mocks
 import datetime
 import apps.outline_vpn_admin.tests.helpers as helpers
@@ -22,7 +23,7 @@ class BaseSetUp(TestCase):
         self.transports[0].save()
         self.transports[1].save()
         self.tariff = helpers.create_tariff(currency=helpers.create_currency()[0])[0]
-        # self.vpn_server_name = 'test_scripts'
+        # self.metrics_key_name = 'bytesTransferredByUserId'
         self.vpn_server = helpers.create_vpn_server(server_name=f'{self.test_str}_server_scripts')[0]
         self.contacts = []
         self.count = 6
@@ -234,4 +235,36 @@ class SendTelegramMessageTestCase(BaseSetUp):
         jobs_helpers.send_telegram_message(self.transports[0], 'text', self.contacts[0])
 
 
+class GetTrafficUsageOnVPNServerTestCase(BaseSetUp):
+    outline_id = 123
+    used_bytes = 123123123
 
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    @patch(
+        "apps.outline_vpn_admin.outline_api.MyOutlineVPN.get_metrics_transfer",
+        return_value=mocks.MockResponseGetMetrics(outline_id, used_bytes).json()
+    )
+    def test_get_traffic_usage_on_vpn_server(self, *args):
+        response = jobs_helpers.get_traffic_usage_on_vpn_server(self.vpn_server)
+        self.assertEqual(response[str(self.outline_id)], self.used_bytes)
+
+
+class UpdateVPNTokenTrafficUsageTestCase(BaseSetUp):
+    outline_id = 123
+    used_bytes = 123123123
+
+    @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
+    @patch(
+        "apps.outline_vpn_admin.outline_api.MyOutlineVPN.get_metrics_transfer",
+        return_value=mocks.MockResponseGetMetrics(outline_id, used_bytes).json()
+    )
+    def test_update_vpn_token_traffic_usage(self, *args):
+        self.tariff.is_demo = True
+        self.tariff.save()
+        self.vpn_keys[0].outline_id = self.outline_id
+        self.vpn_keys[0].save()
+        self.assertFalse(self.vpn_keys[0].traffic_used)
+        jobs.update_vpn_token_traffic_usage()
+        self.vpn_keys[0].refresh_from_db()
+        self.assertEqual(self.used_bytes, self.vpn_keys[0].traffic_used)
+        self.assertIsNotNone(self.vpn_keys[0].traffic_last_update)
