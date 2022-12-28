@@ -18,4 +18,9 @@ class Migration(migrations.Migration):
             name='traffic_last_update',
             field=models.DateTimeField(null=True, blank=True, verbose_name='Последнее обновление использованного трафика'),
         ),
+        migrations.AlterField(
+            model_name='vpntoken',
+            name='traffic_limit',
+            field=models.BigIntegerField(null=True, blank=True, verbose_name='Лимит трафика, байт'),
+        ),
     ]

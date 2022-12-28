@@ -202,7 +202,7 @@ class VPNToken(models.Model, DictRepresentationMixin):
     is_active = models.BooleanField(verbose_name='Активность VPN ключа', default=True)
     is_demo = models.BooleanField(verbose_name='Демо ключ', default=False)
     is_tech = models.BooleanField(verbose_name='Технический ключ', default=False)
-    traffic_limit = models.BigIntegerField(verbose_name='Лимит трафика', null=True, blank=True)
+    traffic_limit = models.BigIntegerField(verbose_name='Лимит трафика, байт', null=True, blank=True)
     traffic_used = models.BigIntegerField(verbose_name='Использовано трафика, байт', null=True, blank=True)
     traffic_last_update = models.DateTimeField(verbose_name='Последнее обновление использованного трафика', null=True, blank=True)
     created_at = models.DateTimeField(verbose_name='Дата создания записи', auto_now_add=True)

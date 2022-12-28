@@ -128,7 +128,7 @@ def update_vpn_token_traffic_usage():
     vpn_tokens = collect_active_tokens()
     vpn_servers = collect_active_vpn_servers()
     for vpn_server in vpn_servers:
-        tokens_to_update_traffic_usage = vpn_tokens.filter(server=vpn_server, tariff__is_demo=True)
+        tokens_to_update_traffic_usage = vpn_tokens.filter(server=vpn_server, traffic_limit__gt=0)
         traffic_usage = get_traffic_usage_on_vpn_server(vpn_server)
         for vpn_token in tokens_to_update_traffic_usage:
             vpn_token.traffic_used = traffic_usage.get(str(vpn_token.outline_id))
