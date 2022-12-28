@@ -303,9 +303,15 @@ def prepare_token_to_send(token_dict: dict, bot: TeleBot) -> str:
     else:
         valid_until = '*без ограничения* по сроку'
     if token_dict['traffic_limit']:
-        rest_of_traffic = token_dict["traffic_limit"] - (token_dict["traffic_used"] if token_dict["traffic_used"] else 0)
-        traffic_limit = f'лимит трафика: *{format_bytes_to_human(token_dict["traffic_limit"])}*,' \
-                        f' остаток {format_bytes_to_human(rest_of_traffic)}'
+        traffic_limit = token_dict["traffic_limit"]
+        rest_of_traffic = traffic_limit - (token_dict["traffic_used"] if token_dict["traffic_used"] else 0)
+        if token_dict["traffic_last_update"]:
+            traffic_last_update = f'актуально на {token_dict["traffic_last_update"]}'
+        else:
+            traffic_last_update = f'данные еще не обновлялись'
+        traffic_limit = f'лимит трафика: *{format_bytes_to_human(traffic_limit)}*,' \
+                        f' остаток {format_bytes_to_human(rest_of_traffic)},' \
+                        f' {traffic_last_update}'
     else:
         traffic_limit = '*без ограничения* трафика'
     return f"Token ID: *{token_dict['id']}*, {valid_until}, "\
