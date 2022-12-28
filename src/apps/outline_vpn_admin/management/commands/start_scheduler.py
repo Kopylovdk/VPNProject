@@ -1,6 +1,6 @@
 import threading
 from django.core.management.base import BaseCommand
-from apps.outline_vpn_admin.scripts import start_scheduler
+from apps.outline_vpn_admin.apscheduler.jobs import start_scheduler
 
 
 class Command(BaseCommand):

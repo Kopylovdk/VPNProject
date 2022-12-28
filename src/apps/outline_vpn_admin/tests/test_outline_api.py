@@ -1,8 +1,7 @@
 import apps.outline_vpn_admin.tests.mocks as mocks
 from django.test import TestCase
 from apps.outline_vpn_admin import exceptions
-from apps.outline_vpn_admin.outline_api import get_outline_client
-from outline_vpn.outline_vpn import OutlineVPN
+from apps.outline_vpn_admin.outline_api import get_outline_client, MyOutlineVPN
 from apps.outline_vpn_admin.tests import helpers
 from unittest.mock import patch
 
@@ -21,12 +20,12 @@ class GetOutlineServerResponseTestCase(TestCase):
     @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     def test_get_outline_client_default(self, *args):
         client = get_outline_client()
-        self.assertIsInstance(client, OutlineVPN)
+        self.assertIsInstance(client, MyOutlineVPN)
 
     @patch("requests.get", return_value=mocks.MockResponseGetServerInfo())
     def test_get_outline_client_by_name(self, *args):
         client = get_outline_client(vpn_server=self.server_1)
-        self.assertIsInstance(client, OutlineVPN)
+        self.assertIsInstance(client, MyOutlineVPN)
 
     def test_get_outline_client_server_does_not_response(self):
         with self.assertRaises(exceptions.VPNServerDoesNotResponse) as err:

@@ -191,6 +191,7 @@ class VPNToken(admin.ModelAdmin):
         'outline_id',
         'valid_until',
         'traffic_limit_',
+        'rest_of_traffic',
         'server',
         'is_demo',
         'is_tech',
@@ -217,6 +218,13 @@ class VPNToken(admin.ModelAdmin):
         'delete_vpn_record',
     ]
 
+    @admin.display(description='Остаток')
+    def rest_of_traffic(self, obj):
+        traffic_limit = obj.traffic_limit
+        if traffic_limit:
+            return format_bytes_to_human(traffic_limit - (obj.traffic_used if obj.traffic_used else 0))
+        return ''
+
     @admin.display(description='Лимит')
     def traffic_limit_(self, obj):
         traffic_limit = obj.traffic_limit
@@ -234,21 +242,21 @@ class VPNToken(admin.ModelAdmin):
             return VPNTokenAdminCreateForm
         else:
             form = super().get_form(request, obj, change, **kwargs)
-            # not_editable_fields = [
-            #     'outline_id',
-            #     'previous_vpn_token_id',
-            #     'vpn_key',
-            #     'is_demo',
-            #     'is_tech',
-            #     'is_active',
-            # ]
-            # for field_name, field in form.base_fields.items():
-            #     if field_name in not_editable_fields:
-            #         field.disabled = True
-            # form = VPNTokenAdminChangeForm
+            not_editable_fields = [
+                # 'outline_id',
+                # 'previous_vpn_token_id',
+                # 'vpn_key',
+                # 'is_demo',
+                # 'is_tech',
+                # 'is_active',
+                'traffic_used',
+                'traffic_last_update',
+            ]
+            for field_name, field in form.base_fields.items():
+                if field_name in not_editable_fields:
+                    field.disabled = True
             form.base_fields['name'].widget.attrs['style'] = 'width: 30em;'
-            # form.base_fields['traffic_limit'].help_text = 'Указывайте новое значение в Мб.' \
-            #                                               'При сохранении система автоматически пересчитывает в байты.'
+            form.base_fields['traffic_limit'].help_text = 'Указывайте новое значение в байтах.'
             return form
 
     def has_delete_permission(self, request, obj=None):

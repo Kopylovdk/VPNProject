@@ -9,7 +9,7 @@ COPY src/apps/outline_vpn_admin/apps.py apps/outline_vpn_admin
 COPY src/apps/outline_vpn_admin/exceptions.py apps/outline_vpn_admin
 COPY src/apps/outline_vpn_admin/models.py apps/outline_vpn_admin
 COPY src/apps/outline_vpn_admin/outline_api.py apps/outline_vpn_admin
-COPY src/apps/outline_vpn_admin/scripts.py apps/outline_vpn_admin
+COPY src/apps/outline_vpn_admin/apscheduler apps/outline_vpn_admin/apscheduler
 
 COPY src/vpnservice vpnservice
 COPY Docker/background-tasks/start_scheduler.sh sh_scripts/

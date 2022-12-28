@@ -1,4 +1,5 @@
 import datetime
+import re
 import requests
 import logging
 import os
@@ -258,30 +259,14 @@ def select_action_with_token_step_3(message: Message, bot: TeleBot, token_dict: 
     if 'В основное меню' in user_answer:
         bot.send_message(user_id, 'Возврат в основное меню', reply_markup=main_keyboard())
     elif 'Информация о ключе' in user_answer:
-        traffic_limit = "Отсутствует"
-        if token_dict["traffic_limit"]:
-            traffic_limit = token_dict["traffic_limit"] / 1024 / 1024
-        valid_until = "Отсутствует"
-        if token_dict["valid_until"]:
-            valid_until = token_dict["valid_until"]
+        bot.send_message(user_id, 'Для копирования ключа тапните на него.', reply_markup=main_keyboard())
         bot.send_message(
             user_id,
-            f'Данные по выбранному ключу:\n'
-            f'ID: {token_dict["id"]}\n'
-            f'Имя ключа: {token_dict["name"]}\n'
-            f'Server: {token_dict["server"]}\n'
-            f'Тариф: {token_dict["tariff"]}\n'
-            f'Outline_id: {token_dict["outline_id"]}\n'
-            f'ID предыдущей записи: {token_dict["previous_vpn_token_id"]}\n'
-            f'Срок действия: {valid_until}\n'
-            f'Лимит трафика, мб: {traffic_limit}\n'
-            f'Активность: {"Активен" if token_dict["is_active"] else "Неактивен"}\n'
-            f'Демо ключ: {"Да" if token_dict["is_demo"] else "Нет"}\n'
-            f'Ключ доступа = {token_dict["vpn_key"]}\n',
-            reply_markup=token_actions_keyboard(token_dict)
+            text_replace_for_markdown(prepare_token_to_send(token_dict, bot)),
+            reply_markup=token_actions_keyboard(token_dict),
+            parse_mode='MarkdownV2',
         )
         bot.register_next_step_handler(message, select_action_with_token_step_3, bot, token_dict)
-
     elif 'Перевыпустить VPN ключ' in user_answer:
         bot.send_message(user_id, 'Вы действительно перевыпустить выбранный ключ?', reply_markup=yes_no_keyboard())
         bot.register_next_step_handler(message, token_renew_step_1, bot, token_dict)
@@ -322,7 +307,11 @@ def select_action_response_handler(response: Response, bot: TeleBot, token_dict:
         new_token_dict = data['tokens'][0]
         new_token_dict['server'] = token_dict['server']
         new_token_dict['tariff'] = token_dict['tariff']
-        bot.send_message(user_id, data['details'], reply_markup=token_actions_keyboard(new_token_dict))
+        bot.send_message(
+            user_id,
+            'Ключ перевыпущен. Для получения информации по нему нажмите Информация о ключе.',
+            reply_markup=token_actions_keyboard(new_token_dict)
+        )
         bot.register_next_step_handler(message, select_action_with_token_step_3, bot, new_token_dict)
     elif status_code < 500:
         bot.send_message(
@@ -502,7 +491,7 @@ def select_action_with_user_step_3(message: Message, bot: TeleBot, to_send: dict
             user_info = response.json()['user_info']
             bot.send_message(
                 user_id,
-                f'Данные по выбранному ключу:\n'
+                f'Данные по выбранному пользователю:\n'
                 f'Клиент: {user_info["user"]["full_name"]}\n'
                 f'Бот для связи: {to_send["transport_name"]}\n'
                 f'TG ID: {user_info["contact"]["credentials"]["id"]}\n'
@@ -536,7 +525,7 @@ def select_action_with_user_step_4(message: Message, bot: TeleBot, to_send: dict
     elif 'Выбранный пользователь' in user_answer:
         bot.send_message(
             user_id,
-            f'Данные по выбранному ключу:\n'
+            f'Данные по выбранному пользователю:\n'
             f'Клиент: {user_info["user"]["full_name"]}\n'
             f'Бот для связи: {to_send["transport_name"]}\n'
             f'TG ID: {user_info["contact"]["credentials"]["id"]}\n'
@@ -571,10 +560,17 @@ def get_vpn_keys_step_1(message: Message, bot: TeleBot, to_send: dict, user_info
         tokens = response.json()['tokens']
         msg = []
         for token_dict in tokens:
-            msg.append(f"Token ID - {token_dict['id']}, срок действия - {token_dict['valid_until']}, "
-                       f"демо ключ - {'Да' if token_dict['is_demo'] else 'Нет'}\n"
-                       f"Ключ - {token_dict['vpn_key']}\n")
-        bot.send_message(user_id, ''.join(msg) if msg else 'Ключи отсутствуют', reply_markup=client_actions_keyboard())
+            msg.append(
+                text_replace_for_markdown(
+                    prepare_token_to_send(token_dict, bot)
+                )
+            )
+        bot.send_message(user_id, 'Для копирования ключа тапните на него.', reply_markup=client_actions_keyboard())
+        bot.send_message(
+            user_id, ''.join(msg) if msg else 'Ключи отсутствуют',
+            reply_markup=client_actions_keyboard(),
+            parse_mode='MarkdownV2',
+        )
         bot.register_next_step_handler(message, select_action_with_user_step_4, bot, to_send, user_info)
     elif status_code < 500:
         bot.send_message(
@@ -651,11 +647,14 @@ def new_token_step_3(message: Message, bot: TeleBot, list_for_kb: list, to_send:
             text = f'Владелец:\n' \
                    f'id: {data["user_info"]["user"]["id"]}\n' \
                    f'ФИО: {data["user_info"]["user"]["full_name"]}\n' \
-                   f'Новый ключ:\n' \
-                   f'id: {data["tokens"][0]["id"]}\n' \
-                   f'Срок действия: {data["tokens"][0]["valid_until"]}\n' \
-                   f'Ключ: {data["tokens"][0]["vpn_key"]}'
+                   f'Новый ключ:\n'
             bot.send_message(user_id, text, reply_markup=main_keyboard())
+            bot.send_message(user_id, 'Для копирования ключа тапните на него.', reply_markup=main_keyboard())
+            bot.send_message(
+                user_id, text_replace_for_markdown(prepare_token_to_send(data["tokens"][0], bot)),
+                reply_markup=main_keyboard(),
+                parse_mode='MarkdownV2',
+        )
 
         elif status_code < 500:
             bot.send_message(
@@ -823,3 +822,56 @@ def select_message_send_type_step_6(message: Message, bot: TeleBot, to_send: dic
     else:
         bot.send_message(user_id, 'Вы ввели не целое число, повторите ввод', reply_markup=back_to_main_menu_keyboard())
         bot.register_next_step_handler(message, select_message_send_type_step_6, bot, to_send)
+
+
+def text_replace_for_markdown(text: str) -> str:
+    replacements = {
+        '-': '\-',
+        '_': '\_',
+        '.': '\.',
+        ',': '\,',
+        '<': '\<',
+        '>': '\>',
+        '[': '\[',
+        ']': '\]',
+        '(': '\(',
+        ')': '\)',
+    }
+    rep_sorted = sorted(replacements, key=len, reverse=True)
+    rep_escaped = map(re.escape, rep_sorted)
+    pattern = re.compile("|".join(rep_escaped), 0)
+    return pattern.sub(lambda match: replacements[match.group(0)], text)
+
+
+def prepare_token_to_send(token_dict: dict, bot: TeleBot) -> str:
+    token_dict = transfer_token_data_ids_to_names(bot=bot, token_dict=token_dict)
+    if token_dict['valid_until']:
+        valid_until = f'срок действия до: *{token_dict["valid_until"]}*'
+    else:
+        valid_until = '*без ограничения* по сроку'
+    if token_dict['traffic_limit']:
+        traffic_limit = token_dict["traffic_limit"]
+        rest_of_traffic = traffic_limit - (token_dict["traffic_used"] if token_dict["traffic_used"] else 0)
+        if token_dict["traffic_last_update"]:
+            traffic_last_update = f'актуально на {token_dict["traffic_last_update"]}'
+        else:
+            traffic_last_update = f'данные еще не обновлялись'
+        traffic_limit = f'лимит трафика: *{format_bytes_to_human(traffic_limit)}*,' \
+                        f' остаток {format_bytes_to_human(rest_of_traffic)},' \
+                        f' {traffic_last_update}'
+    else:
+        traffic_limit = '*без ограничения* трафика'
+    return f"Token ID: *{token_dict['id']}*, {valid_until}, "\
+           f"демо ключ - *{'Да' if token_dict['is_demo'] else 'Нет'}*, "\
+           f"{traffic_limit}, сервер: *{token_dict['server']}*"\
+           f"\nКлюч: `{token_dict['vpn_key']}`\n "
+
+
+def format_bytes_to_human(size: int) -> str:
+    info_size = 1024
+    n = 0
+    info_labels = ['байт', 'Кб', 'Мб', 'Гб', 'Тб', 'Пб', 'Эб', 'Зб', 'Йб']
+    while size >= info_size:
+        size /= info_size
+        n += 1
+    return f"{size:.2f} {info_labels[n]}"

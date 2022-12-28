@@ -263,6 +263,7 @@ def add_or_update_user(bot: TeleBot, message: Message) -> None:
 def text_replace_for_markdown(text: str) -> str:
     replacements = {
         '-': '\-',
+        '_': '\_',
         '.': '\.',
         ',': '\,',
         '<': '\<',
@@ -278,19 +279,45 @@ def text_replace_for_markdown(text: str) -> str:
     return pattern.sub(lambda match: replacements[match.group(0)], text)
 
 
-def prepare_token_to_send(token_dict: dict) -> str:
+def transfer_token_data_ids_to_names(bot: TeleBot, token_dict: dict) -> dict:
+    tariffs = update_tariffs(bot=bot)
+    servers = update_vpn_servers(bot=bot)
+    for token_key, token_item in token_dict.items():
+        if token_key == 'server':
+            for server in servers:
+                if server['id'] == token_item:
+                    token_dict['server'] = server['external_name']
+                    break
+        if token_key == 'tariff':
+            for tariff in tariffs:
+                if tariff['id'] == token_item:
+                    token_dict['tariff'] = tariff['name']
+                    break
+    return token_dict
+
+
+def prepare_token_to_send(token_dict: dict, bot: TeleBot) -> str:
+    token_dict = transfer_token_data_ids_to_names(bot=bot, token_dict=token_dict)
     if token_dict['valid_until']:
         valid_until = f'срок действия до: *{token_dict["valid_until"]}*'
     else:
         valid_until = '*без ограничения* по сроку'
     if token_dict['traffic_limit']:
-        traffic_limit = f'лимит трафика: *{format_bytes_to_human(token_dict["traffic_limit"])}*'
+        traffic_limit = token_dict["traffic_limit"]
+        rest_of_traffic = traffic_limit - (token_dict["traffic_used"] if token_dict["traffic_used"] else 0)
+        if token_dict["traffic_last_update"]:
+            traffic_last_update = f'актуально на {token_dict["traffic_last_update"]}'
+        else:
+            traffic_last_update = f'данные еще не обновлялись'
+        traffic_limit = f'лимит трафика: *{format_bytes_to_human(traffic_limit)}*,' \
+                        f' остаток {format_bytes_to_human(rest_of_traffic)},' \
+                        f' {traffic_last_update}'
     else:
         traffic_limit = '*без ограничения* трафика'
     return f"Token ID: *{token_dict['id']}*, {valid_until}, "\
            f"демо ключ - *{'Да' if token_dict['is_demo'] else 'Нет'}*, "\
-           f"{traffic_limit}"\
-           f"\nКлюч: _`{token_dict['vpn_key']}`_\n "
+           f"{traffic_limit}, сервер: *{token_dict['server']}*"\
+           f"\nКлюч: `{token_dict['vpn_key']}`\n "
 
 
 def get_vpn_keys(bot: TeleBot, user: User) -> None:
@@ -314,7 +341,7 @@ def get_vpn_keys(bot: TeleBot, user: User) -> None:
         for token_dict in tokens:
             msg.append(
                 text_replace_for_markdown(
-                    prepare_token_to_send(token_dict)
+                    prepare_token_to_send(token_dict, bot)
                 )
             )
         bot.send_message(user_id, 'Для копирования ключа тапните на него.', reply_markup=main_keyboard())
@@ -375,7 +402,7 @@ def renew_token_step_2(message: Message, bot: TeleBot):
                 token = json_data['tokens'][0]
                 renew_text = f'Новый ключ создан.\n Старый ключ более не действителен, замените его в приложении.\n' \
                              f'Для копирования ключа тапните на него.\n'
-                text = text_replace_for_markdown(prepare_token_to_send(token))
+                text = text_replace_for_markdown(prepare_token_to_send(token, bot))
                 bot.send_message(user_id, renew_text, reply_markup=main_keyboard())
                 bot.send_message(user_id, text, reply_markup=main_keyboard(), parse_mode='MarkdownV2')
             elif status_code in [403]:
@@ -484,7 +511,7 @@ def subscribes_step_3(
             if status_code == 201:
                 token = json_data['tokens'][0]
                 new_text = f'Новый ключ создан.\n Для копирования ключа тапните на него.\n'
-                text = text_replace_for_markdown(prepare_token_to_send(token))
+                text = text_replace_for_markdown(prepare_token_to_send(token, bot))
                 bot.send_message(user_id, new_text, reply_markup=main_keyboard())
                 bot.send_message(user_id, text, reply_markup=main_keyboard(), parse_mode='MarkdownV2')
             elif status_code == 403:
@@ -541,7 +568,7 @@ def tariffs_step_1(bot: TeleBot, message: Message):
     msg = ['Доступные тарифы:\n']
     for tariff in tariffs:
         if tariff["traffic_limit"]:
-            limit = f'Лимит трафика: {tariff["traffic_limit"] / 1024 / 1024} мб'
+            limit = f'Лимит трафика: {format_bytes_to_human(tariff["traffic_limit"])}'
         else:
             limit = 'Без ограничения трафика'
         if tariff["prolong_period"]:

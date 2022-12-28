@@ -44,3 +44,15 @@ class MockResponseGetServerInfo:
             "portForNewAccessKeys": 1234,
             "hostnameForAccessKeys": "example.com"
         }
+
+
+class MockResponseGetMetrics:
+    def __init__(self, outline_id, used_bytes):
+        self.status_code = 200
+        self.outline_id = outline_id
+        self.used_bytes = used_bytes
+
+    def json(self):
+        return {
+                str(self.outline_id): self.used_bytes,
+            }
