@@ -225,12 +225,12 @@ class VPNToken(admin.ModelAdmin):
         traffic_limit = obj.traffic_limit
         if traffic_limit:
             traffic_used = obj.traffic_used
-            if not traffic_used:
-                traffic_used = 0
-            rest_of_traffic = traffic_limit - traffic_used
-            if rest_of_traffic < 0:
-                rest_of_traffic = 0
-            return format_bytes_to_human(rest_of_traffic)
+            # if not traffic_used:
+            #     traffic_used = 0
+            rest_of_traffic = traffic_limit - (traffic_used if traffic_used else 0)
+            # if rest_of_traffic < 0:
+            #     rest_of_traffic = 0
+            return format_bytes_to_human(rest_of_traffic if rest_of_traffic > 0 else 0)
         return ''
 
     @admin.display(description='Лимит')
