@@ -223,9 +223,14 @@ class VPNToken(admin.ModelAdmin):
     @admin.display(description='Остаток')
     def rest_of_traffic(self, obj):
         traffic_limit = obj.traffic_limit
-        rest_of_traffic = traffic_limit - (obj.traffic_used if obj.traffic_used else 0)
         if traffic_limit:
-            return format_bytes_to_human(rest_of_traffic if rest_of_traffic >= 0 else 0)
+            traffic_used = obj.traffic_used
+            if not traffic_used:
+                traffic_used = 0
+            rest_of_traffic = traffic_limit - traffic_used
+            if rest_of_traffic < 0:
+                rest_of_traffic = 0
+            return format_bytes_to_human(rest_of_traffic)
         return ''
 
     @admin.display(description='Лимит')
