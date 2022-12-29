@@ -857,7 +857,7 @@ def prepare_token_to_send(token_dict: dict, bot: TeleBot) -> str:
         else:
             traffic_last_update = f'данные еще не обновлялись'
         traffic_limit = f'лимит трафика: *{format_bytes_to_human(traffic_limit)}*,' \
-                        f' остаток {format_bytes_to_human(rest_of_traffic)},' \
+                        f' остаток {format_bytes_to_human(rest_of_traffic if rest_of_traffic >= 0 else 0)},' \
                         f' {traffic_last_update}'
     else:
         traffic_limit = '*без ограничения* трафика'
