@@ -5,6 +5,7 @@ from django.test import TestCase
 class FormatBytesToHumanTestCase(TestCase):
     def test_format_bytes_to_human(self):
         tests = {
+            0: '0 байт',
             1: '1.00 байт',
             1024: '1.00 Кб',
             500000: '488.28 Кб',

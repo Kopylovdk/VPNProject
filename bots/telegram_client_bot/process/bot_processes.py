@@ -36,6 +36,8 @@ def format_bytes_to_human(size: int) -> str:
     while size >= info_size:
         size /= info_size
         n += 1
+    if size == 0:
+        return f"{size} {info_labels[n]}"
     return f"{size:.2f} {info_labels[n]}"
 
 
